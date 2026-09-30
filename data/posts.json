@@ -1,0 +1,52 @@
+[
+  {
+    "id": "post_1790725563463",
+    "title": "The Future of LMS",
+    "summary": "Why is this the future of LMS for remote regions who may not be able to afford such systems? Can teachers manage a Google Sheet? Yes? Good, then they can upload their courses. Donors can assist with the cost of the AI and LMS system by purchasing tokens. Tokens can either be sent to a general emergency fund, which will give tokens to schools that need them, and there will be an option to donate to preferred institutions. This means even people in the most remote villages with limited options for LMSs can access great educational technology. #dfatcambodia",
+    "link": "https://www.linkedin.com/feed/update/urn:li:activity:7510599777567293440/",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D4E22AQFml1f1X_czyQ/feedshare-shrink_800/B4EaDsCsuGGwAk-/0/1790666525992?e=2147483647&amp;v=beta&amp;t=KX2DIfCEoNri0oJGIXuCahwieU94ShNX_L3WaElRYFw",
+    "platform": "linkedin",
+    "author": "AI Foundation Australia",
+    "date": "2026-09-29T23:46:03.463Z"
+  },
+  {
+    "id": "post_1790725506734",
+    "title": "Stop Data Leaks! How Firestore User Security ACTUALLY Works",
+    "summary": "This configuration file sets up security boundaries for a Firebase Firestore database. At a high level, it establishes a strict &quot;owner-only&quot; data model, ensuring that logged-in users can access and modify their own personal data while remaining completely blocked from viewing or altering anyone else",
+    "link": "https://www.linkedin.com/pulse/stop-data-leaks-how-firestore-user-security-actually-works-ixmpc?trackingId=WWSRuXXMewDXTkwifk%2BYRw%3D%3D&lipi=urn%3Ali%3Apage%3Aorganization_admin_admin_page_posts_published%3Bceace028-fce2-4a6f-a805-d492207a5dd2",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQESN-V_53a6PQ/article-cover_image-shrink_600_2000/B56aDbhQ1AKIAM-/0/1790389325370?e=2147483647&amp;v=beta&amp;t=olfMlfY9RG4HPTZM9BHt93u5Jvq7Gc8gYdxW3PTDyug",
+    "platform": "linkedin",
+    "author": "AI Foundation Australia",
+    "date": "2026-09-29T23:45:06.734Z"
+  },
+  {
+    "id": "post_1790725490549",
+    "title": "EduPulse AI – Complete Student Application Process",
+    "summary": "This platform functions as a streamlined education, training, and Learning Management System (LMS) designed to run seamlessly with Google Sheets as its primary backend database. By leveraging ubiquitous, accessible cloud spreadsheets to manage courses, applicant details, and syllabuses, the system e",
+    "link": "https://www.linkedin.com/pulse/edupulse-ai-complete-student-application-process-aifoundationaus-fqcwc?trackingId=QWLZddEESsdKMgaF3p2GlA%3D%3D&lipi=urn%3Ali%3Apage%3Aorganization_admin_admin_page_posts_published%3Bceace028-fce2-4a6f-a805-d492207a5dd2",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQHHDuIpKl73Mg/article-cover_image-shrink_600_2000/B56aDf5WNLJsAM-/0/1790462748841?e=2147483647&amp;v=beta&amp;t=-rSS-IQwK8g3y823R-ozAQCv8MTZuKvtlYxiAOCKLiM",
+    "platform": "linkedin",
+    "author": "AI Foundation Australia",
+    "date": "2026-09-29T23:44:50.549Z"
+  },
+  {
+    "id": "post_1790725463618",
+    "title": "Empowering Educational Equity: A Flexible, Community-Driven Token Model for Disadvantaged Students",
+    "summary": "System Architecture &amp; Operational Workflow The Token Management System operates on a unit-of-use economic model designed to deliver, track, and reallocate digital access passes without market friction or value degradation over time. 1.",
+    "link": "https://www.linkedin.com/pulse/empowering-educational-equity-flexible-community-driven-cyr3c/?trackingId=gwJFTIyFzoEXdn3Aatz%2B6Q%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQGiF4ZeDkAhLQ/article-cover_image-shrink_600_2000/B56aDlyRQvJ8AM-/0/1790561555770?e=2147483647&amp;v=beta&amp;t=awVLVv1AKmv0KnTQYQBiJjEPiRjsSd3tacEBPug73cs",
+    "platform": "linkedin",
+    "author": "AI Foundation Australia",
+    "date": "2026-09-29T23:44:23.618Z"
+  },
+  {
+    "id": "post_1790724272307",
+    "title": "Automated Dual-Tier Routing Framework for Antigravity Agents",
+    "summary": "This configuration establishes a automated, dual-tier routing framework within Google Antigravity that dynamically assigns incoming tasks based on structural complexity and cost efficiency. By anchoring the primary dispatcher and routine automation workers to lightweight model aliases like , the sys",
+    "link": "https://www.linkedin.com/pulse/automated-dual-tier-routing-framework-antigravity-agents-wgtrc/?trackingId=bJdb0C%2BRnjuQtuHZwTEnRA%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQFSzUL4q9DdQA/article-cover_image-shrink_720_1280/B56aDnQe3YIEAQ-/0/1790586253078?e=2147483647&amp;v=beta&amp;t=uoLAkXqD5d-BbCXJz3XwAR5DpAyD4prPgqrFaar5KK8",
+    "platform": "linkedin",
+    "author": "AI Foundation Australia",
+    "date": "2026-09-29T23:24:32.307Z"
+  }
+]
