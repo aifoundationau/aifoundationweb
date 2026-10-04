@@ -30,37 +30,35 @@
     <main class="dashboard-container">
 
         <!-- Sidebar -->
-        <aside class="dashboard-sidebar">
-            <h3 class="sidebar-title">Special Sections</h3>
-            <ul class="sidebar-list" id="sidebarNav">
-                <li class="sidebar-item active" data-target="section-overview">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Articles</span>
-                </li>
-                <li class="sidebar-item" data-target="section-tech">
-                    <i class="fa-solid fa-microchip"></i>
-                    <span>Technology R&D</span>
-                </li>
-                <li class="sidebar-item" data-target="section-community">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Community Reach</span>
-                </li>
-                <li class="sidebar-item" data-target="section-education">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                    <span>Classroom</span>
-                </li>
-                <!-- <li class="sidebar-item" data-target="section-partnerships">
-                    <i class="fa-solid fa-handshake"></i>
-                    <span>Partnerships</span>
-                </li> -->
-                <li class="sidebar-item" data-target="section-david">
-                    <i class="fa-solid fa-address-card"></i>
-                    <span>Contact</span>
-                </li>
-            </ul>
+        <aside style="display: flex; flex-direction: column; gap: 24px; position: sticky; top: 100px; align-self: start;">
+            <div class="dashboard-sidebar" style="position: static;">
+                <h3 class="sidebar-title">Special Sections</h3>
+                <ul class="sidebar-list" id="sidebarNav">
+                    <li class="sidebar-item active" data-target="section-overview">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Articles</span>
+                    </li>
+                    <!-- <li class="sidebar-item" data-target="section-community">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Community Reach</span>
+                    </li> -->
+                    <li class="sidebar-item" data-target="section-education">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <span>Classroom</span>
+                    </li>
+                    <!-- <li class="sidebar-item" data-target="section-partnerships">
+                        <i class="fa-solid fa-handshake"></i>
+                        <span>Partnerships</span>
+                    </li> -->
+                    <li class="sidebar-item" data-target="section-david">
+                        <i class="fa-solid fa-address-card"></i>
+                        <span>Contact</span>
+                    </li>
+                </ul>
+            </div>
 
-            <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 12px;">
-                <h3 class="sidebar-title" style="margin-bottom: 0;">Connect</h3>
+            <div class="dashboard-sidebar" style="position: static; display: flex; flex-direction: column; gap: 12px;">
+                <h3 class="sidebar-title" style="margin-bottom: 4px;">Connect</h3>
                 <a href="https://www.linkedin.com/company/aifoundationaus/" target="_blank" rel="noopener noreferrer"
                     style="display: flex; align-items: center; gap: 12px; background: #0a66c2; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(10, 102, 194, 0.25); transition: all 0.2s;">
                     <i class="fa-brands fa-linkedin" style="font-size: 1.25rem;"></i>
@@ -70,6 +68,16 @@
                     style="display: flex; align-items: center; gap: 12px; background: #ff0000; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 0, 0, 0.25); transition: all 0.2s;">
                     <i class="fa-brands fa-youtube" style="font-size: 1.25rem;"></i>
                     <span>AI Foundation</span>
+                </a>
+                <a href="https://share.google/WiQLQGRiI5cS1LSGS" target="_blank" rel="noopener noreferrer"
+                    style="display: flex; align-items: center; gap: 12px; background: #4285F4; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25); transition: all 0.2s;">
+                    <i class="fa-brands fa-google" style="font-size: 1.25rem;"></i>
+                    <span>Google Updates</span>
+                </a>
+                <a href="https://x.com/aifoundationAU" target="_blank" rel="noopener noreferrer"
+                    style="display: flex; align-items: center; gap: 12px; background: #000000; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); transition: all 0.2s;">
+                    <i class="fa-brands fa-x-twitter" style="font-size: 1.25rem;"></i>
+                    <span>X (Twitter)</span>
                 </a>
             </div>
         </aside>
@@ -82,13 +90,25 @@
                 style="display: flex; flex-direction: column; gap: 32px;">
                 <!-- Centered Logo -->
                 <div class="dashboard-card"
-                    style="display: flex; justify-content: center; align-items: center; padding: 40px; border-radius: 30px; margin-bottom: 8px;">
+                    style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; border-radius: 30px; margin-bottom: 8px; gap: 8px;">
                     <img src="assets/logo.png" alt="AI Foundation Logo" style="max-height: 120px; object-fit: contain;">
+                    <div style="position: relative; width: 100%; max-width: 480px;">
+                        <i class="fa-solid fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem;"></i>
+                        <input type="text" id="globalSearchInput" placeholder="Search all posts and updates..." 
+                            style="width: 100%; padding: 14px 16px 14px 48px; border: 1px solid #e2e8f0; border-radius: 100px; font-family: inherit; font-size: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); outline: none; transition: all 0.2s;"
+                            onfocus="this.style.borderColor='#0066ff'; this.style.boxShadow='0 4px 12px rgba(0,102,255,0.1)';"
+                            onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';">
+                    </div>
                 </div>
 
                 <!-- Posts Grid (Dynamic injection) -->
                 <div class="posts-grid" id="postsGrid">
                     <!-- Posts will be injected here by app.js -->
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div id="paginationControls" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; padding-bottom: 24px;">
+                    <!-- Buttons will be injected here by app.js -->
                 </div>
             </div>
 
@@ -109,12 +129,6 @@
                             Sign in to Google Classroom
                         </a>
                     </div>
-                </div>
-            </div>
-
-            <div id="section-tech" class="content-section" style="display: none; flex-direction: column; gap: 32px;">
-                <div class="posts-grid" id="techPostsGrid">
-                    <!-- Tech posts will be injected here by app.js -->
                 </div>
             </div>
 
@@ -257,40 +271,15 @@
                             <div class="admin-form">
                                 <select id="postCategory" required style="margin-bottom: 12px; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; width: 100%; font-family: inherit;">
                                     <option value="articles">Articles</option>
-                                    <option value="tech">Technology R&D</option>
-                                    <option value="community">Community Reach</option>
                                 </select>
-                                <input type="text" id="linkInput"
-                                    placeholder="Enter URL to scrape (e.g. LinkedIn, Blog)" />
-                                <div class="sample-chips">
-                                    <span class="sample-chip" data-url="https://example.com/article1">Sample Link
-                                        1</span>
-                                    <span class="sample-chip" data-url="https://example.com/article2">Sample Link
-                                        2</span>
+                                
+                                <div id="multiLinksContainer">
+                                    <!-- Dynamic rows will be injected here -->
                                 </div>
-                                <button id="extractBtn">Extract Metadata</button>
-                            </div>
+                                
+                                <button type="button" id="addLinkRowBtn" style="background: #f1f5f9; color: #334155; padding: 12px; border: 1px dashed #cbd5e1; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 24px; transition: all 0.2s;">+ Add Another Link</button>
 
-                            <!-- Preview Card / Form to actually submit -->
-                            <div id="previewCard"
-                                style="display: none; margin-top: 24px; padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
-                                <form id="createPostForm" class="admin-form" style="margin-top: 0;">
-                                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 8px;">
-                                        <img id="imagePreview" src=""
-                                            style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;" />
-                                        <span id="imgbbStatus"
-                                            style="font-size: 0.85rem; color: #64748b;">Ready...</span>
-                                    </div>
-                                    <input type="hidden" id="finalImageUrl" />
-                                    <input type="text" id="postTitle" placeholder="Title" required />
-                                    <textarea id="postSummary" placeholder="Summary"></textarea>
-                                    <input type="text" id="postPlatform" placeholder="Platform (e.g., linkedin, google)"
-                                        required />
-                                    <input type="text" id="postLink" placeholder="Final Link URL" required />
-                                    <button type="submit"
-                                        style="background: #0066ff; color: white; padding: 16px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 8px;">Publish
-                                        Post</button>
-                                </form>
+                                <button type="button" id="publishAllBtn" style="background: #0066ff; color: white; padding: 16px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2);">Publish All Posts</button>
                             </div>
                         </div>
 
@@ -300,16 +289,11 @@
                             
                             <select id="manageCategory" style="margin-bottom: 24px; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; width: 100%; font-family: inherit; font-size: 1rem;">
                                 <option value="articles">Articles</option>
-                                <option value="tech">Technology R&D</option>
-                                <option value="community">Community Reach</option>
+                                <!-- <option value="community">Community Reach</option> -->
                             </select>
 
                             <div id="manage-articles-view" style="display: block;">
                                 <div id="adminPostsList"></div>
-                            </div>
-
-                            <div id="manage-tech-view" style="display: none;">
-                                <div id="adminTechPostsList"></div>
                             </div>
 
                             <div id="manage-community-view" style="display: none;">
@@ -323,7 +307,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=7"></script>
 </body>
 
 </html>

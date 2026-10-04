@@ -371,3 +371,5 @@ p { margin: 0; }
   .welcome-card h1 { font-size: 2rem; }
   .card-decoration { display: none; }
 }
+
+.platform-youtube { background: #ff0000; color: white; }
