@@ -116,7 +116,7 @@ async function uploadToImgBB(imageInput) {
         return trimmed;
     }
 
-    const apiKey = process.env.IMGBB_API_KEY || '6d7007353630f7eaf44016384dd9761e';
+    const apiKey = process.env.IMGBB_API_KEY || '89dbf8bab69adf99de2c727bd9de3e37';
     try {
         const formData = new FormData();
         if (trimmed.startsWith('data:image')) {
@@ -128,6 +128,9 @@ async function uploadToImgBB(imageInput) {
 
         const res = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, {
             method: 'POST',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
             body: formData
         });
         const result = await res.json();
@@ -361,8 +364,8 @@ app.post('/api/extract-metadata', async (req, res) => {
 
 // PROXY Upload to ImgBB (https://api.imgbb.com/1/upload)
 app.post('/api/upload-imgbb', async (req, res) => {
-    const { imageBase64, imageUrl, apiKey } = req.body;
-    const finalKey = apiKey || process.env.IMGBB_API_KEY || '6d7007353630f7eaf44016384dd9761e';
+    const { imageBase64, imageUrl, apiKey, name } = req.body;
+    const finalKey = apiKey || process.env.IMGBB_API_KEY || '89dbf8bab69adf99de2c727bd9de3e37';
     try {
         const imagePayload = imageBase64 || imageUrl;
         if (!imagePayload) {
@@ -371,14 +374,20 @@ app.post('/api/upload-imgbb', async (req, res) => {
         const formData = new FormData();
         const clean = imagePayload.replace(/^data:image\/\w+;base64,/, '');
         formData.append('image', clean);
+        if (name) {
+            formData.append('name', name);
+        }
 
         const fetchRes = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(finalKey)}`, {
             method: 'POST',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
             body: formData
         });
         const data = await fetchRes.json();
         if (data.success && data.data) {
-            res.json({ success: true, url: data.data.url, data: data.data });
+            res.json({ success: true, url: data.data.url, display_url: data.data.display_url, data: data.data });
         } else {
             res.status(400).json({ error: data.error?.message || 'ImgBB upload failed', details: data });
         }

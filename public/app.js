@@ -674,6 +674,160 @@ const postObserver = new IntersectionObserver((entries) => {
         createLinkRow();
     }
 
+    // Direct ImgBB Upload Tab Handler
+    function initDirectImgbbUpload() {
+        const dropzone = document.getElementById('directImgbbDropzone');
+        const fileInput = document.getElementById('directImgbbFileInput');
+        const promptWrap = document.getElementById('directImgbbPrompt');
+        const previewWrap = document.getElementById('directImgbbPreviewWrap');
+        const previewImg = document.getElementById('directImgbbPreviewImg');
+        const fileNameSpan = document.getElementById('directImgbbFileName');
+        const changeBtn = document.getElementById('directImgbbChangeBtn');
+        const titleInput = document.getElementById('directImgbbTitle');
+        const uploadBtn = document.getElementById('directImgbbUploadBtn');
+        const statusDiv = document.getElementById('directImgbbStatus');
+        const resultCard = document.getElementById('directImgbbResultCard');
+        const resultThumb = document.getElementById('directImgbbResultThumb');
+        const resultUrl = document.getElementById('directImgbbResultUrl');
+        const viewerLink = document.getElementById('directImgbbViewerLink');
+        const copyBtn = document.getElementById('directImgbbCopyBtn');
+
+        if (!dropzone || !fileInput || !uploadBtn) return;
+
+        let selectedBase64 = null;
+
+        function setFile(file) {
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file (PNG, JPG, GIF, WebP).');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedBase64 = e.target.result;
+                if (previewImg) previewImg.src = selectedBase64;
+                if (fileNameSpan) fileNameSpan.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                if (promptWrap) promptWrap.style.display = 'none';
+                if (previewWrap) previewWrap.style.display = 'flex';
+                uploadBtn.disabled = false;
+                uploadBtn.style.opacity = '1';
+                if (statusDiv) statusDiv.style.display = 'none';
+                if (resultCard) resultCard.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        dropzone.addEventListener('click', (e) => {
+            if (e.target !== changeBtn) {
+                fileInput.click();
+            }
+        });
+
+        changeBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.value = '';
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files && fileInput.files[0]) {
+                setFile(fileInput.files[0]);
+            }
+        });
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#0066ff';
+            dropzone.style.background = '#eff6ff';
+        });
+
+        ['dragleave', 'dragend'].forEach(evt => {
+            dropzone.addEventListener(evt, () => {
+                dropzone.style.borderColor = '#cbd5e1';
+                dropzone.style.background = 'white';
+            });
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#cbd5e1';
+            dropzone.style.background = 'white';
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                setFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedBase64) return;
+
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading to ImgBB...';
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.style.color = '#0284c7';
+                statusDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading image to ImgBB...';
+            }
+            if (resultCard) resultCard.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/upload-imgbb', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageBase64: selectedBase64,
+                        name: titleInput ? titleInput.value.trim() : ''
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success && (data.url || data.display_url)) {
+                    const finalUrl = data.url || data.display_url;
+                    if (statusDiv) {
+                        statusDiv.style.color = '#16a34a';
+                        statusDiv.innerHTML = '<i class="fa-solid fa-circle-check"></i> Image successfully uploaded to ImgBB!';
+                    }
+                    if (resultThumb) resultThumb.src = finalUrl;
+                    if (resultUrl) resultUrl.value = finalUrl;
+                    if (viewerLink) {
+                        viewerLink.href = data.data?.url_viewer || finalUrl;
+                    }
+                    if (resultCard) resultCard.style.display = 'block';
+                } else {
+                    if (statusDiv) {
+                        statusDiv.style.color = '#dc2626';
+                        statusDiv.textContent = `Upload failed: ${data.error || 'Unknown error'}`;
+                    }
+                }
+            } catch (err) {
+                if (statusDiv) {
+                    statusDiv.style.color = '#dc2626';
+                    statusDiv.textContent = `Network error: ${err.message}`;
+                }
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Upload to ImgBB';
+            }
+        });
+
+        copyBtn?.addEventListener('click', () => {
+            if (!resultUrl || !resultUrl.value) return;
+            navigator.clipboard.writeText(resultUrl.value).then(() => {
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                copyBtn.style.background = '#16a34a';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.style.background = '#0f172a';
+                }, 2000);
+            }).catch(() => {
+                resultUrl.select();
+                document.execCommand('copy');
+            });
+        });
+    }
+
+    initDirectImgbbUpload();
+
     function renderAdminAllPosts() {
         const list = document.getElementById('adminAllPostsList');
         if (!list) return;
