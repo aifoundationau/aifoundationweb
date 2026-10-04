@@ -4,11 +4,14 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const Stripe = require('stripe');
 
 const app = express();
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
 const COMM_DATA_FILE = path.join(__dirname, 'data', 'community.json');
+const PROJECTS_DATA_FILE = path.join(__dirname, 'data', 'projects.json');
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -72,6 +75,18 @@ function getCommunityPosts() {
 
 function saveCommunityPosts(posts) {
     fs.writeFileSync(COMM_DATA_FILE, JSON.stringify(posts, null, 2));
+}
+
+function getProjects() {
+    try {
+        return JSON.parse(fs.readFileSync(PROJECTS_DATA_FILE, 'utf8'));
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveProjects(projects) {
+    fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(projects, null, 2));
 }
 
 function detectPlatform(url) {
@@ -148,6 +163,45 @@ app.delete('/api/community/:id', (req, res) => {
     posts = posts.filter(p => p.id !== req.params.id);
     saveCommunityPosts(posts);
     res.json({ success: true });
+});
+
+// PROJECTS API
+app.get('/api/projects', (req, res) => {
+    const projects = getProjects();
+    res.json(projects.sort((a, b) => new Date(b.date) - new Date(a.date)));
+});
+
+app.post('/api/projects', (req, res) => {
+    const { title, summary, link, imageUrl, platform, author } = req.body;
+    if (!title || !link) {
+        return res.status(400).json({ error: 'Title and link are required' });
+    }
+    const projects = getProjects();
+    const newProject = {
+        id: 'proj_' + Date.now(),
+        title: title.trim(),
+        summary: (summary || '').trim(),
+        link: link.trim(),
+        imageUrl: imageUrl || 'assets/logo.png',
+        platform: platform || detectPlatform(link),
+        author: author || 'AI Foundation Australia',
+        date: new Date().toISOString()
+    };
+    projects.unshift(newProject);
+    saveProjects(projects);
+    res.json({ success: true, project: newProject });
+});
+
+app.delete('/api/projects/:id', (req, res) => {
+    let projects = getProjects();
+    projects = projects.filter(p => p.id !== req.params.id);
+    saveProjects(projects);
+    res.json({ success: true });
+});
+
+// PROJECTS PAGE ROUTE
+app.get('/projects', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'projects.html'));
 });
 
 app.post('/api/extract-metadata', async (req, res) => {
@@ -233,6 +287,168 @@ app.post('/api/upload-imgbb', async (req, res) => {
         }
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+// Stripe Checkout Session Creation
+app.post('/api/stripe/create-checkout-session', async (req, res) => {
+    try {
+        if (!stripe) {
+            return res.status(500).json({ error: 'Stripe is not configured on the server.' });
+        }
+        let { amount } = req.body;
+        amount = parseInt(amount, 10);
+        if (!amount || isNaN(amount) || amount < 1) {
+            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $1.' });
+        }
+
+        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const session = await stripe.checkout.sessions.create({
+            line_items: [{
+                price_data: {
+                    currency: 'aud',
+                    product_data: {
+                        name: 'Support AI Foundation Australia',
+                        description: `Contribution of AUD $${amount}`
+                    },
+                    unit_amount: amount * 100
+                },
+                quantity: 1
+            }],
+            mode: 'payment',
+            success_url: `${origin}/?donation=stripe_success&amt=${amount}`,
+            cancel_url: `${origin}/?donation=cancelled`
+        });
+
+        res.json({ url: session.url });
+    } catch (e) {
+        console.error('Stripe Checkout Error:', e);
+        res.status(500).json({ error: e.message || 'Error creating Stripe session' });
+    }
+});
+
+// Helper for PayPal OAuth Token
+async function getPayPalAccessToken() {
+    const clientId = process.env.PAYPAL_CLIENT_ID;
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+    if (!clientId || !clientSecret) return null;
+    const mode = process.env.PAYPAL_MODE || 'sandbox';
+    const baseUrl = mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    
+    const res = await fetch(`${baseUrl}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+    });
+    const data = await res.json();
+    return { token: data.access_token, baseUrl };
+}
+
+// PayPal Order Creation
+app.post('/api/paypal/create-order', async (req, res) => {
+    try {
+        let { amount } = req.body;
+        amount = parseInt(amount, 10);
+        if (!amount || isNaN(amount) || amount < 1) {
+            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $1.' });
+        }
+
+        const pp = await getPayPalAccessToken();
+        if (!pp || !pp.token) {
+            return res.status(500).json({ error: 'PayPal credentials are not configured.' });
+        }
+
+        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const orderRes = await fetch(`${pp.baseUrl}/v2/checkout/orders`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${pp.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                intent: 'CAPTURE',
+                purchase_units: [{
+                    amount: {
+                        currency_code: 'AUD',
+                        value: amount.toFixed(2)
+                    },
+                    description: `Support AI Foundation Australia (AUD $${amount})`
+                }],
+                application_context: {
+                    brand_name: 'AI Foundation Australia',
+                    return_url: `${origin}/?donation=paypal_success&amt=${amount}`,
+                    cancel_url: `${origin}/?donation=cancelled`
+                }
+            })
+        });
+
+        const orderData = await orderRes.json();
+        const approveLink = orderData.links && orderData.links.find(l => l.rel === 'approve');
+        if (approveLink) {
+            res.json({ url: approveLink.href, orderId: orderData.id });
+        } else {
+            res.status(400).json({ error: 'Could not create PayPal checkout order.', details: orderData });
+        }
+    } catch (e) {
+        console.error('PayPal Order Error:', e);
+        res.status(500).json({ error: e.message || 'Error creating PayPal order' });
+    }
+});
+
+// Capture PayPal Order
+app.post('/api/paypal/capture-order/:orderId', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const pp = await getPayPalAccessToken();
+        if (!pp || !pp.token) {
+            return res.status(500).json({ error: 'PayPal credentials not configured.' });
+        }
+
+        const captureRes = await fetch(`${pp.baseUrl}/v2/checkout/orders/${orderId}/capture`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${pp.token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const captureData = await captureRes.json();
+        res.json(captureData);
+    } catch (e) {
+        console.error('PayPal Capture Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Stripe PaymentIntent for in-page popup modal
+app.post('/api/stripe/create-payment-intent', async (req, res) => {
+    try {
+        if (!stripe) {
+            return res.status(500).json({ error: 'Stripe is not configured on the server.' });
+        }
+        let { amount } = req.body;
+        amount = parseInt(amount, 10);
+        if (!amount || isNaN(amount) || amount < 1) {
+            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $1.' });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: amount * 100,
+            currency: 'aud',
+            automatic_payment_methods: { enabled: true },
+            description: `Donation to AI Foundation Australia (AUD $${amount})`
+        });
+
+        res.json({
+            clientSecret: paymentIntent.client_secret,
+            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+        });
+    } catch (e) {
+        console.error('Stripe PaymentIntent Error:', e);
+        res.status(500).json({ error: e.message || 'Error creating payment intent' });
     }
 });
 

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Foundation Australia - Social & Web Updates</title>
+    <title>Projects & Initiatives - AI Foundation Australia</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +16,9 @@
     <header class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <img src="assets/logo.png" alt="AI Foundation Australia Logo" class="brand-logo">
+                <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+                    <img src="assets/logo.png" alt="AI Foundation Australia Logo" class="brand-logo">
+                </a>
             </div>
             <div class="nav-actions">
                 <button class="admin-gear-btn" id="adminToggleBtn" title="Admin Settings">
@@ -34,27 +36,19 @@
             <div class="dashboard-sidebar" style="position: static;">
                 <h3 class="sidebar-title">Special Sections</h3>
                 <ul class="sidebar-list" id="sidebarNav">
-                    <li class="sidebar-item active" data-target="section-overview">
+                    <li class="sidebar-item" onclick="window.location.href='index.html#articles'">
                         <i class="fa-solid fa-house"></i>
                         <span>Articles</span>
                     </li>
-                    <li class="sidebar-item" data-target="section-projects">
+                    <li class="sidebar-item active" data-target="section-projects">
                         <i class="fa-solid fa-layer-group"></i>
                         <span>Projects</span>
                     </li>
-                    <!-- <li class="sidebar-item" data-target="section-community">
-                        <i class="fa-solid fa-users"></i>
-                        <span>Community Reach</span>
-                    </li> -->
-                    <li class="sidebar-item" data-target="section-education">
+                    <li class="sidebar-item" onclick="window.location.href='index.html#education'">
                         <i class="fa-solid fa-graduation-cap"></i>
                         <span>Classroom</span>
                     </li>
-                    <!-- <li class="sidebar-item" data-target="section-partnerships">
-                        <i class="fa-solid fa-handshake"></i>
-                        <span>Partnerships</span>
-                    </li> -->
-                    <li class="sidebar-item" data-target="section-david">
+                    <li class="sidebar-item" onclick="window.location.href='index.html#david'">
                         <i class="fa-solid fa-address-card"></i>
                         <span>Contact</span>
                     </li>
@@ -89,36 +83,9 @@
         <!-- Main Content Area -->
         <div class="dashboard-content">
 
-            <!-- Overview / Blog Section -->
-            <div id="section-overview" class="content-section"
-                style="display: flex; flex-direction: column; gap: 32px;">
-                <!-- Centered Logo -->
-                <div class="dashboard-card"
-                    style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; border-radius: 30px; margin-bottom: 8px; gap: 8px;">
-                    <img src="assets/logo.png" alt="AI Foundation Logo" style="max-height: 120px; object-fit: contain;">
-                    <div style="position: relative; width: 100%; max-width: 480px;">
-                        <i class="fa-solid fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem;"></i>
-                        <input type="text" id="globalSearchInput" placeholder="Search all posts and updates..." 
-                            style="width: 100%; padding: 14px 16px 14px 48px; border: 1px solid #e2e8f0; border-radius: 100px; font-family: inherit; font-size: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); outline: none; transition: all 0.2s;"
-                            onfocus="this.style.borderColor='#0066ff'; this.style.boxShadow='0 4px 12px rgba(0,102,255,0.1)';"
-                            onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';">
-                    </div>
-                </div>
-
-                <!-- Posts Grid (Dynamic injection) -->
-                <div class="posts-grid" id="postsGrid">
-                    <!-- Posts will be injected here by app.js -->
-                </div>
-                
-                <!-- Pagination Controls -->
-                <div id="paginationControls" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; padding-bottom: 24px;">
-                    <!-- Buttons will be injected here by app.js -->
-                </div>
-            </div>
-
             <!-- Projects Section -->
             <div id="section-projects" class="content-section"
-                style="display: none; flex-direction: column; gap: 32px;">
+                style="display: flex; flex-direction: column; gap: 32px;">
                 <!-- Projects Search Card -->
                 <div class="dashboard-card"
                     style="display: flex; justify-content: center; align-items: center; padding: 28px 40px; border-radius: 30px; margin-bottom: 8px;">
@@ -139,91 +106,6 @@
                 <!-- Pagination Controls -->
                 <div id="projectsPaginationControls" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; padding-bottom: 24px;">
                     <!-- Buttons will be injected here by app.js -->
-                </div>
-            </div>
-
-            <!-- Other Sections -->
-            <div id="section-education" class="content-section" style="display: none;">
-                <div class="dashboard-card" style="text-align: center; padding: 80px 40px;">
-                    <div class="card-content">
-                        <i class="fa-solid fa-chalkboard-user"
-                            style="font-size: 3.5rem; color: var(--primary); margin-bottom: 24px;"></i>
-                        <h2 style="margin-bottom: 16px;">AI Foundation Classroom</h2>
-                        <p
-                            style="color: var(--text-muted); margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-                            Access your course materials, assignments, and resources through our dedicated learning
-                            portal.
-                        </p>
-                        <a href="http://classroom.google.com/" target="_blank" rel="noopener noreferrer"
-                            style="display: inline-block; background: var(--primary); color: white; padding: 14px 32px; border-radius: var(--radius-sm); text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 78, 204, 0.2); transition: all 0.2s ease;">
-                            Sign in to Google Classroom
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div id="section-community" class="content-section"
-                style="display: none; flex-direction: column; gap: 32px;">
-                <div class="posts-grid" id="communityPostsGrid">
-                    <!-- Community posts will be injected here by app.js -->
-                </div>
-            </div>
-
-            <!-- <div id="section-partnerships" class="content-section" style="display: none;">
-                <div class="dashboard-card"><div class="card-content"><h2>Partnerships</h2><p>Collaborating with corporate, medical regulatory, and higher education sectors globally.</p></div></div>
-            </div> -->
-
-            <!-- David Section -->
-            <div id="section-david" class="content-section" style="display: none; flex-direction: column; gap: 32px;">
-                <div class="dashboard-card profile-card">
-                    <div class="profile-image-container">
-                        <img src="assets/dcrstanding.jpeg" alt="David Robertson" class="profile-image">
-                    </div>
-                    <div class="profile-content">
-                        <h2>About David Robertson</h2>
-                        <p>
-                            David Robertson is an Australian AI and digital transformation specialist, university
-                            lecturer, and founder of the AI Foundation. He holds an MBA in Digital Transformation, a
-                            Master's degree in Applied Linguistics, and is a certified Australian Government Trainer and
-                            Assessor (TAE40110) currently completing Higher Degree by Research (HDR) thesis work in AI
-                            for education and training.
-                        </p>
-                        <p>
-                            As a university convenor specializing in business applications for artificial intelligence
-                            and agentic systems, his work bridges technical engineering and operational strategy by
-                            designing custom, vendor-agnostic AI agent ecosystems, structured data pipelines, and
-                            practical automation tools. Over a multi-decade career spanning Australia, Japan, and
-                            Southeast Asia, Robertson has spearheaded digital transformation across corporate, higher
-                            education, medical regulatory, and small-business sectors.
-                        </p>
-                        <p>
-                            Currently developing an AI Centre in Bangkok, he focuses on scaling agentic AI capabilities,
-                            practical business automation, and workforce digital skills across Southeast Asia.
-                        </p>
-                        <a href="https://www.linkedin.com/in/dcraus/" target="_blank" style="align-self: flex-end; background: #0077b5; color: white; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; margin-top: auto;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/>
-                            </svg>
-                            Connect on LinkedIn
-                        </a>
-                    </div>
-                </div>
-
-                <div class="dashboard-card" style="padding: 40px; margin-top: 24px;">
-                    <h2 style="margin-bottom: 24px;">Contact Us</h2>
-                    <form id="contactForm" class="admin-form" style="margin-top: 0;">
-                        <div style="display: flex; gap: 16px;">
-                            <input type="text" id="contactFirstName" placeholder="First Name" required
-                                style="flex: 1;" />
-                            <input type="text" id="contactLastName" placeholder="Last Name" required style="flex: 1;" />
-                        </div>
-                        <input type="text" id="contactSubject" placeholder="Subject" required />
-                        <textarea id="contactMessage" placeholder="Email Text" required
-                            style="min-height: 150px;"></textarea>
-                        <button type="submit"
-                            style="background: var(--primary); color: white; padding: 16px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2);">Send
-                            via Email Client</button>
-                    </form>
                 </div>
             </div>
 
@@ -332,8 +214,8 @@
                             <h2 style="margin-bottom: 24px; font-size: 1.25rem;">Upload Content</h2>
                             <div class="admin-form">
                                 <select id="postCategory" required style="margin-bottom: 12px; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; width: 100%; font-family: inherit;">
-                                    <option value="articles">Articles</option>
                                     <option value="projects">Projects</option>
+                                    <option value="articles">Articles</option>
                                 </select>
                                 
                                 <div id="multiLinksContainer">
@@ -357,6 +239,9 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
     <!-- Payment Foreground Popup Modal -->
     <div class="payment-popup-modal" id="paymentPopupModal" style="display: none;">
         <div class="payment-popup-content">

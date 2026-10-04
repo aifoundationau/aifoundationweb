@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const POSTS_PER_PAGE = 4;
     let allCommunityPosts = [];
     let allTechPosts = [];
+    let allProjects = [];
+    let projectSearchQuery = '';
+    let currentProjectPage = 1;
+    const PROJECTS_PER_PAGE = 4;
 
 // IntersectionObserver to trigger fade‑in animation for post cards
 const postObserver = new IntersectionObserver((entries) => {
@@ -31,6 +35,40 @@ const postObserver = new IntersectionObserver((entries) => {
         return text;
     }
 
+    function generateShareButtonsHtml(title, url, summary) {
+        const shareUrl = url || window.location.href;
+        const encodedUrl = encodeURIComponent(shareUrl);
+        const encodedTitle = encodeURIComponent(title || 'AI Foundation Australia');
+        const encodedText = encodeURIComponent(summary ? truncateSummary(summary) : (title || 'Check out this update'));
+
+        const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        const twUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+        const liUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+        const mailUrl = `mailto:?subject=${encodedTitle}&body=${encodedText}%0A%0A${encodedUrl}`;
+
+        return `
+            <div class="post-share-row">
+                <span class="share-label"><i class="fa-solid fa-share-nodes"></i> Share</span>
+                <div class="share-buttons">
+                    <a href="${fbUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-facebook" title="Share on Facebook" aria-label="Share on Facebook">
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </a>
+                    <a href="${twUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-twitter" title="Share on X (Twitter)" aria-label="Share on X (Twitter)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff" style="display:block;">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                    <a href="${liUrl}" target="_blank" rel="noopener noreferrer" class="share-btn share-linkedin" title="Share on LinkedIn" aria-label="Share on LinkedIn">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </a>
+                    <a href="${mailUrl}" class="share-btn share-email" title="Share via Email" aria-label="Share via Email">
+                        <i class="fa-solid fa-envelope"></i>
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+
     function getCookie(name) {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -43,7 +81,7 @@ const postObserver = new IntersectionObserver((entries) => {
         if (getCookie('adminAuth') === 'true') {
             document.getElementById('adminLoginView').style.display = 'none';
             document.getElementById('adminPanelView').style.display = 'block';
-            renderAdminPosts();
+            renderAdminAllPosts();
         } else {
             document.getElementById('adminPanelView').style.display = 'none';
             document.getElementById('adminLoginView').style.display = 'block';
@@ -61,7 +99,7 @@ const postObserver = new IntersectionObserver((entries) => {
             errorMsg.style.display = 'none';
             document.getElementById('adminLoginView').style.display = 'none';
             document.getElementById('adminPanelView').style.display = 'block';
-            renderAdminPosts();
+            renderAdminAllPosts();
         } else {
             errorMsg.style.display = 'block';
         }
@@ -80,6 +118,9 @@ const postObserver = new IntersectionObserver((entries) => {
             adminTabContents.forEach(content => {
                 content.style.display = content.id === targetId ? 'block' : 'none';
             });
+            if (targetId === 'admin-manage-posts') {
+                renderAdminAllPosts();
+            }
         });
     });
 
@@ -88,7 +129,7 @@ const postObserver = new IntersectionObserver((entries) => {
         const res = await fetch('/api/community');
         allCommunityPosts = await res.json();
         renderCommunityPosts();
-        renderAdminCommunityPosts();
+        renderAdminAllPosts();
     }
 
     function renderCommunityPosts() {
@@ -103,9 +144,12 @@ const postObserver = new IntersectionObserver((entries) => {
                 <div class="post-content">
                     <h3 class="post-title">${post.title}</h3>
                     <p class="post-summary">${truncateSummary(post.summary)}</p>
-                    <div class="post-footer">
-                        <span>${new Date(post.date).toLocaleDateString()}</span>
-                        ${post.link ? `<a href="${post.link}" target="_blank">View Post ↗</a>` : ''}
+                    <div class="post-actions">
+                        ${generateShareButtonsHtml(post.title, post.link, post.summary)}
+                        <div class="post-footer">
+                            <span>${new Date(post.date).toLocaleDateString()}</span>
+                            ${post.link ? `<a href="${post.link}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
+                        </div>
                     </div>
                 </div>
             </article>
@@ -135,7 +179,7 @@ const postObserver = new IntersectionObserver((entries) => {
         const res = await fetch('/api/tech');
         allTechPosts = await res.json();
         renderTechPosts();
-        renderAdminTechPosts();
+        renderAdminAllPosts();
     }
 
     function renderTechPosts() {
@@ -150,9 +194,12 @@ const postObserver = new IntersectionObserver((entries) => {
                 <div class="post-content">
                     <h3 class="post-title">${post.title}</h3>
                     <p class="post-summary">${truncateSummary(post.summary)}</p>
-                    <div class="post-footer">
-                        <span>${new Date(post.date).toLocaleDateString()}</span>
-                        ${post.link ? `<a href="${post.link}" target="_blank">View Post ↗</a>` : ''}
+                    <div class="post-actions">
+                        ${generateShareButtonsHtml(post.title, post.link, post.summary)}
+                        <div class="post-footer">
+                            <span>${new Date(post.date).toLocaleDateString()}</span>
+                            ${post.link ? `<a href="${post.link}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
+                        </div>
                     </div>
                 </div>
             </article>
@@ -177,6 +224,121 @@ const postObserver = new IntersectionObserver((entries) => {
         loadTechPosts();
     };
 
+    // Projects Logic
+    async function loadProjects() {
+        try {
+            const res = await fetch('/api/projects');
+            if (res.ok) {
+                allProjects = await res.json();
+            } else {
+                throw new Error('API status ' + res.status);
+            }
+        } catch (e) {
+            try {
+                const fallback = await fetch('/data/projects.json');
+                allProjects = await fallback.json();
+            } catch (err) {
+                allProjects = [];
+            }
+        }
+        renderProjects();
+        renderAdminAllPosts();
+    }
+
+    document.getElementById('projectSearchInput')?.addEventListener('input', (e) => {
+        projectSearchQuery = e.target.value.toLowerCase();
+        currentProjectPage = 1;
+        renderProjects();
+    });
+
+    window.changeProjectPage = (direction) => {
+        currentProjectPage += direction;
+        renderProjects();
+        document.getElementById('section-projects')?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    function renderProjects() {
+        const grid = document.getElementById('projectsGrid');
+        if (!grid) return;
+        
+        let filtered = allProjects;
+        if (projectSearchQuery) {
+            filtered = filtered.filter(p => 
+                (p.title && p.title.toLowerCase().includes(projectSearchQuery)) || 
+                (p.summary && p.summary.toLowerCase().includes(projectSearchQuery)) || 
+                (p.platform && p.platform.toLowerCase().includes(projectSearchQuery))
+            );
+        }
+
+        if (filtered.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                    <i class="fa-solid fa-folder-open" style="font-size: 2.5rem; margin-bottom: 16px; opacity: 0.5;"></i>
+                    <p style="font-size: 1.1rem; font-weight: 500;">No projects currently listed.</p>
+                </div>
+            `;
+            const paginationControls = document.getElementById('projectsPaginationControls');
+            if (paginationControls) paginationControls.innerHTML = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(filtered.length / PROJECTS_PER_PAGE) || 1;
+        if (currentProjectPage > totalPages) currentProjectPage = Math.max(1, totalPages);
+
+        const startIndex = (currentProjectPage - 1) * PROJECTS_PER_PAGE;
+        const paginated = filtered.slice(startIndex, startIndex + PROJECTS_PER_PAGE);
+
+        grid.innerHTML = paginated.map(project => `
+            <article class="post-card">
+                <div class="post-image-box">
+                    <img src="${project.imageUrl || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
+                    <span class="platform-badge platform-${project.platform || 'website'}">${(project.platform || 'PROJECT').toUpperCase()}</span>
+                </div>
+                <div class="post-content">
+                    <h3 class="post-title">${project.title}</h3>
+                    <p class="post-summary">${truncateSummary(project.summary)}</p>
+                    <div class="post-actions">
+                        ${generateShareButtonsHtml(project.title, project.link, project.summary)}
+                        <div class="post-footer">
+                            <span>${project.date ? new Date(project.date).toLocaleDateString() : 'Project'}</span>
+                            <a href="${project.link}" target="_blank" rel="noopener noreferrer">View Project ↗</a>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        `).join('');
+
+        const paginationControls = document.getElementById('projectsPaginationControls');
+        if (paginationControls) {
+            let html = '';
+            if (currentProjectPage > 1) {
+                html += `<button onclick="changeProjectPage(-1)" style="background: white; color: var(--text-dark); border: 1px solid #e2e8f0; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-arrow-left"></i> PREV</button>`;
+            }
+            if (currentProjectPage < totalPages) {
+                html += `<button onclick="changeProjectPage(1)" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); transition: all 0.2s; display: flex; align-items: center; gap: 8px;">MORE <i class="fa-solid fa-arrow-right"></i></button>`;
+            }
+            paginationControls.innerHTML = html;
+        }
+
+        document.querySelectorAll('#projectsGrid .post-card').forEach(card => postObserver.observe(card));
+    }
+
+    function renderAdminProjects() {
+        const list = document.getElementById('adminProjectsList');
+        if (!list) return;
+        list.innerHTML = allProjects.map(p => `
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; background:white; padding:8px; border-radius:6px; align-items:center;">
+                <span><strong>${p.title}</strong> (${p.platform || 'project'})</span>
+                <button onclick="deleteProject('${p.id}')" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">Delete</button>
+            </div>
+        `).join('');
+    }
+
+    window.deleteProject = async (id) => {
+        await fetch('/api/projects/' + id, { method: 'DELETE' });
+        loadProjects();
+    };
+
 
     document.querySelectorAll('.sample-chip').forEach(chip => {
         chip.addEventListener('click', () => linkInput.value = chip.dataset.url);
@@ -191,9 +353,23 @@ const postObserver = new IntersectionObserver((entries) => {
     });
 
     async function loadPosts() {
-        const res = await fetch('/api/posts');
-        allPosts = await res.json();
+        try {
+            const res = await fetch('/api/posts');
+            if (res.ok) {
+                allPosts = await res.json();
+            } else {
+                throw new Error('API status ' + res.status);
+            }
+        } catch (e) {
+            try {
+                const fallback = await fetch('/data/posts.json');
+                allPosts = await fallback.json();
+            } catch (err) {
+                allPosts = [];
+            }
+        }
         renderPosts();
+        renderAdminAllPosts();
     }
 
     document.getElementById('globalSearchInput')?.addEventListener('input', (e) => {
@@ -232,9 +408,12 @@ const postObserver = new IntersectionObserver((entries) => {
                 <div class="post-content">
                     <h3 class="post-title">${post.title}</h3>
                     <p class="post-summary">${truncateSummary(post.summary)}</p>
-                    <div class="post-footer">
-                        <span>${new Date(post.date).toLocaleDateString()}</span>
-                        <a href="${post.link}" target="_blank">View Post ↗</a>
+                    <div class="post-actions">
+                        ${generateShareButtonsHtml(post.title, post.link, post.summary)}
+                        <div class="post-footer">
+                            <span>${new Date(post.date).toLocaleDateString()}</span>
+                            <a href="${post.link}" target="_blank" rel="noopener noreferrer">View Post ↗</a>
+                        </div>
                     </div>
                 </div>
             </article>
@@ -345,45 +524,81 @@ const postObserver = new IntersectionObserver((entries) => {
         
         let successCount = 0;
         for (const row of rows) {
-            const title = row.querySelector('.multiPostTitle')?.value;
-            const link = row.querySelector('.multiPostLink')?.value;
-            if (!title || !link || row.querySelector('.multiPreviewCard').style.display === 'none') continue; 
+            let title = row.querySelector('.multiPostTitle')?.value;
+            let link = row.querySelector('.multiPostLink')?.value;
+            const inputUrl = row.querySelector('.multiLinkInput')?.value?.trim();
+
+            // If user forgot to click Extract Metadata, try extracting on the fly
+            if ((!title || !link) && inputUrl) {
+                try {
+                    const extRes = await fetch('/api/extract-metadata', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: inputUrl })
+                    });
+                    const extData = await extRes.json();
+                    title = extData.title || inputUrl;
+                    link = extData.link || inputUrl;
+                    if (row.querySelector('.multiPostTitle')) row.querySelector('.multiPostTitle').value = title;
+                    if (row.querySelector('.multiPostLink')) row.querySelector('.multiPostLink').value = link;
+                    if (row.querySelector('.multiPostSummary')) row.querySelector('.multiPostSummary').value = extData.summary || '';
+                    if (row.querySelector('.multiPostPlatform')) row.querySelector('.multiPostPlatform').value = extData.platform || 'website';
+                    if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = extData.imageUrl || 'assets/logo.png';
+                } catch (e) {
+                    title = inputUrl;
+                    link = inputUrl;
+                }
+            }
+
+            if (!title && !link) continue;
             
             const payload = {
-                title,
-                summary: row.querySelector('.multiPostSummary').value,
-                link,
-                imageUrl: row.querySelector('.multiImageUrl').value,
-                platform: row.querySelector('.multiPostPlatform').value,
+                title: title || link || 'Untitled',
+                summary: row.querySelector('.multiPostSummary')?.value || '',
+                link: link || inputUrl,
+                imageUrl: row.querySelector('.multiImageUrl')?.value || 'assets/logo.png',
+                platform: row.querySelector('.multiPostPlatform')?.value || 'website',
                 author: 'Admin'
             };
             
             const endpoints = {
                 'articles': '/api/posts',
+                'projects': '/api/projects',
                 'tech': '/api/tech',
                 'community': '/api/community'
             };
-            const endpoint = endpoints[category];
+            const endpoint = endpoints[category] || '/api/posts';
 
-            await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            successCount++;
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    successCount++;
+                }
+            } catch (err) {
+                console.error('Publish error:', err);
+            }
         }
         
         btn.innerHTML = 'Publish All Posts';
-        alert(`Published ${successCount} post(s)!`);
-        document.getElementById('multiLinksContainer').innerHTML = '';
-        createLinkRow(); 
-        
-        if (category === 'articles') loadPosts();
-        if (category === 'tech') loadTechPosts();
-        if (category === 'community') loadCommunityPosts();
-        
-        const adminModal = document.getElementById('adminModal');
-        if(adminModal) adminModal.style.display = 'none';
+        if (successCount > 0) {
+            alert(`Successfully published ${successCount} item(s) to ${category}!`);
+            document.getElementById('multiLinksContainer').innerHTML = '';
+            createLinkRow(); 
+            
+            if (category === 'articles') loadPosts();
+            if (category === 'projects') loadProjects();
+            if (category === 'tech') loadTechPosts();
+            if (category === 'community') loadCommunityPosts();
+            
+            const adminModal = document.getElementById('adminModal');
+            if (adminModal) adminModal.style.display = 'none';
+        } else {
+            alert('No items could be published. Please enter a valid URL or fill in the title and link.');
+        }
     });
 
     // Initialize first row
@@ -392,39 +607,117 @@ const postObserver = new IntersectionObserver((entries) => {
         createLinkRow();
     }
 
-    function renderAdminPosts() {
-        document.getElementById('adminPostsList').innerHTML = allPosts.map(p => `
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px; background:white; padding:8px; border-radius:6px;">
-                <span><strong>${p.title}</strong> (${p.platform})</span>
-                <button onclick="deletePost('${p.id}')">Delete</button>
+    function renderAdminAllPosts() {
+        const list = document.getElementById('adminAllPostsList');
+        if (!list) return;
+
+        const combined = [
+            ...allPosts.map(p => ({ ...p, _category: 'articles', _label: 'Article', _color: '#0066ff', _bg: 'rgba(0, 102, 255, 0.1)' })),
+            ...allProjects.map(p => ({ ...p, _category: 'projects', _label: 'Project', _color: '#059669', _bg: 'rgba(16, 185, 129, 0.1)' })),
+            ...allCommunityPosts.map(p => ({ ...p, _category: 'community', _label: 'Community', _color: '#7c3aed', _bg: 'rgba(124, 58, 237, 0.1)' })),
+            ...allTechPosts.map(p => ({ ...p, _category: 'tech', _label: 'Tech R&D', _color: '#ea580c', _bg: 'rgba(234, 88, 12, 0.1)' }))
+        ];
+
+        combined.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+        if (combined.length === 0) {
+            list.innerHTML = '<div style="color: #64748b; padding: 24px; text-align: center; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">No posts or projects currently published.</div>';
+            return;
+        }
+
+        list.innerHTML = combined.map(item => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:12px 16px; border-radius:8px; border:1px solid #e2e8f0; gap:16px;">
+                <div style="display:flex; flex-direction:column; gap:4px; min-width:0; overflow:hidden;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px; background:${item._bg}; color:${item._color};">${item._label.toUpperCase()}</span>
+                        <span style="font-size:0.8rem; color:#64748b; font-weight:500; text-transform:uppercase;">${item.platform || 'web'}</span>
+                        <span style="font-size:0.8rem; color:#94a3b8;">• ${item.date ? new Date(item.date).toLocaleDateString() : 'Recent'}</span>
+                    </div>
+                    <strong style="font-size:0.95rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${item.title}">${item.title}</strong>
+                </div>
+                <button onclick="deleteAnyPost('${item._category}', '${item.id}')" style="background:#ef4444; color:white; border:none; border-radius:6px; padding:6px 14px; cursor:pointer; font-weight:600; font-size:0.85rem; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">Delete</button>
             </div>
         `).join('');
     }
 
-    window.deletePost = async (id) => {
-        await fetch('/api/posts/' + id, { method: 'DELETE' });
-        loadPosts();
-        renderAdminPosts();
+    window.deleteAnyPost = async (category, id) => {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        const endpoints = {
+            'articles': '/api/posts/',
+            'projects': '/api/projects/',
+            'tech': '/api/tech/',
+            'community': '/api/community/'
+        };
+        const url = (endpoints[category] || '/api/posts/') + id;
+        try {
+            const res = await fetch(url, { method: 'DELETE' });
+            if (res.ok) {
+                if (category === 'articles') await loadPosts();
+                if (category === 'projects') await loadProjects();
+                if (category === 'tech') await loadTechPosts();
+                if (category === 'community') await loadCommunityPosts();
+                renderAdminAllPosts();
+            } else {
+                alert('Failed to delete item');
+            }
+        } catch (e) {
+            alert('Error deleting item');
+        }
     };
+
+    window.deletePost = (id) => window.deleteAnyPost('articles', id);
+    window.deleteProject = (id) => window.deleteAnyPost('projects', id);
+    window.deleteTechPost = (id) => window.deleteAnyPost('tech', id);
+    window.deleteCommunityPost = (id) => window.deleteAnyPost('community', id);
 
     // Sidebar Navigation Logic
     const sidebarItems = document.querySelectorAll('#sidebarNav .sidebar-item');
     const contentSections = document.querySelectorAll('.content-section');
 
+    function activateSection(targetId) {
+        sidebarItems.forEach(nav => {
+            if (nav.getAttribute('data-target') === targetId) {
+                nav.classList.add('active');
+            } else {
+                nav.classList.remove('active');
+            }
+        });
+
+        contentSections.forEach(section => section.style.display = 'none');
+
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects') ? 'flex' : 'block';
+        }
+    }
+
     sidebarItems.forEach(item => {
         item.addEventListener('click', () => {
-            sidebarItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
-
-            contentSections.forEach(section => section.style.display = 'none');
-
             const targetId = item.getAttribute('data-target');
-            const targetSection = document.getElementById(targetId);
-            if (targetSection) {
-                targetSection.style.display = targetId === 'section-overview' ? 'flex' : 'block';
+            activateSection(targetId);
+            const hash = targetId === 'section-overview' ? 'articles' : targetId.replace('section-', '');
+            if (window.location.hash !== '#' + hash) {
+                history.pushState(null, null, '#' + hash);
             }
         });
     });
+
+    // Hash change & initial hash listener
+    function handleHash() {
+        const hash = window.location.hash.replace('#', '');
+        if (hash === 'projects') {
+            activateSection('section-projects');
+        } else if (hash === 'education' || hash === 'classroom') {
+            activateSection('section-education');
+        } else if (hash === 'david' || hash === 'contact') {
+            activateSection('section-david');
+        } else if (hash === 'articles' || hash === 'overview') {
+            activateSection('section-overview');
+        }
+    }
+
+    window.addEventListener('hashchange', handleHash);
+    handleHash();
 
     document.getElementById('contactForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -439,14 +732,340 @@ const postObserver = new IntersectionObserver((entries) => {
         window.location.href = `mailto:support@aifoundation.net.au?subject=${mailtoSubject}&body=${mailtoBody}`;
     });
 
-    document.getElementById('manageCategory')?.addEventListener('change', (e) => {
-        const cat = e.target.value;
-        document.getElementById('manage-articles-view').style.display = cat === 'articles' ? 'block' : 'none';
-        document.getElementById('manage-tech-view').style.display = cat === 'tech' ? 'block' : 'none';
-        document.getElementById('manage-community-view').style.display = cat === 'community' ? 'block' : 'none';
+    // ==========================================
+    // Donation & Payment Bar + Foreground Popup Modal Logic
+    // ==========================================
+    let selectedDonationAmount = 24;
+    const presetBtns = document.querySelectorAll('.donation-preset-btn');
+    const customAmountInput = document.getElementById('donationCustomAmount');
+    const payStripeBtn = document.getElementById('payWithStripeBtn');
+    const payPayPalBtn = document.getElementById('payWithPayPalBtn');
+    const statusMsg = document.getElementById('donationStatusMsg');
+
+    // Modal elements
+    const paymentModal = document.getElementById('paymentPopupModal');
+    const closePaymentModalBtn = document.getElementById('closePaymentModalBtn');
+    const closeSuccessModalBtn = document.getElementById('closeSuccessModalBtn');
+    const popupSelectedAmount = document.getElementById('popupSelectedAmount');
+    const tabStripeBtn = document.getElementById('tabStripeBtn');
+    const tabPayPalBtn = document.getElementById('tabPayPalBtn');
+    const stripeMethodView = document.getElementById('stripeMethodView');
+    const paypalMethodView = document.getElementById('paypalMethodView');
+    const paymentSuccessView = document.getElementById('paymentSuccessView');
+    const stripePaymentForm = document.getElementById('stripePaymentForm');
+    const stripeLoadingIndicator = document.getElementById('stripeLoadingIndicator');
+    const stripePaymentError = document.getElementById('stripePaymentError');
+    const stripeSubmitBtn = document.getElementById('stripeSubmitBtn');
+    const stripeSubmitText = document.getElementById('stripeSubmitText');
+    const paypalLoadingIndicator = document.getElementById('paypalLoadingIndicator');
+    const paypalButtonsContainer = document.getElementById('paypalButtonsContainer');
+    const paypalPaymentError = document.getElementById('paypalPaymentError');
+
+    let stripeClient = null;
+    let stripeElements = null;
+    let currentLoadedStripeAmount = null;
+    let currentLoadedPayPalAmount = null;
+
+    function setDonationStatus(msg, isError = false) {
+        if (!statusMsg) return;
+        statusMsg.style.display = 'block';
+        statusMsg.style.color = isError ? '#ef4444' : '#059669';
+        statusMsg.innerHTML = msg;
+    }
+
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            presetBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedDonationAmount = parseInt(btn.dataset.amount, 10);
+            if (customAmountInput) customAmountInput.value = '';
+            if (statusMsg) statusMsg.style.display = 'none';
+        });
     });
 
+    if (customAmountInput) {
+        customAmountInput.addEventListener('input', function() {
+            // Strictly enforce whole rounded numbers (no decimals, no letters, no symbols)
+            const cleanVal = this.value.replace(/\D/g, '');
+            this.value = cleanVal;
+
+            if (cleanVal && parseInt(cleanVal, 10) > 0) {
+                selectedDonationAmount = parseInt(cleanVal, 10);
+                presetBtns.forEach(b => b.classList.remove('active'));
+            } else {
+                // If emptied, fall back to default 24
+                selectedDonationAmount = 24;
+                const defaultPreset = document.querySelector('.donation-preset-btn[data-amount="24"]');
+                if (defaultPreset) defaultPreset.classList.add('active');
+            }
+            if (statusMsg) statusMsg.style.display = 'none';
+        });
+    }
+
+    // Modal Control Functions
+    function openPaymentModal(method = 'stripe') {
+        if (!paymentModal) return;
+        if (!selectedDonationAmount || selectedDonationAmount < 1) {
+            setDonationStatus('Please choose or enter a valid whole dollar amount (min AUD $1).', true);
+            return;
+        }
+
+        popupSelectedAmount.textContent = `AUD $${selectedDonationAmount}`;
+        if (stripeSubmitText) stripeSubmitText.textContent = `Pay AUD $${selectedDonationAmount} Securely`;
+        
+        // Reset Views
+        paymentSuccessView.style.display = 'none';
+        paymentModal.style.display = 'flex';
+
+        switchPaymentTab(method);
+    }
+
+    function closePaymentModal() {
+        if (!paymentModal) return;
+        paymentModal.style.display = 'none';
+    }
+
+    if (closePaymentModalBtn) closePaymentModalBtn.addEventListener('click', closePaymentModal);
+    if (closeSuccessModalBtn) closeSuccessModalBtn.addEventListener('click', closePaymentModal);
+    if (paymentModal) {
+        paymentModal.addEventListener('click', (e) => {
+            if (e.target === paymentModal) closePaymentModal();
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && paymentModal && paymentModal.style.display === 'flex') {
+            closePaymentModal();
+        }
+    });
+
+    function switchPaymentTab(targetMethod) {
+        if (targetMethod === 'stripe') {
+            tabStripeBtn.classList.add('active');
+            tabPayPalBtn.classList.remove('active');
+            stripeMethodView.style.display = 'block';
+            paypalMethodView.style.display = 'none';
+            initStripeForm();
+        } else {
+            tabPayPalBtn.classList.add('active');
+            tabStripeBtn.classList.remove('active');
+            paypalMethodView.style.display = 'block';
+            stripeMethodView.style.display = 'none';
+            initPayPalButtons();
+        }
+    }
+
+    if (tabStripeBtn) tabStripeBtn.addEventListener('click', () => switchPaymentTab('stripe'));
+    if (tabPayPalBtn) tabPayPalBtn.addEventListener('click', () => switchPaymentTab('paypal'));
+
+    // Initialize Stripe Form in Modal
+    async function initStripeForm() {
+        if (currentLoadedStripeAmount === selectedDonationAmount && stripeElements) {
+            return; // Already initialized for this amount
+        }
+
+        stripeLoadingIndicator.style.display = 'block';
+        stripePaymentForm.style.display = 'none';
+        if (stripePaymentError) stripePaymentError.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/stripe/create-payment-intent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: selectedDonationAmount })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.clientSecret) {
+                throw new Error(data.error || 'Failed to start Stripe session');
+            }
+
+            if (!stripeClient && window.Stripe) {
+                stripeClient = window.Stripe(data.publishableKey);
+            }
+
+            if (!stripeClient) {
+                throw new Error('Stripe JS library could not be loaded.');
+            }
+
+            stripeElements = stripeClient.elements({
+                clientSecret: data.clientSecret,
+                appearance: {
+                    theme: 'flat',
+                    variables: {
+                        colorPrimary: '#635bff',
+                        colorBackground: '#ffffff',
+                        colorText: '#0f172a',
+                        borderRadius: '12px'
+                    }
+                }
+            });
+
+            const paymentElement = stripeElements.create('payment');
+            const container = document.getElementById('stripePaymentElement');
+            container.innerHTML = '';
+            paymentElement.mount('#stripePaymentElement');
+
+            paymentElement.on('ready', () => {
+                stripeLoadingIndicator.style.display = 'none';
+                stripePaymentForm.style.display = 'block';
+                currentLoadedStripeAmount = selectedDonationAmount;
+            });
+        } catch (err) {
+            stripeLoadingIndicator.style.display = 'none';
+            if (stripePaymentError) {
+                stripePaymentError.textContent = err.message || 'Error loading Stripe checkout.';
+                stripePaymentError.style.display = 'block';
+            }
+        }
+    }
+
+    // Stripe Submit Form
+    if (stripePaymentForm) {
+        stripePaymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!stripeClient || !stripeElements) return;
+
+            stripeSubmitBtn.disabled = true;
+            const originalText = stripeSubmitText.innerHTML;
+            stripeSubmitText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+            if (stripePaymentError) stripePaymentError.style.display = 'none';
+
+            try {
+                const { error, paymentIntent } = await stripeClient.confirmPayment({
+                    elements: stripeElements,
+                    redirect: 'if_required'
+                });
+
+                if (error) {
+                    if (stripePaymentError) {
+                        stripePaymentError.textContent = error.message;
+                        stripePaymentError.style.display = 'block';
+                    }
+                    stripeSubmitBtn.disabled = false;
+                    stripeSubmitText.innerHTML = originalText;
+                } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                    showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Card / Stripe');
+                } else {
+                    showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Stripe');
+                }
+            } catch (err) {
+                if (stripePaymentError) {
+                    stripePaymentError.textContent = err.message || 'Payment processing failed.';
+                    stripePaymentError.style.display = 'block';
+                }
+                stripeSubmitBtn.disabled = false;
+                stripeSubmitText.innerHTML = originalText;
+            }
+        });
+    }
+
+    // Initialize PayPal Buttons in Modal
+    function initPayPalButtons() {
+        if (currentLoadedPayPalAmount === selectedDonationAmount && paypalButtonsContainer.children.length > 0) {
+            return;
+        }
+
+        paypalButtonsContainer.innerHTML = '';
+        paypalLoadingIndicator.style.display = 'block';
+        if (paypalPaymentError) paypalPaymentError.style.display = 'none';
+
+        if (!window.paypal || !window.paypal.Buttons) {
+            paypalLoadingIndicator.style.display = 'none';
+            if (paypalPaymentError) {
+                paypalPaymentError.textContent = 'PayPal SDK could not be loaded.';
+                paypalPaymentError.style.display = 'block';
+            }
+            return;
+        }
+
+        try {
+            window.paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    color: 'gold',
+                    shape: 'rect',
+                    borderRadius: 12,
+                    label: 'donate'
+                },
+                createOrder: async () => {
+                    const res = await fetch('/api/paypal/create-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount: selectedDonationAmount })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.orderId) {
+                        throw new Error(data.error || 'Failed to create PayPal order');
+                    }
+                    return data.orderId;
+                },
+                onApprove: async (data) => {
+                    try {
+                        const captureRes = await fetch(`/api/paypal/capture-order/${data.orderID}`, {
+                            method: 'POST'
+                        });
+                        const captureData = await captureRes.json();
+                        showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'PayPal');
+                    } catch (err) {
+                        showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'PayPal');
+                    }
+                },
+                onError: (err) => {
+                    if (paypalPaymentError) {
+                        paypalPaymentError.textContent = 'PayPal encountered an error. Please try again.';
+                        paypalPaymentError.style.display = 'block';
+                    }
+                }
+            }).render('#paypalButtonsContainer').then(() => {
+                paypalLoadingIndicator.style.display = 'none';
+                currentLoadedPayPalAmount = selectedDonationAmount;
+            });
+        } catch (err) {
+            paypalLoadingIndicator.style.display = 'none';
+            if (paypalPaymentError) {
+                paypalPaymentError.textContent = err.message || 'Error rendering PayPal buttons.';
+                paypalPaymentError.style.display = 'block';
+            }
+        }
+    }
+
+    function showPaymentSuccess(amountStr, provider) {
+        stripeMethodView.style.display = 'none';
+        paypalMethodView.style.display = 'none';
+        tabStripeBtn.parentElement.style.display = 'none';
+        paymentSuccessView.style.display = 'block';
+
+        const successMsg = document.getElementById('paymentSuccessMsg');
+        if (successMsg) {
+            successMsg.innerHTML = `Your contribution of <strong>${amountStr}</strong> via ${provider} was successful!<br>Your support powers open AI tools, educational equity, and community learning across Australia.`;
+        }
+    }
+
+    // Attach click events on the bottom footer bar buttons to trigger the popup
+    if (payStripeBtn) {
+        payStripeBtn.addEventListener('click', () => openPaymentModal('stripe'));
+    }
+    if (payPayPalBtn) {
+        payPayPalBtn.addEventListener('click', () => openPaymentModal('paypal'));
+    }
+
+    // Check for Return URLs (Success / Cancel)
+    const urlParams = new URLSearchParams(window.location.search);
+    const donationStatus = urlParams.get('donation');
+    const donatedAmt = urlParams.get('amt');
+
+    if (donationStatus === 'stripe_success' || donationStatus === 'paypal_success' || donationStatus === 'success') {
+        const amtStr = donatedAmt ? ` of AUD $${donatedAmt}` : '';
+        const providerStr = donationStatus === 'paypal_success' ? 'PayPal' : 'Stripe';
+        openPaymentModal('stripe');
+        showPaymentSuccess(amtStr || 'your donation', providerStr);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (donationStatus === 'cancelled') {
+        setDonationStatus('Payment was cancelled. You can try again at any time.', true);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     loadPosts();
+    loadProjects();
     loadCommunityPosts();
     loadTechPosts();
 });
