@@ -808,15 +808,19 @@ const postObserver = new IntersectionObserver((entries) => {
     function openPaymentModal(method = 'stripe') {
         if (!paymentModal) return;
         if (!selectedDonationAmount || selectedDonationAmount < 1) {
-            setDonationStatus('Please choose or enter a valid whole dollar amount (min AUD $1).', true);
-            return;
+            selectedDonationAmount = 24;
+            const defaultPreset = document.querySelector('.donation-preset-btn[data-amount="24"]');
+            if (defaultPreset) defaultPreset.classList.add('active');
         }
 
-        popupSelectedAmount.textContent = `AUD $${selectedDonationAmount}`;
+        if (popupSelectedAmount) popupSelectedAmount.textContent = `AUD $${selectedDonationAmount}`;
         if (stripeSubmitText) stripeSubmitText.textContent = `Pay AUD $${selectedDonationAmount} Securely`;
         
         // Reset Views
-        paymentSuccessView.style.display = 'none';
+        if (paymentSuccessView) paymentSuccessView.style.display = 'none';
+        if (tabStripeBtn && tabStripeBtn.parentElement) {
+            tabStripeBtn.parentElement.style.display = 'flex';
+        }
         paymentModal.style.display = 'flex';
 
         switchPaymentTab(method);
@@ -1112,10 +1116,16 @@ const postObserver = new IntersectionObserver((entries) => {
 
     // Attach click events on the bottom footer bar buttons to trigger the popup
     if (payStripeBtn) {
-        payStripeBtn.addEventListener('click', () => openPaymentModal('stripe'));
+        payStripeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openPaymentModal('stripe');
+        });
     }
     if (payPayPalBtn) {
-        payPayPalBtn.addEventListener('click', () => openPaymentModal('paypal'));
+        payPayPalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openPaymentModal('paypal');
+        });
     }
 
     // Check for Return URLs (Success / Cancel)
