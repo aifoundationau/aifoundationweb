@@ -11,6 +11,7 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
 const COMM_DATA_FILE = path.join(__dirname, 'data', 'community.json');
+const TECH_DATA_FILE = path.join(__dirname, 'data', 'tech.json');
 const PROJECTS_DATA_FILE = path.join(__dirname, 'data', 'projects.json');
 
 app.use(express.json({ limit: '10mb' }));
@@ -53,6 +54,10 @@ if (!fs.existsSync(COMM_DATA_FILE)) {
     fs.writeFileSync(COMM_DATA_FILE, JSON.stringify([], null, 2));
 }
 
+if (!fs.existsSync(TECH_DATA_FILE)) {
+    fs.writeFileSync(TECH_DATA_FILE, JSON.stringify([], null, 2));
+}
+
 function getPosts() {
     try {
         return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -77,6 +82,18 @@ function saveCommunityPosts(posts) {
     fs.writeFileSync(COMM_DATA_FILE, JSON.stringify(posts, null, 2));
 }
 
+function getTechPosts() {
+    try {
+        return JSON.parse(fs.readFileSync(TECH_DATA_FILE, 'utf8'));
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveTechPosts(posts) {
+    fs.writeFileSync(TECH_DATA_FILE, JSON.stringify(posts, null, 2));
+}
+
 function getProjects() {
     try {
         return JSON.parse(fs.readFileSync(PROJECTS_DATA_FILE, 'utf8'));
@@ -87,6 +104,44 @@ function getProjects() {
 
 function saveProjects(projects) {
     fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(projects, null, 2));
+}
+
+// Helper to upload any image other than posts to ImgBB (using IMGBB_API_KEY)
+async function uploadToImgBB(imageInput) {
+    if (!imageInput || typeof imageInput !== 'string') return imageInput;
+    const trimmed = imageInput.trim();
+    if (!trimmed || trimmed === 'assets/logo.png') return trimmed;
+    // Already on ImgBB
+    if (trimmed.includes('i.ibb.co') || trimmed.includes('ibb.co/')) {
+        return trimmed;
+    }
+
+    const apiKey = process.env.IMGBB_API_KEY || '6d7007353630f7eaf44016384dd9761e';
+    try {
+        const formData = new FormData();
+        if (trimmed.startsWith('data:image')) {
+            const cleanBase64 = trimmed.replace(/^data:image\/\w+;base64,/, '');
+            formData.append('image', cleanBase64);
+        } else {
+            formData.append('image', trimmed);
+        }
+
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, {
+            method: 'POST',
+            body: formData
+        });
+        const result = await res.json();
+        if (result.success && result.data && result.data.url) {
+            console.log(`[ImgBB] Successfully uploaded image to ${result.data.url}`);
+            return result.data.url;
+        } else {
+            console.warn('[ImgBB] Upload returned non-success:', result.error || result);
+            return trimmed;
+        }
+    } catch (err) {
+        console.error('[ImgBB] Upload network failure:', err.message);
+        return trimmed;
+    }
 }
 
 function detectPlatform(url) {
@@ -142,7 +197,11 @@ app.get('/api/community', (req, res) => {
     res.json(posts.sort((a, b) => new Date(b.date) - new Date(a.date)));
 });
 
-app.post('/api/community', (req, res) => {
+app.post('/api/community', async (req, res) => {
+    let imgUrl = req.body.imageUrl || req.body.imageBase64 || '';
+    if (imgUrl) {
+        imgUrl = await uploadToImgBB(imgUrl);
+    }
     const posts = getCommunityPosts();
     const newPost = {
         id: 'comm_' + Date.now(),
@@ -150,7 +209,7 @@ app.post('/api/community', (req, res) => {
         summary: req.body.summary || '',
         platform: req.body.platform || 'linkedin',
         link: req.body.link || '',
-        imageUrl: req.body.imageUrl || '',
+        imageUrl: imgUrl,
         date: new Date().toISOString()
     };
     posts.unshift(newPost);
@@ -165,16 +224,53 @@ app.delete('/api/community/:id', (req, res) => {
     res.json({ success: true });
 });
 
-// PROJECTS API
+// TECH API (Images uploaded to ImgBB)
+app.get('/api/tech', (req, res) => {
+    const posts = getTechPosts();
+    res.json(posts.sort((a, b) => new Date(b.date) - new Date(a.date)));
+});
+
+app.post('/api/tech', async (req, res) => {
+    let imgUrl = req.body.imageUrl || req.body.imageBase64 || '';
+    if (imgUrl) {
+        imgUrl = await uploadToImgBB(imgUrl);
+    }
+    const posts = getTechPosts();
+    const newPost = {
+        id: 'tech_' + Date.now(),
+        title: req.body.title || 'Untitled',
+        summary: req.body.summary || '',
+        platform: req.body.platform || 'linkedin',
+        link: req.body.link || '',
+        imageUrl: imgUrl,
+        date: new Date().toISOString()
+    };
+    posts.unshift(newPost);
+    saveTechPosts(posts);
+    res.json({ success: true, post: newPost });
+});
+
+app.delete('/api/tech/:id', (req, res) => {
+    let posts = getTechPosts();
+    posts = posts.filter(p => p.id !== req.params.id);
+    saveTechPosts(posts);
+    res.json({ success: true });
+});
+
+// PROJECTS API (Images uploaded to ImgBB)
 app.get('/api/projects', (req, res) => {
     const projects = getProjects();
     res.json(projects.sort((a, b) => new Date(b.date) - new Date(a.date)));
 });
 
-app.post('/api/projects', (req, res) => {
-    const { title, summary, link, imageUrl, platform, author } = req.body;
+app.post('/api/projects', async (req, res) => {
+    const { title, summary, link, imageUrl, imageBase64, platform, author } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
+    }
+    let imgUrl = imageUrl || imageBase64 || 'assets/logo.png';
+    if (imgUrl && imgUrl !== 'assets/logo.png') {
+        imgUrl = await uploadToImgBB(imgUrl);
     }
     const projects = getProjects();
     const newProject = {
@@ -182,7 +278,7 @@ app.post('/api/projects', (req, res) => {
         title: title.trim(),
         summary: (summary || '').trim(),
         link: link.trim(),
-        imageUrl: imageUrl || 'assets/logo.png',
+        imageUrl: imgUrl,
         platform: platform || detectPlatform(link),
         author: author || 'AI Foundation Australia',
         date: new Date().toISOString()
@@ -266,26 +362,28 @@ app.post('/api/extract-metadata', async (req, res) => {
 // PROXY Upload to ImgBB (https://api.imgbb.com/1/upload)
 app.post('/api/upload-imgbb', async (req, res) => {
     const { imageBase64, imageUrl, apiKey } = req.body;
-    const finalKey = apiKey || process.env.IMGBB_API_KEY;
+    const finalKey = apiKey || process.env.IMGBB_API_KEY || '6d7007353630f7eaf44016384dd9761e';
     try {
-        const formData = new URLSearchParams();
-        formData.append('key', finalKey);
-        if (imageBase64) {
-            formData.append('image', imageBase64.replace(/^data:image\/\w+;base64,/, ''));
-        } else if (imageUrl) {
-            formData.append('image', imageUrl);
+        const imagePayload = imageBase64 || imageUrl;
+        if (!imagePayload) {
+            return res.status(400).json({ error: 'No image provided (imageBase64 or imageUrl required)' });
         }
-        const fetchRes = await fetch('https://api.imgbb.com/1/upload', {
+        const formData = new FormData();
+        const clean = imagePayload.replace(/^data:image\/\w+;base64,/, '');
+        formData.append('image', clean);
+
+        const fetchRes = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(finalKey)}`, {
             method: 'POST',
             body: formData
         });
         const data = await fetchRes.json();
-        if (data.success) {
-            res.json({ success: true, url: data.data.url });
+        if (data.success && data.data) {
+            res.json({ success: true, url: data.data.url, data: data.data });
         } else {
-            res.status(400).json({ error: data.error?.message || 'Upload failed' });
+            res.status(400).json({ error: data.error?.message || 'ImgBB upload failed', details: data });
         }
     } catch (e) {
+        console.error('Upload ImgBB Error:', e);
         res.status(500).json({ error: e.message });
     }
 });

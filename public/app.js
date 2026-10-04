@@ -459,11 +459,17 @@ const postObserver = new IntersectionObserver((entries) => {
                 <button type="button" class="multiExtractBtn" style="background: #0f172a; color: white; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; border: none; cursor: pointer;">Extract Metadata</button>
                 
                 <div class="multiPreviewCard" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; gap: 16px; align-items: center;">
-                        <img class="multiImagePreview" src="" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;" />
-                        <span style="font-size: 0.85rem; color: #64748b;">Ready...</span>
+                    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                        <img class="multiImagePreview" src="" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;" />
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <label style="background: #0284c7; color: white; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: fit-content;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Upload to ImgBB
+                                <input type="file" class="multiFileImgbb" accept="image/*" style="display: none;" />
+                            </label>
+                            <span class="multiImgbbStatus" style="font-size: 0.8rem; color: #64748b;">Direct ImgBB Host</span>
+                        </div>
                     </div>
-                    <input type="text" class="multiImageUrl" placeholder="Image URL" required style="width: 100%; box-sizing: border-box;"/>
+                    <input type="text" class="multiImageUrl" placeholder="Image URL (ImgBB / Web)" required style="width: 100%; box-sizing: border-box;"/>
                     <input type="text" class="multiPostTitle" placeholder="Title" required style="width: 100%; box-sizing: border-box;"/>
                     <textarea class="multiPostSummary" placeholder="Summary" style="width: 100%; box-sizing: border-box; min-height: 80px;"></textarea>
                     <input type="text" class="multiPostPlatform" placeholder="Platform" required style="width: 100%; box-sizing: border-box;"/>
@@ -501,6 +507,44 @@ const postObserver = new IntersectionObserver((entries) => {
                 alert('Failed to extract');
                 extractBtn.innerHTML = 'Extract Metadata';
             }
+        });
+
+        // Direct file to ImgBB upload handler
+        const fileInput = row.querySelector('.multiFileImgbb');
+        const imgbbStatus = row.querySelector('.multiImgbbStatus');
+        fileInput?.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            imgbbStatus.textContent = 'Uploading to ImgBB...';
+            imgbbStatus.style.color = '#0284c7';
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64Data = reader.result;
+                row.querySelector('.multiImagePreview').src = base64Data;
+                try {
+                    const res = await fetch('/api/upload-imgbb', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ imageBase64: base64Data })
+                    });
+                    const data = await res.json();
+                    if (data.success && data.url) {
+                        row.querySelector('.multiImageUrl').value = data.url;
+                        row.querySelector('.multiImagePreview').src = data.url;
+                        imgbbStatus.textContent = '✓ Hosted on ImgBB';
+                        imgbbStatus.style.color = '#16a34a';
+                    } else {
+                        imgbbStatus.textContent = data.error || 'ImgBB upload failed';
+                        imgbbStatus.style.color = '#dc2626';
+                    }
+                } catch (err) {
+                    imgbbStatus.textContent = 'Upload error: ' + err.message;
+                    imgbbStatus.style.color = '#dc2626';
+                }
+            };
+            reader.readAsDataURL(file);
         });
 
         row.querySelector('.multiImageUrl').addEventListener('input', (e) => {
@@ -553,11 +597,33 @@ const postObserver = new IntersectionObserver((entries) => {
 
             if (!title && !link) continue;
             
+            let finalImgUrl = row.querySelector('.multiImageUrl')?.value || 'assets/logo.png';
+            // All images uploaded other than posts must be uploaded to ImgBB
+            if (category !== 'articles' && finalImgUrl && finalImgUrl !== 'assets/logo.png' && !finalImgUrl.includes('i.ibb.co')) {
+                try {
+                    const upRes = await fetch('/api/upload-imgbb', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            imageBase64: finalImgUrl.startsWith('data:') ? finalImgUrl : null,
+                            imageUrl: !finalImgUrl.startsWith('data:') ? finalImgUrl : null
+                        })
+                    });
+                    const upData = await upRes.json();
+                    if (upData.success && upData.url) {
+                        finalImgUrl = upData.url;
+                        if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                    }
+                } catch (upErr) {
+                    console.warn('Frontend ImgBB upload fallback:', upErr);
+                }
+            }
+
             const payload = {
                 title: title || link || 'Untitled',
                 summary: row.querySelector('.multiPostSummary')?.value || '',
                 link: link || inputUrl,
-                imageUrl: row.querySelector('.multiImageUrl')?.value || 'assets/logo.png',
+                imageUrl: finalImgUrl,
                 platform: row.querySelector('.multiPostPlatform')?.value || 'website',
                 author: 'Admin'
             };
