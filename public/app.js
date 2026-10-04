@@ -385,6 +385,7 @@ const postObserver = new IntersectionObserver((entries) => {
     };
 
     function renderPosts() {
+        if (!postsGrid) return;
         let filtered = currentFilter === 'all' ? allPosts : allPosts.filter(p => p.platform === currentFilter);
         if (searchQuery) {
             filtered = filtered.filter(p => 
@@ -763,6 +764,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
     let stripeClient = null;
     let stripeElements = null;
+    let stripePaymentElementInstance = null;
     let currentLoadedStripeAmount = null;
     let currentLoadedPayPalAmount = null;
 
@@ -859,12 +861,29 @@ const postObserver = new IntersectionObserver((entries) => {
 
     // Initialize Stripe Form in Modal
     async function initStripeForm() {
-        if (currentLoadedStripeAmount === selectedDonationAmount && stripeElements) {
+        const fallbackView = document.getElementById('stripeFallbackView');
+
+        if (currentLoadedStripeAmount === selectedDonationAmount && stripeElements && stripePaymentElementInstance) {
+            stripeLoadingIndicator.style.display = 'none';
+            stripePaymentForm.style.display = 'block';
+            if (fallbackView) fallbackView.style.display = 'none';
             return; // Already initialized for this amount
+        }
+
+        if (stripePaymentElementInstance) {
+            try {
+                stripePaymentElementInstance.unmount();
+                stripePaymentElementInstance.destroy();
+            } catch (e) {
+                console.warn('Stripe element unmount error:', e);
+            }
+            stripePaymentElementInstance = null;
+            stripeElements = null;
         }
 
         stripeLoadingIndicator.style.display = 'block';
         stripePaymentForm.style.display = 'none';
+        if (fallbackView) fallbackView.style.display = 'none';
         if (stripePaymentError) stripePaymentError.style.display = 'none';
 
         try {
@@ -899,20 +918,64 @@ const postObserver = new IntersectionObserver((entries) => {
                 }
             });
 
-            const paymentElement = stripeElements.create('payment');
+            stripePaymentElementInstance = stripeElements.create('payment');
             const container = document.getElementById('stripePaymentElement');
-            container.innerHTML = '';
-            paymentElement.mount('#stripePaymentElement');
+            if (container) container.innerHTML = '';
+            stripePaymentElementInstance.mount('#stripePaymentElement');
 
-            paymentElement.on('ready', () => {
+            stripePaymentElementInstance.on('ready', () => {
                 stripeLoadingIndicator.style.display = 'none';
                 stripePaymentForm.style.display = 'block';
                 currentLoadedStripeAmount = selectedDonationAmount;
+            });
+
+            stripePaymentElementInstance.on('loaderror', (event) => {
+                stripeLoadingIndicator.style.display = 'none';
+                if (stripePaymentError) {
+                    stripePaymentError.textContent = (event && event.error && event.error.message) || 'Unable to load card element. You can checkout directly via Stripe below.';
+                    stripePaymentError.style.display = 'block';
+                }
+                if (fallbackView) fallbackView.style.display = 'block';
             });
         } catch (err) {
             stripeLoadingIndicator.style.display = 'none';
             if (stripePaymentError) {
                 stripePaymentError.textContent = err.message || 'Error loading Stripe checkout.';
+                stripePaymentError.style.display = 'block';
+            }
+            if (fallbackView) fallbackView.style.display = 'block';
+        }
+    }
+
+    // Direct Stripe Hosted Checkout Redirect
+    async function redirectToStripeCheckout() {
+        const directBtn = document.getElementById('stripeDirectLinkBtn');
+        const fallbackBtn = document.getElementById('stripeFallbackBtn');
+        const origDirect = directBtn ? directBtn.innerHTML : '';
+        const origFallback = fallbackBtn ? fallbackBtn.innerHTML : '';
+
+        if (directBtn) directBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
+        if (fallbackBtn) fallbackBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
+
+        try {
+            const res = await fetch('/api/stripe/create-checkout-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: selectedDonationAmount,
+                    returnPath: window.location.pathname
+                })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.url) {
+                throw new Error(data.error || 'Failed to create Stripe Checkout session');
+            }
+            window.location.href = data.url;
+        } catch (err) {
+            if (directBtn) directBtn.innerHTML = origDirect;
+            if (fallbackBtn) fallbackBtn.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i> Continue to Stripe Checkout';
+            if (stripePaymentError) {
+                stripePaymentError.textContent = err.message || 'Failed to connect to Stripe checkout.';
                 stripePaymentError.style.display = 'block';
             }
         }
@@ -930,8 +993,12 @@ const postObserver = new IntersectionObserver((entries) => {
             if (stripePaymentError) stripePaymentError.style.display = 'none';
 
             try {
+                const returnUrl = `${window.location.origin}${window.location.pathname}?donation=stripe_success&amt=${selectedDonationAmount}`;
                 const { error, paymentIntent } = await stripeClient.confirmPayment({
                     elements: stripeElements,
+                    confirmParams: {
+                        return_url: returnUrl
+                    },
                     redirect: 'if_required'
                 });
 
@@ -942,7 +1009,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     }
                     stripeSubmitBtn.disabled = false;
                     stripeSubmitText.innerHTML = originalText;
-                } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                } else if (paymentIntent && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing')) {
                     showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Card / Stripe');
                 } else {
                     showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Stripe');
@@ -957,6 +1024,9 @@ const postObserver = new IntersectionObserver((entries) => {
             }
         });
     }
+
+    document.getElementById('stripeDirectLinkBtn')?.addEventListener('click', redirectToStripeCheckout);
+    document.getElementById('stripeFallbackBtn')?.addEventListener('click', redirectToStripeCheckout);
 
     // Initialize PayPal Buttons in Modal
     function initPayPalButtons() {

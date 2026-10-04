@@ -296,13 +296,14 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         if (!stripe) {
             return res.status(500).json({ error: 'Stripe is not configured on the server.' });
         }
-        let { amount } = req.body;
+        let { amount, returnPath } = req.body;
         amount = parseInt(amount, 10);
         if (!amount || isNaN(amount) || amount < 1) {
             return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $1.' });
         }
 
         const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const basePath = (returnPath && returnPath.startsWith('/')) ? returnPath : '/';
         const session = await stripe.checkout.sessions.create({
             line_items: [{
                 price_data: {
@@ -316,8 +317,8 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
                 quantity: 1
             }],
             mode: 'payment',
-            success_url: `${origin}/?donation=stripe_success&amt=${amount}`,
-            cancel_url: `${origin}/?donation=cancelled`
+            success_url: `${origin}${basePath}?donation=stripe_success&amt=${amount}`,
+            cancel_url: `${origin}${basePath}?donation=cancelled`
         });
 
         res.json({ url: session.url });

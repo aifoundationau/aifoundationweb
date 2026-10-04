@@ -281,7 +281,18 @@
                     <button type="submit" id="stripeSubmitBtn" class="payment-submit-btn" style="background: #635bff; color: white; box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35);">
                         <i class="fa-solid fa-lock"></i> <span id="stripeSubmitText">Pay AUD $24 Securely</span>
                     </button>
+                    <div style="margin-top: 14px; text-align: center;">
+                        <button type="button" class="stripe-direct-link-btn" id="stripeDirectLinkBtn" style="background: none; border: none; color: #635bff; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; transition: opacity 0.2s;">
+                            <span>Prefer direct checkout?</span> <span style="text-decoration: underline;">Open Stripe Checkout <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.78rem;"></i></span>
+                        </button>
+                    </div>
                 </form>
+                <div id="stripeFallbackView" style="display: none; text-align: center; padding: 12px 0;">
+                    <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 12px;">You can proceed safely via Stripe's official hosted checkout page:</p>
+                    <button type="button" id="stripeFallbackBtn" class="payment-submit-btn" style="background: #635bff; color: white;">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Continue to Stripe Checkout
+                    </button>
+                </div>
             </div>
 
             <div id="paypalMethodView" class="payment-method-view" style="display: none;">
