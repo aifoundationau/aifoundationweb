@@ -908,7 +908,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
         const targetSection = document.getElementById(targetId);
         if (targetSection) {
-            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects') ? 'flex' : 'block';
+            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services') ? 'flex' : 'block';
         }
     }
 
@@ -928,6 +928,8 @@ const postObserver = new IntersectionObserver((entries) => {
         const hash = window.location.hash.replace('#', '');
         if (hash === 'projects') {
             activateSection('section-projects');
+        } else if (hash === 'services') {
+            activateSection('section-services');
         } else if (hash === 'education' || hash === 'classroom') {
             activateSection('section-education');
         } else if (hash === 'david' || hash === 'contact') {

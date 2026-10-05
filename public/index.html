@@ -42,6 +42,10 @@
                         <i class="fa-solid fa-layer-group"></i>
                         <span>Projects</span>
                     </li>
+                    <li class="sidebar-item" data-target="section-services">
+                        <i class="fa-solid fa-briefcase"></i>
+                        <span>Services</span>
+                    </li>
                     <!-- <li class="sidebar-item" data-target="section-community">
                         <i class="fa-solid fa-users"></i>
                         <span>Community Reach</span>
@@ -139,6 +143,173 @@
                 <!-- Pagination Controls -->
                 <div id="projectsPaginationControls" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; padding-bottom: 24px;">
                     <!-- Buttons will be injected here by app.js -->
+                </div>
+            </div>
+
+            <!-- Services Section -->
+            <div id="section-services" class="content-section" style="display: none; flex-direction: column; gap: 32px;">
+                <!-- Services Hero Card -->
+                <div class="services-hero-card">
+                    <div class="services-hero-badge">
+                        <i class="fa-solid fa-sparkles"></i> AI Foundation Australia &bull; Strategic Capability
+                    </div>
+                    <h1 class="services-hero-title">Empowering Industry, Education &amp; Community With Agentic AI</h1>
+                    <p class="services-hero-desc">
+                        We deliver vendor-agnostic artificial intelligence architectures, bespoke autonomous agent workflows, enterprise data pipelines, and certified workforce upskilling.
+                    </p>
+                </div>
+
+                <!-- Services Grid (6 Core Service Pillars) -->
+                <div class="services-grid">
+                    <!-- Service 1: Agentic AI Systems -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #eff6ff; color: #0066ff;">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <span class="service-pill" style="background: #eff6ff; color: #0066ff;">Enterprise &amp; SME</span>
+                        </div>
+                        <h3 class="service-title">Agentic AI &amp; Bespoke Ecosystems</h3>
+                        <p class="service-desc">
+                            Design and production deployment of multi-agent autonomous ecosystems that orchestrate complex multi-step reasoning, tool execution, and safe business operations.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Autonomous task execution &amp; reasoning loops</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Custom tool-calling and internal API connectors</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Vendor-agnostic private cloud / local deployment</li>
+                        </ul>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Agentic%20AI%20Ecosystems" class="service-action-btn" style="background: #eff6ff; color: #0066ff;">
+                            Enquire About Agents <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 2: Business Process Automation -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #ecfdf5; color: #10b981;">
+                                <i class="fa-solid fa-gears"></i>
+                            </div>
+                            <span class="service-pill" style="background: #ecfdf5; color: #10b981;">Operations &amp; Scale</span>
+                        </div>
+                        <h3 class="service-title">Workflow Automation &amp; Operations</h3>
+                        <p class="service-desc">
+                            Streamlining operational overhead for sole traders, contractors, and growing teams. Eliminate repetitive admin, client triage, scheduling, and document processing.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> 24/7 intelligent customer triage &amp; automated dispatch</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Cross-platform CRM, calendar &amp; invoice syncing</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Hands-off automated lead capture and follow-ups</li>
+                        </ul>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Business%20Automation" class="service-action-btn" style="background: #ecfdf5; color: #10b981;">
+                            Streamline Operations <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 3: Certified Training & Workshops -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #fffbeb; color: #d97706;">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <span class="service-pill" style="background: #fffbeb; color: #d97706;">Certified Training</span>
+                        </div>
+                        <h3 class="service-title">Accredited Workforce Upskilling</h3>
+                        <p class="service-desc">
+                            Executive masterclasses and technical bootcamps developed by TAE40110 certified Australian Government Trainers and University Lecturers specializing in enterprise AI.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Executive &amp; leadership AI strategy briefings</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Hands-on prompt engineering &amp; pair-programming</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Practical safety, IP protection &amp; ethics workshops</li>
+                        </ul>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20AI%20Training%20and%20Workshops" class="service-action-btn" style="background: #fffbeb; color: #d97706;">
+                            Book Workshop <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 4: Enterprise RAG & Knowledge Systems -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #f5f3ff; color: #7c3aed;">
+                                <i class="fa-solid fa-database"></i>
+                            </div>
+                            <span class="service-pill" style="background: #f5f3ff; color: #7c3aed;">Knowledge Systems</span>
+                        </div>
+                        <h3 class="service-title">Enterprise Knowledge &amp; RAG Systems</h3>
+                        <p class="service-desc">
+                            Convert fragmented manuals, institutional records, and repositories into instant semantic search engines with zero hallucination and strict role-based access.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> High-precision Retrieval-Augmented Generation (RAG)</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Multimodal document, chart &amp; table extraction</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> On-premise air-gapped / secure cloud embeddings</li>
+                        </ul>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Enterprise%20RAG%20Systems" class="service-action-btn" style="background: #f5f3ff; color: #7c3aed;">
+                            Connect Your Data <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 5: Medical Regulatory & Compliance -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #fff1f2; color: #e11d48;">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <span class="service-pill" style="background: #fff1f2; color: #e11d48;">Regulatory &amp; Ethics</span>
+                        </div>
+                        <h3 class="service-title">Medical Regulatory &amp; Governance Advisory</h3>
+                        <p class="service-desc">
+                            Specialized strategic counsel for high-compliance environments across medical regulatory frameworks, academic integrity, and corporate governance.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Regulatory verification &amp; algorithmic auditing</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Organizational AI governance policy formulation</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Privacy preservation &amp; compliance assurance</li>
+                        </ul>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Governance%20and%20Compliance" class="service-action-btn" style="background: #fff1f2; color: #e11d48;">
+                            Consult Governance <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 6: Community & Regional AI Equity -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #f0fdf4; color: #16a34a;">
+                                <i class="fa-solid fa-globe"></i>
+                            </div>
+                            <span class="service-pill" style="background: #f0fdf4; color: #16a34a;">Community Impact</span>
+                        </div>
+                        <h3 class="service-title">Regional Education &amp; AI Literacy</h3>
+                        <p class="service-desc">
+                            Bridging the digital divide across regional Australia and Southeast Asia. We deliver open educational platforms, subsidized training, and grassroots community learning.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Open-source educational tooling (OzEdu &amp; Classrooms)</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Community workshops &amp; regional youth programs</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Non-profit digital transformation partnerships</li>
+                        </ul>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Community%20Partnerships" class="service-action-btn" style="background: #f0fdf4; color: #16a34a;">
+                            Partner With Us <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Call to Action Banner -->
+                <div class="service-cta-box">
+                    <div>
+                        <h3 style="font-size: 1.4rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Ready to Transform Your Organization?</h3>
+                        <p style="margin: 0; font-size: 0.95rem; color: #475569; max-width: 540px; line-height: 1.5;">
+                            Speak directly with our technical convenors and AI architects to map out a concrete implementation roadmap.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="#david" onclick="document.querySelector('[data-target=\'section-david\']')?.click();" style="background: #0066ff; color: white; padding: 14px 24px; border-radius: 12px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-envelope"></i> Contact Us
+                        </a>
+                        <a href="https://www.linkedin.com/company/aifoundationaus/" target="_blank" rel="noopener noreferrer" style="background: white; color: #0f172a; padding: 14px 20px; border-radius: 12px; font-weight: 600; text-decoration: none; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fa-brands fa-linkedin" style="color: #0a66c2;"></i> LinkedIn
+                        </a>
+                    </div>
                 </div>
             </div>
 

@@ -303,6 +303,11 @@ app.get('/projects', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'projects.html'));
 });
 
+// SERVICES PAGE ROUTE
+app.get('/services', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'services.html'));
+});
+
 app.post('/api/extract-metadata', async (req, res) => {
     let { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
