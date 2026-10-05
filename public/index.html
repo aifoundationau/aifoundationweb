@@ -463,22 +463,22 @@
 
             <!-- Payment Method Views -->
             <div id="stripeMethodView" class="payment-method-view" style="display: block;">
-                <div id="stripeLoadingIndicator" style="padding: 24px; text-align: center; color: #64748b;">
+                <div id="stripeLoadingIndicator" style="padding: 20px 0; text-align: center; color: #64748b;">
                     <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: #635bff; margin-bottom: 10px;"></i>
                     <p style="margin: 0; font-size: 0.9rem; font-weight: 500;">Loading secure Stripe form...</p>
                 </div>
-                <form id="stripePaymentForm" style="display: none;">
-                    <div id="stripePaymentElement" style="min-height: 180px; margin-bottom: 16px;"></div>
+                <form id="stripePaymentForm" style="display: block;">
+                    <div id="stripePaymentElement" style="min-height: 160px; margin-bottom: 16px;"></div>
                     <div id="stripePaymentError" style="display: none; color: #ef4444; font-size: 0.88rem; margin-bottom: 12px; font-weight: 600;"></div>
-                    <button type="submit" id="stripeSubmitBtn" class="payment-submit-btn" style="background: #635bff; color: white; box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35);">
+                    <button type="submit" id="stripeSubmitBtn" class="payment-submit-btn" style="background: #635bff; color: white; box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35); display: none;">
                         <i class="fa-solid fa-lock"></i> <span id="stripeSubmitText">Pay AUD $24 Securely</span>
                     </button>
-                    <div style="margin-top: 14px; text-align: center;">
-                        <button type="button" class="stripe-direct-link-btn" id="stripeDirectLinkBtn" style="background: none; border: none; color: #635bff; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; transition: opacity 0.2s;">
-                            <span>Prefer direct checkout?</span> <span style="text-decoration: underline;">Open Stripe Checkout <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.78rem;"></i></span>
-                        </button>
-                    </div>
                 </form>
+                <div style="margin-top: 14px; text-align: center;">
+                    <button type="button" class="stripe-direct-link-btn" id="stripeDirectLinkBtn" style="background: none; border: none; color: #635bff; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; transition: opacity 0.2s;">
+                        <span>Prefer direct checkout?</span> <span style="text-decoration: underline;">Open Stripe Checkout <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.78rem;"></i></span>
+                    </button>
+                </div>
                 <div id="stripeFallbackView" style="display: none; text-align: center; padding: 12px 0;">
                     <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 12px;">You can proceed safely via Stripe's official hosted checkout page:</p>
                     <button type="button" id="stripeFallbackBtn" class="payment-submit-btn" style="background: #635bff; color: white;">
@@ -520,7 +520,7 @@
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://www.paypal.com/sdk/js?client-id=Ab_V9fZYgYYOIO_tXT4yV79gSQMdj0w1TK8-VNjr4arXCkYvi9DBzoR6abYFIE38pql5dAvaqlWZRp5V&currency=AUD"></script>
-    <script src="app.js?v=23"></script>
+    <script src="app.js?v=24"></script>
 </body>
 
 </html>

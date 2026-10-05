@@ -1088,8 +1088,9 @@ const postObserver = new IntersectionObserver((entries) => {
         const fallbackView = document.getElementById('stripeFallbackView');
 
         if (currentLoadedStripeAmount === selectedDonationAmount && stripeElements && stripePaymentElementInstance) {
-            stripeLoadingIndicator.style.display = 'none';
-            stripePaymentForm.style.display = 'block';
+            if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
+            if (stripePaymentForm) stripePaymentForm.style.display = 'block';
+            if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
             if (fallbackView) fallbackView.style.display = 'none';
             return; // Already initialized for this amount
         }
@@ -1105,10 +1106,14 @@ const postObserver = new IntersectionObserver((entries) => {
             stripeElements = null;
         }
 
-        stripeLoadingIndicator.style.display = 'block';
-        stripePaymentForm.style.display = 'none';
+        if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'block';
+        if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'none';
+        if (stripePaymentForm) stripePaymentForm.style.display = 'block';
         if (fallbackView) fallbackView.style.display = 'none';
         if (stripePaymentError) stripePaymentError.style.display = 'none';
+
+        let readyHandled = false;
+        let readyTimeout = null;
 
         try {
             const res = await fetch('/api/stripe/create-payment-intent', {
@@ -1147,14 +1152,28 @@ const postObserver = new IntersectionObserver((entries) => {
             if (container) container.innerHTML = '';
             stripePaymentElementInstance.mount('#stripePaymentElement');
 
+            // Safety timeout: Ensure user is never stuck in an infinite loading pattern
+            readyTimeout = setTimeout(() => {
+                if (!readyHandled) {
+                    if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
+                    if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
+                    currentLoadedStripeAmount = selectedDonationAmount;
+                }
+            }, 3000);
+
             stripePaymentElementInstance.on('ready', () => {
-                stripeLoadingIndicator.style.display = 'none';
-                stripePaymentForm.style.display = 'block';
+                readyHandled = true;
+                if (readyTimeout) clearTimeout(readyTimeout);
+                if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
+                if (stripePaymentForm) stripePaymentForm.style.display = 'block';
+                if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
                 currentLoadedStripeAmount = selectedDonationAmount;
             });
 
             stripePaymentElementInstance.on('loaderror', (event) => {
-                stripeLoadingIndicator.style.display = 'none';
+                readyHandled = true;
+                if (readyTimeout) clearTimeout(readyTimeout);
+                if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
                 if (stripePaymentError) {
                     stripePaymentError.textContent = (event && event.error && event.error.message) || 'Unable to load card element. You can checkout directly via Stripe below.';
                     stripePaymentError.style.display = 'block';
@@ -1162,7 +1181,8 @@ const postObserver = new IntersectionObserver((entries) => {
                 if (fallbackView) fallbackView.style.display = 'block';
             });
         } catch (err) {
-            stripeLoadingIndicator.style.display = 'none';
+            if (readyTimeout) clearTimeout(readyTimeout);
+            if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
             if (stripePaymentError) {
                 stripePaymentError.textContent = err.message || 'Error loading Stripe checkout.';
                 stripePaymentError.style.display = 'block';
