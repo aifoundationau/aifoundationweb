@@ -258,9 +258,9 @@ p { margin: 0; }
 
 .profile-image-container {
   flex-shrink: 0;
-  width: 100%;
-  max-width: 300px;
-  height: auto;
+  width: 260px;
+  max-width: 100%;
+  height: 330px;
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
@@ -268,7 +268,9 @@ p { margin: 0; }
 
 .profile-image {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
   display: block;
 }
 
@@ -276,6 +278,7 @@ p { margin: 0; }
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
 }
 
 .profile-content h2 { margin-bottom: 8px; }
@@ -286,12 +289,24 @@ p { margin: 0; }
   line-height: 1.7;
 }
 
-@media (max-width: 768px) {
-  .profile-card {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
+.profile-linkedin-btn {
+  align-self: flex-start;
+  background: #0077b5;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.profile-linkedin-btn:hover {
+  background: #005582;
+  transform: translateY(-2px);
 }
 
 /* Filter Card */
@@ -484,14 +499,120 @@ p { margin: 0; }
 #extractBtn { background: var(--text-main); color: white; padding: 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; transition: 0.2s; }
 #extractBtn:hover { background: black; }
 
+/* Contact Card & Form */
+.contact-card {
+  margin-top: 24px;
+}
+
+.contact-card h2 {
+  margin-bottom: 24px;
+  font-size: 1.75rem;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.form-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: #f8fafc;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.1);
+}
+
+.contact-form textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.contact-submit-btn {
+  background: var(--primary);
+  color: white;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 102, 255, 0.25);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.contact-submit-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 102, 255, 0.35);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+  .dashboard-card {
+    padding: 24px 18px !important;
+    border-radius: 20px;
+  }
   .profile-card {
     flex-direction: column;
     align-items: center;
+    text-align: center;
+    gap: 20px;
   }
   .profile-image-container {
+    width: 170px;
+    height: 220px;
+    margin: 0 auto;
+    border-radius: 18px;
     max-width: 100%;
+  }
+  .profile-linkedin-btn {
+    align-self: center;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .contact-form input,
+  .contact-form textarea {
+    padding: 14px;
+    font-size: 0.95rem;
+  }
+  .contact-card h2 {
+    font-size: 1.45rem;
+    margin-bottom: 16px;
   }
   .dashboard-container { 
     padding: 0 16px; 
