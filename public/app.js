@@ -912,30 +912,55 @@ const postObserver = new IntersectionObserver((entries) => {
         }
     }
 
+    function scrollToContentOnMobile() {
+        if (window.innerWidth <= 1024) {
+            const mainContent = document.querySelector('.dashboard-content');
+            if (mainContent) {
+                const headerOffset = 80;
+                const elementPosition = mainContent.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }
+
     sidebarItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-target');
+            if (!targetId) return;
             activateSection(targetId);
             const hash = targetId === 'section-overview' ? 'articles' : targetId.replace('section-', '');
             if (window.location.hash !== '#' + hash) {
                 history.pushState(null, null, '#' + hash);
             }
+            scrollToContentOnMobile();
         });
     });
 
     // Hash change & initial hash listener
     function handleHash() {
         const hash = window.location.hash.replace('#', '');
+        let targetId = null;
         if (hash === 'projects') {
-            activateSection('section-projects');
+            targetId = 'section-projects';
         } else if (hash === 'services') {
-            activateSection('section-services');
+            targetId = 'section-services';
         } else if (hash === 'education' || hash === 'classroom') {
-            activateSection('section-education');
+            targetId = 'section-education';
         } else if (hash === 'david' || hash === 'contact') {
-            activateSection('section-david');
+            targetId = 'section-david';
         } else if (hash === 'articles' || hash === 'overview') {
-            activateSection('section-overview');
+            targetId = 'section-overview';
+        }
+
+        if (targetId) {
+            activateSection(targetId);
+            if (hash) {
+                setTimeout(scrollToContentOnMobile, 120);
+            }
         }
     }
 

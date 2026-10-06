@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Services &amp; Capabilities - AI Foundation Australia</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=25">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -32,8 +32,8 @@
     <main class="dashboard-container">
 
         <!-- Sidebar -->
-        <aside style="display: flex; flex-direction: column; gap: 24px; position: sticky; top: 100px; align-self: start;">
-            <div class="dashboard-sidebar" style="position: static;">
+        <aside class="dashboard-aside">
+            <div class="dashboard-sidebar">
                 <h3 class="sidebar-title">Special Sections</h3>
                 <ul class="sidebar-list" id="sidebarNav">
                     <li class="sidebar-item" onclick="window.location.href='index.html#articles'">
@@ -59,28 +59,26 @@
                 </ul>
             </div>
 
-            <div class="dashboard-sidebar" style="position: static; display: flex; flex-direction: column; gap: 12px;">
+            <div class="dashboard-sidebar">
                 <h3 class="sidebar-title" style="margin-bottom: 4px;">Connect</h3>
-                <a href="https://www.linkedin.com/company/aifoundationaus/" target="_blank" rel="noopener noreferrer"
-                    style="display: flex; align-items: center; gap: 12px; background: #0a66c2; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(10, 102, 194, 0.25); transition: all 0.2s;">
-                    <i class="fa-brands fa-linkedin" style="font-size: 1.25rem;"></i>
-                    <span>AI Foundation</span>
-                </a>
-                <a href="https://www.youtube.com/@aifoundationAU" target="_blank" rel="noopener noreferrer"
-                    style="display: flex; align-items: center; gap: 12px; background: #ff0000; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 0, 0, 0.25); transition: all 0.2s;">
-                    <i class="fa-brands fa-youtube" style="font-size: 1.25rem;"></i>
-                    <span>AI Foundation</span>
-                </a>
-                <a href="https://share.google/WiQLQGRiI5cS1LSGS" target="_blank" rel="noopener noreferrer"
-                    style="display: flex; align-items: center; gap: 12px; background: #4285F4; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25); transition: all 0.2s;">
-                    <i class="fa-brands fa-google" style="font-size: 1.25rem;"></i>
-                    <span>Google Updates</span>
-                </a>
-                <a href="https://x.com/aifoundationAU" target="_blank" rel="noopener noreferrer"
-                    style="display: flex; align-items: center; gap: 12px; background: #000000; color: white; padding: 14px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); transition: all 0.2s;">
-                    <i class="fa-brands fa-x-twitter" style="font-size: 1.25rem;"></i>
-                    <span>X (Twitter)</span>
-                </a>
+                <div class="sidebar-connect-list">
+                    <a href="https://www.linkedin.com/company/aifoundationaus/" target="_blank" rel="noopener noreferrer" class="sidebar-connect-btn connect-linkedin">
+                        <i class="fa-brands fa-linkedin"></i>
+                        <span>AI Foundation</span>
+                    </a>
+                    <a href="https://www.youtube.com/@aifoundationAU" target="_blank" rel="noopener noreferrer" class="sidebar-connect-btn connect-youtube">
+                        <i class="fa-brands fa-youtube"></i>
+                        <span>AI Foundation</span>
+                    </a>
+                    <a href="https://share.google/WiQLQGRiI5cS1LSGS" target="_blank" rel="noopener noreferrer" class="sidebar-connect-btn connect-google">
+                        <i class="fa-brands fa-google"></i>
+                        <span>Google Updates</span>
+                    </a>
+                    <a href="https://x.com/aifoundationAU" target="_blank" rel="noopener noreferrer" class="sidebar-connect-btn connect-twitter">
+                        <i class="fa-brands fa-x-twitter"></i>
+                        <span>X (Twitter)</span>
+                    </a>
+                </div>
             </div>
         </aside>
 
@@ -566,7 +564,7 @@
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://www.paypal.com/sdk/js?client-id=Ab_V9fZYgYYOIO_tXT4yV79gSQMdj0w1TK8-VNjr4arXCkYvi9DBzoR6abYFIE38pql5dAvaqlWZRp5V&currency=AUD"></script>
-    <script src="app.js?v=24"></script>
+    <script src="app.js?v=25"></script>
 </body>
 
 </html>
