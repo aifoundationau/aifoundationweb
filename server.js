@@ -5,6 +5,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const Stripe = require('stripe');
+const firebaseService = require('./firebase-service');
 
 const app = express();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -308,6 +309,16 @@ app.get('/services', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'services.html'));
 });
 
+// DATA CONTRACTS PAGE ROUTE
+app.get('/data-contracts', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'data-contracts.html'));
+});
+
+// RAW DATA CONTRACTS MARKDOWN ROUTE
+app.get('/data-contracts.md', (req, res) => {
+    res.sendFile(path.join(__dirname, 'data-contracts.md'));
+});
+
 app.post('/api/extract-metadata', async (req, res) => {
     let { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
@@ -429,11 +440,46 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
                 quantity: 1
             }],
             mode: 'payment',
-            success_url: `${origin}${basePath}?donation=stripe_success&amt=${amount}`,
+            metadata: {
+                tag: 'aifoundation',
+                businessId: 'aifoundation',
+                businessName: 'AI Foundation',
+                source: 'aifoundation',
+                amount: String(amount)
+            },
+            payment_intent_data: {
+                metadata: {
+                    tag: 'aifoundation',
+                    businessId: 'aifoundation',
+                    businessName: 'AI Foundation',
+                    source: 'aifoundation',
+                    amount: String(amount)
+                }
+            },
+            success_url: `${origin}${basePath}?donation=stripe_success&amt=${amount}&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}${basePath}?donation=cancelled`
         });
 
-        res.json({ url: session.url });
+        // Record initiated transaction in Firestore with tag 'aifoundation'
+        try {
+            await firebaseService.recordTransaction({
+                transactionId: session.id,
+                amount: amount,
+                currency: 'aud',
+                paymentMethod: 'stripe',
+                paymentType: 'donation',
+                status: 'initiated',
+                description: `Support AI Foundation Australia (AUD $${amount})`,
+                originUrl: `${origin}${basePath}`,
+                metadata: {
+                    checkoutUrl: session.url
+                }
+            });
+        } catch (fbErr) {
+            console.warn('[Firebase] Warning recording checkout session:', fbErr.message);
+        }
+
+        res.json({ url: session.url, sessionId: session.id });
     } catch (e) {
         console.error('Stripe Checkout Error:', e);
         res.status(500).json({ error: e.message || 'Error creating Stripe session' });
@@ -485,11 +531,13 @@ app.post('/api/paypal/create-order', async (req, res) => {
             body: JSON.stringify({
                 intent: 'CAPTURE',
                 purchase_units: [{
+                    custom_id: 'aifoundation',
+                    invoice_id: `AIF-${Date.now()}`,
                     amount: {
                         currency_code: 'AUD',
                         value: amount.toFixed(2)
                     },
-                    description: `Support AI Foundation Australia (AUD $${amount})`
+                    description: `Support AI Foundation Australia (AUD $${amount}) [tag: aifoundation]`
                 }],
                 application_context: {
                     brand_name: 'AI Foundation Australia',
@@ -502,6 +550,20 @@ app.post('/api/paypal/create-order', async (req, res) => {
         const orderData = await orderRes.json();
         const approveLink = orderData.links && orderData.links.find(l => l.rel === 'approve');
         if (approveLink) {
+            // Record initiated transaction in Firestore with tag 'aifoundation'
+            try {
+                await firebaseService.recordTransaction({
+                    transactionId: orderData.id,
+                    amount: amount,
+                    currency: 'aud',
+                    paymentMethod: 'paypal',
+                    paymentType: 'donation',
+                    status: 'initiated',
+                    description: `Support AI Foundation Australia (AUD $${amount})`
+                });
+            } catch (fbErr) {
+                console.warn('[Firebase] Warning recording paypal order:', fbErr.message);
+            }
             res.json({ url: approveLink.href, orderId: orderData.id });
         } else {
             res.status(400).json({ error: 'Could not create PayPal checkout order.', details: orderData });
@@ -529,6 +591,19 @@ app.post('/api/paypal/capture-order/:orderId', async (req, res) => {
             }
         });
         const captureData = await captureRes.json();
+
+        // Update transaction in Firestore with tag 'aifoundation'
+        try {
+            const isCompleted = captureData.status === 'COMPLETED';
+            await firebaseService.updateTransactionStatus(orderId, isCompleted ? 'succeeded' : 'failed', {
+                paymentMethod: 'paypal',
+                tag: 'aifoundation',
+                captureId: captureData.purchase_units?.[0]?.payments?.captures?.[0]?.id || ''
+            });
+        } catch (fbErr) {
+            console.warn('[Firebase] Warning updating paypal capture:', fbErr.message);
+        }
+
         res.json(captureData);
     } catch (e) {
         console.error('PayPal Capture Error:', e);
@@ -552,17 +627,91 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
             amount: amount * 100,
             currency: 'aud',
             automatic_payment_methods: { enabled: true },
-            description: `Donation to AI Foundation Australia (AUD $${amount})`
+            description: `Donation to AI Foundation Australia (AUD $${amount})`,
+            metadata: {
+                tag: 'aifoundation',
+                businessId: 'aifoundation',
+                businessName: 'AI Foundation',
+                source: 'aifoundation',
+                amount: String(amount)
+            }
         });
+
+        // Record initiated transaction in Firestore with tag 'aifoundation'
+        try {
+            await firebaseService.recordTransaction({
+                transactionId: paymentIntent.id,
+                amount: amount,
+                currency: 'aud',
+                paymentMethod: 'stripe',
+                paymentType: 'donation',
+                status: 'initiated',
+                description: `Donation to AI Foundation Australia (AUD $${amount})`
+            });
+        } catch (fbErr) {
+            console.warn('[Firebase] Warning recording payment intent:', fbErr.message);
+        }
 
         res.json({
             clientSecret: paymentIntent.client_secret,
+            paymentIntentId: paymentIntent.id,
             publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
         });
     } catch (e) {
         console.error('Stripe PaymentIntent Error:', e);
         res.status(500).json({ error: e.message || 'Error creating payment intent' });
     }
+});
+
+// Confirm or sync a transaction with tag 'aifoundation'
+app.post('/api/transactions/confirm', async (req, res) => {
+    try {
+        const { transactionId, status, paymentMethod, amount, customerEmail, customerName } = req.body;
+        if (!transactionId) {
+            return res.status(400).json({ error: 'transactionId is required' });
+        }
+        const result = await firebaseService.updateTransactionStatus(transactionId, status || 'succeeded', {
+            paymentMethod: paymentMethod || 'stripe',
+            tag: 'aifoundation',
+            amount: amount ? Number(amount) : undefined,
+            customerEmail,
+            customerName
+        });
+        res.json({ success: true, result });
+    } catch (e) {
+        console.error('[Transactions] Confirm error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Record a transaction directly into Firestore with tag 'aifoundation'
+app.post('/api/transactions/record', async (req, res) => {
+    try {
+        const txData = req.body;
+        txData.tag = 'aifoundation';
+        txData.businessId = 'aifoundation';
+        const result = await firebaseService.recordTransaction(txData);
+        res.json({ success: true, result });
+    } catch (e) {
+        console.error('[Transactions] Record error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Fetch recent transactions tagged with 'aifoundation'
+app.get('/api/transactions', async (req, res) => {
+    try {
+        const list = await firebaseService.listAIFoundationTransactions(50);
+        res.json({ count: list.length, tag: 'aifoundation', transactions: list });
+    } catch (e) {
+        console.error('[Transactions] Query error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Expose safe public Firebase config for frontend clients
+app.get('/api/firebase/config', (req, res) => {
+    res.json(firebaseService.getFirebasePublicConfig());
 });
 
 app.listen(PORT, () => {

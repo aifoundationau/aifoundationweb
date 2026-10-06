@@ -1014,6 +1014,32 @@ const postObserver = new IntersectionObserver((entries) => {
     let stripePaymentElementInstance = null;
     let currentLoadedStripeAmount = null;
     let currentLoadedPayPalAmount = null;
+    let currentPaymentIntentId = null;
+
+    async function syncTransactionSuccess(txId, provider, amt) {
+        try {
+            const payload = {
+                transactionId: txId || `tx_${Date.now()}`,
+                status: 'succeeded',
+                paymentMethod: provider || 'stripe',
+                tag: 'aifoundation',
+                businessId: 'aifoundation',
+                amount: amt ? Number(amt) : (selectedDonationAmount || 24)
+            };
+            if (window.firebaseService?.recordTransaction) {
+                await window.firebaseService.recordTransaction(payload);
+            } else {
+                await fetch('/api/transactions/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+            console.log(`[Firebase] Transaction ${payload.transactionId} synced with tag: ${payload.tag}`);
+        } catch (e) {
+            console.warn('[Firebase Sync] Transaction sync note:', e);
+        }
+    }
 
     function setDonationStatus(msg, isError = false) {
         if (!statusMsg) return;
@@ -1152,6 +1178,7 @@ const postObserver = new IntersectionObserver((entries) => {
             if (!res.ok || !data.clientSecret) {
                 throw new Error(data.error || 'Failed to start Stripe session');
             }
+            currentPaymentIntentId = data.paymentIntentId || null;
 
             if (!stripeClient && window.Stripe) {
                 stripeClient = window.Stripe(data.publishableKey);
@@ -1281,8 +1308,10 @@ const postObserver = new IntersectionObserver((entries) => {
                     stripeSubmitBtn.disabled = false;
                     stripeSubmitText.innerHTML = originalText;
                 } else if (paymentIntent && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing')) {
+                    syncTransactionSuccess(paymentIntent.id || currentPaymentIntentId, 'stripe', selectedDonationAmount);
                     showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Card / Stripe');
                 } else {
+                    syncTransactionSuccess(paymentIntent?.id || currentPaymentIntentId, 'stripe', selectedDonationAmount);
                     showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Stripe');
                 }
             } catch (err) {
@@ -1345,8 +1374,10 @@ const postObserver = new IntersectionObserver((entries) => {
                             method: 'POST'
                         });
                         const captureData = await captureRes.json();
+                        syncTransactionSuccess(data.orderID, 'paypal', selectedDonationAmount);
                         showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'PayPal');
                     } catch (err) {
+                        syncTransactionSuccess(data.orderID, 'paypal', selectedDonationAmount);
                         showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'PayPal');
                     }
                 },
@@ -1400,9 +1431,14 @@ const postObserver = new IntersectionObserver((entries) => {
     const donationStatus = urlParams.get('donation');
     const donatedAmt = urlParams.get('amt');
 
+    const sessionId = urlParams.get('session_id');
+
     if (donationStatus === 'stripe_success' || donationStatus === 'paypal_success' || donationStatus === 'success') {
         const amtStr = donatedAmt ? ` of AUD $${donatedAmt}` : '';
         const providerStr = donationStatus === 'paypal_success' ? 'PayPal' : 'Stripe';
+        if (sessionId) {
+            syncTransactionSuccess(sessionId, 'stripe', donatedAmt);
+        }
         openPaymentModal('stripe');
         showPaymentSuccess(amtStr || 'your donation', providerStr);
         window.history.replaceState({}, document.title, window.location.pathname);

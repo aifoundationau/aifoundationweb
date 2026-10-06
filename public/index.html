@@ -446,6 +446,13 @@
                         onmouseover="this.style.color='var(--primary)'"
                         onmouseout="this.style.color='var(--text-muted)'">support@aifoundation.net.au</a>
                 </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-file-contract" style="color: var(--primary);"></i>
+                    <a href="/data-contracts"
+                        style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s;"
+                        onmouseover="this.style.color='var(--primary)'"
+                        onmouseout="this.style.color='var(--text-muted)'">Data Contracts</a>
+                </div>
                 <div style="display: flex; align-items: center; gap: 16px;">
                     <span style="font-size: 0.85rem; color: #94a3b8;"><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe &amp; PayPal</span>
                 </div>
@@ -686,10 +693,13 @@
         </div>
     </div>
 
+    <!-- Firebase SDK & Client Integration -->
+    <script type="module" src="firebase-client.js"></script>
+
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
     <script src="https://www.paypal.com/sdk/js?client-id=Ab_V9fZYgYYOIO_tXT4yV79gSQMdj0w1TK8-VNjr4arXCkYvi9DBzoR6abYFIE38pql5dAvaqlWZRp5V&currency=AUD"></script>
-    <script src="app.js?v=26"></script>
+    <script src="app.js?v=27"></script>
 </body>
 
 </html>

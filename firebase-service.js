@@ -1,0 +1,412 @@
+/**
+ * AI Foundation - Firebase Service Layer
+ * Multi-Tenant Cloud Firestore Client for 'ai-foundation-firebase'
+ * Partitioned with: tag = 'aifoundation', businessId = 'aifoundation'
+ * 
+ * Secure server-side Firestore operations via Google Cloud Service Account OAuth2
+ */
+
+const crypto = require('crypto');
+
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'ai-foundation-firebase';
+const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
+const RAW_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
+const TRANSACTION_TAG = process.env.TRANSACTION_TAG || 'aifoundation';
+const BUSINESS_ID = process.env.BUSINESS_ID || 'aifoundation';
+
+let cachedToken = null;
+let tokenExpiresAt = 0;
+
+/**
+ * Format private key handling literal \n strings
+ */
+function getFormattedPrivateKey() {
+    if (!RAW_PRIVATE_KEY) return null;
+    return RAW_PRIVATE_KEY.replace(/\\n/g, '\n');
+}
+
+/**
+ * Obtain Google OAuth2 access token using Service Account JWT
+ */
+async function getAccessToken() {
+    const now = Math.floor(Date.now() / 1000);
+    // Reuse cached token if valid for more than 2 minutes
+    if (cachedToken && tokenExpiresAt > now + 120) {
+        return cachedToken;
+    }
+
+    const privateKey = getFormattedPrivateKey();
+    if (!CLIENT_EMAIL || !privateKey) {
+        console.warn('[Firebase] Service account credentials not configured. Direct Firestore writes disabled.');
+        return null;
+    }
+
+    try {
+        const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+        const payload = Buffer.from(JSON.stringify({
+            iss: CLIENT_EMAIL,
+            scope: 'https://www.googleapis.com/auth/datastore',
+            aud: 'https://oauth2.googleapis.com/token',
+            exp: now + 3600,
+            iat: now
+        })).toString('base64url');
+
+        const signer = crypto.createSign('RSA-SHA256');
+        signer.update(header + '.' + payload);
+        const signature = signer.sign(privateKey, 'base64url');
+        const jwt = `${header}.${payload}.${signature}`;
+
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + jwt
+        });
+
+        const data = await tokenRes.json();
+        if (data.access_token) {
+            cachedToken = data.access_token;
+            tokenExpiresAt = now + (data.expires_in || 3600);
+            return cachedToken;
+        } else {
+            console.error('[Firebase] OAuth token error:', data);
+            return null;
+        }
+    } catch (err) {
+        console.error('[Firebase] Failed to create access token:', err.message);
+        return null;
+    }
+}
+
+/**
+ * Convert native JavaScript value to Firestore REST field structure
+ */
+function toFirestoreValue(val) {
+    if (val === null || val === undefined) {
+        return { nullValue: null };
+    }
+    if (typeof val === 'boolean') {
+        return { booleanValue: val };
+    }
+    if (typeof val === 'number') {
+        if (Number.isInteger(val)) {
+            return { integerValue: val.toString() };
+        }
+        return { doubleValue: val };
+    }
+    if (typeof val === 'string') {
+        // Detect ISO 8601 timestamps
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(val)) {
+            return { timestampValue: val };
+        }
+        return { stringValue: val };
+    }
+    if (val instanceof Date) {
+        return { timestampValue: val.toISOString() };
+    }
+    if (Array.isArray(val)) {
+        return {
+            arrayValue: {
+                values: val.map(toFirestoreValue)
+            }
+        };
+    }
+    if (typeof val === 'object') {
+        const fields = {};
+        for (const [k, v] of Object.entries(val)) {
+            if (v !== undefined) {
+                fields[k] = toFirestoreValue(v);
+            }
+        }
+        return { mapValue: { fields } };
+    }
+    return { stringValue: String(val) };
+}
+
+/**
+ * Convert native JavaScript object to Firestore fields map
+ */
+function toFirestoreFields(obj) {
+    const fields = {};
+    for (const [key, val] of Object.entries(obj)) {
+        if (val !== undefined) {
+            fields[key] = toFirestoreValue(val);
+        }
+    }
+    return fields;
+}
+
+/**
+ * Convert Firestore REST field structure to native JavaScript value
+ */
+function fromFirestoreValue(valObj) {
+    if (!valObj) return null;
+    if ('stringValue' in valObj) return valObj.stringValue;
+    if ('integerValue' in valObj) return parseInt(valObj.integerValue, 10);
+    if ('doubleValue' in valObj) return parseFloat(valObj.doubleValue);
+    if ('booleanValue' in valObj) return valObj.booleanValue;
+    if ('timestampValue' in valObj) return valObj.timestampValue;
+    if ('nullValue' in valObj) return null;
+    if ('arrayValue' in valObj) {
+        return (valObj.arrayValue.values || []).map(fromFirestoreValue);
+    }
+    if ('mapValue' in valObj) {
+        return fromFirestoreFields(valObj.mapValue.fields || {});
+    }
+    return null;
+}
+
+/**
+ * Convert Firestore fields map to native JavaScript object
+ */
+function fromFirestoreFields(fields) {
+    const obj = {};
+    for (const [key, valObj] of Object.entries(fields || {})) {
+        obj[key] = fromFirestoreValue(valObj);
+    }
+    return obj;
+}
+
+/**
+ * Write document to Cloud Firestore collection
+ * @param {string} collectionId - Firestore collection name (e.g. 'transactions', 'stripe_transactions')
+ * @param {string} documentId - Firestore document ID
+ * @param {object} data - Data to persist
+ * @param {boolean} merge - Whether to patch/merge with existing document
+ */
+async function writeDocument(collectionId, documentId, data, merge = true) {
+    const token = await getAccessToken();
+    if (!token) return { success: false, error: 'Authentication unavailable' };
+
+    const baseUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+    const docPath = `${collectionId}/${encodeURIComponent(documentId)}`;
+
+    try {
+        if (merge) {
+            // Use PATCH with fieldMasks or direct document patch
+            const maskParams = Object.keys(data).map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+            const url = `${baseUrl}/${docPath}?${maskParams}`;
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fields: toFirestoreFields(data)
+                })
+            });
+            const result = await res.json();
+            if (res.ok) {
+                return { success: true, path: result.name };
+            } else {
+                console.warn(`[Firebase] Write failed for ${docPath}:`, result.error?.message || result);
+                return { success: false, error: result.error?.message || 'Firestore write error' };
+            }
+        } else {
+            const url = `${baseUrl}/${collectionId}?documentId=${encodeURIComponent(documentId)}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fields: toFirestoreFields(data)
+                })
+            });
+            const result = await res.json();
+            return res.ok ? { success: true, path: result.name } : { success: false, error: result.error?.message };
+        }
+    } catch (err) {
+        console.error(`[Firebase] Network error writing ${docPath}:`, err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Read document from Cloud Firestore
+ */
+async function getDocument(collectionId, documentId) {
+    const token = await getAccessToken();
+    if (!token) return null;
+
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionId}/${encodeURIComponent(documentId)}`;
+    try {
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return fromFirestoreFields(data.fields);
+    } catch (err) {
+        console.error(`[Firebase] Error fetching ${collectionId}/${documentId}:`, err.message);
+        return null;
+    }
+}
+
+/**
+ * Record a transaction in Cloud Firestore.
+ * GUARANTEE: Every transaction MUST have tag 'aifoundation' attached to it.
+ * 
+ * Writes to:
+ * 1. 'transactions' (primary multi-tenant collection, filtered by tag = 'aifoundation')
+ * 2. 'stripe_transactions' (if paymentMethod is 'stripe')
+ * 3. 'paypal_transactions' (if paymentMethod is 'paypal')
+ */
+async function recordTransaction(txData) {
+    if (!txData || !txData.transactionId) {
+        throw new Error('Transaction ID is required to record a transaction.');
+    }
+
+    const now = new Date().toISOString();
+    const payload = {
+        transactionId: txData.transactionId,
+        tag: TRANSACTION_TAG, // CRITICAL: 'aifoundation'
+        businessId: BUSINESS_ID, // 'aifoundation'
+        businessName: 'AI Foundation',
+        source: 'aifoundation',
+        amount: Number(txData.amount) || 0,
+        currency: (txData.currency || 'aud').toLowerCase(),
+        paymentMethod: txData.paymentMethod || 'stripe', // 'stripe' or 'paypal'
+        paymentType: txData.paymentType || 'donation',
+        status: txData.status || 'initiated', // 'initiated', 'succeeded', 'failed', 'cancelled'
+        description: txData.description || `AI Foundation Contribution of AUD $${txData.amount || 0}`,
+        recordedAt: txData.recordedAt || now,
+        updatedAt: now,
+        metadata: {
+            platform: 'web',
+            originUrl: txData.originUrl || 'https://aifoundation.com.au',
+            customerEmail: txData.customerEmail || '',
+            customerName: txData.customerName || '',
+            ...(txData.metadata || {})
+        }
+    };
+
+    console.log(`[Firebase] Recording transaction ${payload.transactionId} with tag [${payload.tag}] (${payload.paymentMethod}, status: ${payload.status})`);
+
+    const results = {};
+
+    // 1. Universal transactions collection
+    results.transactions = await writeDocument('transactions', payload.transactionId, payload, true);
+
+    // 2. Provider-specific collection for cross-system parity
+    if (payload.paymentMethod === 'stripe') {
+        results.stripe_transactions = await writeDocument('stripe_transactions', payload.transactionId, payload, true);
+    } else if (payload.paymentMethod === 'paypal') {
+        results.paypal_transactions = await writeDocument('paypal_transactions', payload.transactionId, payload, true);
+    }
+
+    return {
+        success: results.transactions.success,
+        payload,
+        results
+    };
+}
+
+/**
+ * Update transaction status (e.g. from 'initiated' to 'succeeded')
+ */
+async function updateTransactionStatus(transactionId, status, extraData = {}) {
+    if (!transactionId) return { success: false, error: 'No transactionId' };
+
+    const updatePayload = {
+        tag: TRANSACTION_TAG, // Re-enforce tag: 'aifoundation'
+        businessId: BUSINESS_ID,
+        status: status,
+        updatedAt: new Date().toISOString(),
+        ...extraData
+    };
+
+    console.log(`[Firebase] Updating transaction ${transactionId} status to '${status}' [tag: ${TRANSACTION_TAG}]`);
+
+    const res1 = await writeDocument('transactions', transactionId, updatePayload, true);
+    let res2 = { success: true };
+
+    if (extraData.paymentMethod === 'stripe' || transactionId.startsWith('pi_') || transactionId.startsWith('cs_')) {
+        res2 = await writeDocument('stripe_transactions', transactionId, updatePayload, true);
+    } else if (extraData.paymentMethod === 'paypal') {
+        res2 = await writeDocument('paypal_transactions', transactionId, updatePayload, true);
+    }
+
+    return { success: res1.success || res2.success, updated: updatePayload };
+}
+
+/**
+ * Query recent transactions for AI Foundation
+ */
+async function listAIFoundationTransactions(limit = 50) {
+    const token = await getAccessToken();
+    if (!token) return [];
+
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
+    const queryPayload = {
+        structuredQuery: {
+            from: [{ collectionId: 'transactions' }],
+            where: {
+                fieldFilter: {
+                    field: { fieldPath: 'tag' },
+                    op: 'EQUAL',
+                    value: { stringValue: TRANSACTION_TAG }
+                }
+            },
+            limit: limit
+        }
+    };
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(queryPayload)
+        });
+
+        if (!res.ok) {
+            console.warn('[Firebase] Query failed:', await res.text());
+            return [];
+        }
+
+        const rawList = await res.json();
+        const results = [];
+        for (const item of rawList) {
+            if (item.document && item.document.fields) {
+                results.push(fromFirestoreFields(item.document.fields));
+            }
+        }
+        return results;
+    } catch (err) {
+        console.error('[Firebase] Failed to query transactions:', err.message);
+        return [];
+    }
+}
+
+/**
+ * Public configuration for frontend client SDK
+ */
+function getFirebasePublicConfig() {
+    return {
+        apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyCPeAOWQj8456TeIWDIPsyxyWT7QLrC8J8',
+        authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'ai-foundation-firebase.firebaseapp.com',
+        projectId: process.env.FIREBASE_PROJECT_ID || 'ai-foundation-firebase',
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'ai-foundation-firebase.firebasestorage.app',
+        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '614773274800',
+        appId: process.env.FIREBASE_APP_ID || '1:614773274800:web:a7c2a66e4e8c4409afb221',
+        tag: TRANSACTION_TAG, // 'aifoundation'
+        businessId: BUSINESS_ID // 'aifoundation'
+    };
+}
+
+module.exports = {
+    TRANSACTION_TAG,
+    BUSINESS_ID,
+    PROJECT_ID,
+    recordTransaction,
+    updateTransactionStatus,
+    getDocument,
+    listAIFoundationTransactions,
+    getFirebasePublicConfig,
+    toFirestoreFields,
+    fromFirestoreFields
+};
