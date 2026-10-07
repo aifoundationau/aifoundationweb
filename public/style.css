@@ -473,16 +473,193 @@ p { margin: 0; }
 }
 .post-footer a:hover { background: var(--primary); color: white; }
 
-/* Admin Modal */
-.modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 1000; }
-.modal-content { background: white; width: 95%; max-width: 1000px; border-radius: var(--radius-lg); padding: 40px; box-shadow: 0 40px 80px rgba(0,0,0,0.2); position: relative; }
-.close { position: absolute; top: 24px; right: 24px; background: #f1f5f9; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-.close:hover { background: #e2e8f0; }
+/* Admin & General Modal System (Responsive, Fit-To-Screen & Scrollable) */
+.modal,
+.admin-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
 
-.admin-form { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
-.admin-form input, .admin-form textarea { padding: 16px; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); font-family: inherit; background: #f8fafc; outline: none; transition: 0.2s; }
-.admin-form input:focus, .admin-form textarea:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(0,102,255,0.1); }
-#extractBtn { background: var(--text-main); color: white; padding: 16px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; transition: 0.2s; }
+.modal-content,
+.admin-content {
+  background: #ffffff;
+  width: 96%;
+  max-width: 1080px;
+  height: calc(100vh - 40px);
+  max-height: 860px;
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(226, 232, 240, 0.9);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  background: #f1f5f9;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 50;
+  font-size: 1.25rem;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.close:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #fca5a5;
+  transform: rotate(90deg);
+}
+
+/* Admin Panel Layout Inside Modal */
+#adminPanelView {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-panel-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-panel-sidebar {
+  width: 230px;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 20px;
+  padding-top: 8px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.admin-panel-content-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding-left: 28px;
+  padding-right: 14px;
+  padding-top: 8px;
+  padding-bottom: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom Visible Scrollbars */
+.admin-panel-content-pane::-webkit-scrollbar,
+.admin-panel-sidebar::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar,
+.modal::-webkit-scrollbar {
+  width: 8px;
+}
+.admin-panel-content-pane::-webkit-scrollbar-track,
+.admin-panel-sidebar::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track,
+.modal::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+.admin-panel-content-pane::-webkit-scrollbar-thumb,
+.admin-panel-sidebar::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb,
+.modal::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
+  border: 2px solid #f1f5f9;
+}
+.admin-panel-content-pane::-webkit-scrollbar-thumb:hover,
+.admin-panel-sidebar::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover,
+.modal::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.admin-panel-content-pane,
+.admin-panel-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.admin-form input,
+.admin-form textarea,
+.admin-form select {
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.92rem;
+  background: #f8fafc;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.admin-form input:focus,
+.admin-form textarea:focus,
+.admin-form select:focus {
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+
+.link-row-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+#extractBtn {
+  background: var(--text-main);
+  color: white;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
 #extractBtn:hover { background: black; }
 
 /* Contact Card & Form */

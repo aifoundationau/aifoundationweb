@@ -126,7 +126,7 @@ const postObserver = new IntersectionObserver((entries) => {
         const loginView = document.getElementById('adminLoginView');
         const panelView = document.getElementById('adminPanelView');
         if (loginView) loginView.style.display = 'none';
-        if (panelView) panelView.style.display = 'block';
+        if (panelView) panelView.style.display = 'flex';
 
         // Keep admin auth cookie active
         document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
@@ -311,7 +311,7 @@ const postObserver = new IntersectionObserver((entries) => {
                         document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
                         if (errorMsg) errorMsg.style.display = 'none';
                         document.getElementById('adminLoginView').style.display = 'none';
-                        document.getElementById('adminPanelView').style.display = 'block';
+                        document.getElementById('adminPanelView').style.display = 'flex';
                         renderAdminAllPosts();
                     } else {
                         if (errorMsg) {
@@ -929,7 +929,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 <input type="text" class="multiLinkInput" placeholder="Enter URL to scrape" style="margin-bottom: 8px;" />
                 <button type="button" class="multiExtractBtn" style="background: #0f172a; color: white; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; border: none; cursor: pointer;">Extract Metadata</button>
                 
-                <div class="multiPreviewCard" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 12px;">
+                <div class="multiPreviewCard" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
                         <img class="multiImagePreview" src="" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;" />
                         <div style="display: flex; flex-direction: column; gap: 6px;">

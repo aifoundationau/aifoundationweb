@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Services &amp; Capabilities - AI Foundation Australia</title>
-    <link rel="stylesheet" href="style.css?v=26">
+    <link rel="stylesheet" href="style.css?v=32">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -450,8 +450,8 @@
     </main>
 
     <!-- Admin Panel Modal -->
-    <div class="admin-modal" id="adminModal" style="display: none;">
-        <div class="admin-content" style="max-width: 900px; width: 95%;">
+    <div class="modal" id="adminModal">
+        <div class="modal-content">
             <span class="close" id="closeAdminBtn">&times;</span>
 
             <!-- Login View -->
@@ -482,7 +482,7 @@
             </div>
 
             <!-- Panel View -->
-            <div id="adminPanelView" style="display: none; height: 78vh; display: flex; flex-direction: column;">
+            <div id="adminPanelView" style="display: none;">
                 <!-- Admin Panel Header Bar -->
                 <div class="admin-panel-topbar">
                     <div class="admin-user-info">
@@ -494,10 +494,9 @@
                     </button>
                 </div>
 
-                <div style="display: flex; flex: 1; min-height: 0;">
+                <div class="admin-panel-layout">
                     <!-- Admin Sidebar -->
-                    <div
-                        style="width: 240px; border-right: 1px solid #e2e8f0; padding-right: 24px; padding-top: 12px; flex-shrink: 0;">
+                    <div class="admin-panel-sidebar">
                         <h2 style="margin-bottom: 24px; font-size: 1.25rem;">Admin Panel</h2>
                         <ul class="sidebar-list" id="adminTabs">
                             <li class="sidebar-item active" data-target="admin-upload-post">
@@ -520,7 +519,7 @@
                     </div>
 
                     <!-- Admin Content -->
-                    <div style="flex: 1; padding-left: 32px; overflow-y: auto; padding-top: 12px;">
+                    <div class="admin-panel-content-pane">
 
                         <!-- Upload Post Section -->
                         <div id="admin-upload-post" class="admin-tab-content" style="display: block;">
@@ -801,6 +800,6 @@
 
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="app.js?v=31"></script>
+    <script src="app.js?v=32"></script>
 </body>
 </html>
