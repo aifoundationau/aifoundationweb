@@ -1018,9 +1018,11 @@ const postObserver = new IntersectionObserver((entries) => {
         btn.innerHTML = 'Publishing...';
         
         let successCount = 0;
+        let lastPublishError = null;
+
         for (const row of rows) {
-            let title = row.querySelector('.multiPostTitle')?.value;
-            let link = row.querySelector('.multiPostLink')?.value;
+            let title = row.querySelector('.multiPostTitle')?.value?.trim();
+            let link = row.querySelector('.multiPostLink')?.value?.trim();
             const inputUrl = row.querySelector('.multiLinkInput')?.value?.trim();
 
             // If user forgot to click Extract Metadata, try extracting on the fly
@@ -1031,21 +1033,31 @@ const postObserver = new IntersectionObserver((entries) => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url: inputUrl })
                     });
-                    const extData = await extRes.json();
-                    title = extData.title || inputUrl;
-                    link = extData.link || inputUrl;
-                    if (row.querySelector('.multiPostTitle')) row.querySelector('.multiPostTitle').value = title;
-                    if (row.querySelector('.multiPostLink')) row.querySelector('.multiPostLink').value = link;
-                    if (row.querySelector('.multiPostSummary')) row.querySelector('.multiPostSummary').value = extData.summary || '';
-                    if (row.querySelector('.multiPostPlatform')) row.querySelector('.multiPostPlatform').value = extData.platform || 'website';
-                    if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = extData.imageUrl || 'assets/logo.png';
+                    if (extRes.ok) {
+                        const extData = await extRes.json();
+                        title = extData.title || inputUrl;
+                        link = extData.link || inputUrl;
+                        if (row.querySelector('.multiPostTitle')) row.querySelector('.multiPostTitle').value = title;
+                        if (row.querySelector('.multiPostLink')) row.querySelector('.multiPostLink').value = link;
+                        if (row.querySelector('.multiPostSummary')) row.querySelector('.multiPostSummary').value = extData.summary || '';
+                        if (row.querySelector('.multiPostPlatform')) row.querySelector('.multiPostPlatform').value = extData.platform || 'website';
+                        if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = extData.imageUrl || 'assets/logo.png';
+                    } else {
+                        title = inputUrl;
+                        link = inputUrl;
+                    }
                 } catch (e) {
                     title = inputUrl;
                     link = inputUrl;
                 }
             }
 
-            if (!title && !link) continue;
+            if (!title && !link) {
+                if (!lastPublishError) {
+                    lastPublishError = 'Please enter a URL or fill in the Title and Link fields.';
+                }
+                continue;
+            }
             
             let finalImgUrl = row.querySelector('.multiImageUrl')?.value || 'assets/logo.png';
             // All images uploaded other than posts must be uploaded to ImgBB
@@ -1059,10 +1071,12 @@ const postObserver = new IntersectionObserver((entries) => {
                             imageUrl: !finalImgUrl.startsWith('data:') ? finalImgUrl : null
                         })
                     });
-                    const upData = await upRes.json();
-                    if (upData.success && upData.url) {
-                        finalImgUrl = upData.url;
-                        if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                    if (upRes.ok) {
+                        const upData = await upRes.json();
+                        if (upData.success && upData.url) {
+                            finalImgUrl = upData.url;
+                            if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                        }
                     }
                 } catch (upErr) {
                     console.warn('Frontend ImgBB upload fallback:', upErr);
@@ -1095,10 +1109,19 @@ const postObserver = new IntersectionObserver((entries) => {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    if (res.ok) successCount++;
+                    if (res.ok) {
+                        successCount++;
+                    } else {
+                        lastPublishError = `Backend returned HTTP ${res.status}. If running on Vercel, please configure Firestore Security Rules in Firebase Console.`;
+                    }
                 }
             } catch (err) {
                 console.error('Publish error:', err);
+                if (err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) {
+                    lastPublishError = 'Firestore Permission Denied. Your Firebase Console rules need to allow write access for authenticated users or the "content" collection.';
+                } else {
+                    lastPublishError = err.message || 'Database write error';
+                }
             }
         }
         
@@ -1116,7 +1139,7 @@ const postObserver = new IntersectionObserver((entries) => {
             const adminModal = document.getElementById('adminModal');
             if (adminModal) adminModal.style.display = 'none';
         } else {
-            alert('No items could be published. Please ensure the server is running and the inputs are valid.');
+            alert('No items could be published.\n\nReason: ' + (lastPublishError || 'Please ensure you entered a valid URL or Title/Link, and that database rules allow writes.'));
         }
     });
 
