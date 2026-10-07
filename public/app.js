@@ -104,6 +104,7 @@ const postObserver = new IntersectionObserver((entries) => {
     const menuUploadImageBtn = document.getElementById('menuUploadImageBtn');
     const menuManagePostsBtn = document.getElementById('menuManagePostsBtn');
     const menuDatabaseActivityBtn = document.getElementById('menuDatabaseActivityBtn');
+    const menuDataContractsBtn = document.getElementById('menuDataContractsBtn');
     
     // Supporter Register Details Modal Elements
     const userDetailsModal = document.getElementById('userDetailsModal');
@@ -138,10 +139,6 @@ const postObserver = new IntersectionObserver((entries) => {
     // Admin Tab Switching (Synchronized between desktop sidebar and mobile dropdown)
     function switchAdminTab(targetId) {
         if (!targetId) return;
-        if (targetId === 'data-contracts-nav') {
-            window.location.href = '/data-contracts';
-            return;
-        }
         const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
         const adminTabContents = document.querySelectorAll('.admin-tab-content');
         const mobileSelect = document.getElementById('adminMobileTabSelect');
@@ -450,6 +447,9 @@ const postObserver = new IntersectionObserver((entries) => {
     }
     if (menuDatabaseActivityBtn) {
         menuDatabaseActivityBtn.addEventListener('click', () => openAdminSettings('admin-database-activity'));
+    }
+    if (menuDataContractsBtn) {
+        menuDataContractsBtn.addEventListener('click', () => openAdminSettings('admin-data-contracts'));
     }
 
     function renderAuthUser(user) {

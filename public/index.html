@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Foundation Australia - Social & Web Updates</title>
-    <link rel="stylesheet" href="style.css?v=38">
+    <link rel="stylesheet" href="style.css?v=39">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -129,13 +129,13 @@
                                         </button>
                                     </li>
                                     <li>
-                                        <a href="/data-contracts" class="dropdown-item" style="text-decoration: none;">
+                                        <button type="button" class="dropdown-item" id="menuDataContractsBtn">
                                             <span class="item-icon-wrap" style="background: rgba(0, 102, 255, 0.1); color: var(--primary);"><i class="fa-solid fa-file-contract"></i></span>
                                             <div class="item-text">
                                                 <strong>Data Contracts</strong>
                                                 <small>System Integrity</small>
                                             </div>
-                                        </a>
+                                        </button>
                                     </li>
                                 </ul>
                             </div>
@@ -765,7 +765,7 @@
                         <option value="admin-upload-image">Upload Image</option>
                         <option value="admin-manage-posts">Manage Posts</option>
                         <option value="admin-database-activity">Database Activity</option>
-                        <option value="data-contracts-nav">Data Contracts (System Specs)</option>
+                        <option value="admin-data-contracts">Data Contracts (System Specs)</option>
                     </select>
                 </div>
 
@@ -790,7 +790,7 @@
                                 <i class="fa-solid fa-database"></i>
                                 <span>Database Activity</span>
                             </li>
-                            <li class="sidebar-item" data-target="data-contracts-nav" title="View Data Contracts &amp; Specifications">
+                            <li class="sidebar-item" data-target="admin-data-contracts" title="View Data Contracts &amp; Specifications">
                                 <i class="fa-solid fa-file-contract"></i>
                                 <span>Data Contracts</span>
                             </li>
@@ -1007,6 +1007,468 @@
                             </div>
                         </div>
 
+                        <!-- Data Contracts Section -->
+                        <div id="admin-data-contracts" class="admin-tab-content" style="display: none;">
+                            <div class="contracts-hero">
+                                <div class="hero-badge-row">
+                                    <span class="hero-badge highlight"><i class="fa-solid fa-database"></i> Multi-Tenant Partition: tag: aifoundation</span>
+                                    <span class="hero-badge retention"><i class="fa-solid fa-clock-rotate-left"></i> Statutory Retention: 7 Years (ATO &amp; Corporations Act)</span>
+                                    <span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> PCI DSS SAQ A Isolated</span>
+                                    <span class="hero-badge"><i class="fa-solid fa-lock"></i> Australian Privacy Act (APP)</span>
+                                </div>
+                                <h2 class="contracts-title">Data Contracts &amp; System Integrity Specification</h2>
+                                <p class="contracts-subtitle">
+                                    The authoritative, immutable Single Source of Truth (SSOT) governing all data ingestion channels across UI forms, REST endpoints, Cloud Firestore transactions, and AI agent tool invocations for AI Foundation Australia.
+                                </p>
+                                <div class="hero-actions">
+                                    <a href="/data-contracts.md" target="_blank" class="hero-btn primary">
+                                        <i class="fa-solid fa-file-code"></i> View Raw Markdown Specification
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Domain 1: Billing & Financial Contributions -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-solid fa-credit-card" style="color: #2563eb;"></i> Domain 1: Billing &amp; Financial Contributions
+                                    </h3>
+                                    <span class="section-tag tag-financial">Financial / PCI</span>
+                                </div>
+                                <div class="contract-table-wrap">
+                                    <table class="contract-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Field Name</th>
+                                                <th>Type</th>
+                                                <th>Ingestion Channel</th>
+                                                <th>Validation &amp; Constraints</th>
+                                                <th>Target Storage &amp; Retention</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="code-tag">transactionId</span></td>
+                                                <td>String</td>
+                                                <td>API Route (/api/transactions/*)</td>
+                                                <td>Required. Stripe (<span class="code-tag">pi_*</span>, <span class="code-tag">cs_*</span>) or PayPal 17-char ID.</td>
+                                                <td>Firestore <span class="code-tag">transactions/{id}</span> (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">tag</span></td>
+                                                <td>Enum String</td>
+                                                <td>Server Injection</td>
+                                                <td><strong>Immutable Constant:</strong> <span class="code-tag">'aifoundation'</span>. Partition key.</td>
+                                                <td>Firestore Root Field (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">amount</span></td>
+                                                <td>Integer</td>
+                                                <td>UI Form / API Route</td>
+                                                <td>Positive integer <span class="code-tag">1 &lt;= amount &lt;= 1,000,000</span>. Whole AUD only.</td>
+                                                <td>Firestore + Gateway (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">currency</span></td>
+                                                <td>Enum String</td>
+                                                <td>Server Default</td>
+                                                <td>Constant: <span class="code-tag">'aud'</span> (normalized lowercase).</td>
+                                                <td>Firestore Root Field (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">paymentMethod</span></td>
+                                                <td>Enum String</td>
+                                                <td>UI Tab / API Route</td>
+                                                <td>Strict Enum: <span class="code-tag">'stripe'</span> | <span class="code-tag">'paypal'</span>.</td>
+                                                <td>Firestore Root Field (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">status</span></td>
+                                                <td>Enum String</td>
+                                                <td>API / Webhook</td>
+                                                <td>State Machine: <span class="code-tag">initiated</span> &rarr; <span class="code-tag">succeeded</span> | <span class="code-tag">failed</span>.</td>
+                                                <td>Firestore Root Field (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">Card PAN / CVC</span></td>
+                                                <td>PCI Object</td>
+                                                <td>Stripe Elements iframe</td>
+                                                <td>Direct browser tokenization. Zero server transmission.</td>
+                                                <td>Stripe Vault Only (PCI DSS SAQ A)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="rule-callout">
+                                    <strong>Statutory Retention Rule:</strong> Under the Australian Corporations Act 2001 (s 286) and ATO regulations, all transaction records must be retained with complete audit integrity for a minimum of 7 years.
+                                </div>
+                            </section>
+
+                            <!-- Domain 2: Content Publishing -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-solid fa-newspaper" style="color: #d97706;"></i> Domain 2: Content Publishing &amp; Syndication
+                                    </h3>
+                                    <span class="section-tag tag-publishing">Public Content</span>
+                                </div>
+                                <div class="contract-table-wrap">
+                                    <table class="contract-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Field Name</th>
+                                                <th>Type</th>
+                                                <th>Ingestion Channel</th>
+                                                <th>Validation &amp; Constraints</th>
+                                                <th>Target Storage &amp; Retention</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="code-tag">title</span></td>
+                                                <td>String</td>
+                                                <td>UI Admin / API</td>
+                                                <td>Required. Length 1–250 chars. Trimmed. HTML entities encoded.</td>
+                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">summary</span></td>
+                                                <td>String</td>
+                                                <td>UI Admin / API</td>
+                                                <td>Optional. Length 0–3,000 chars. Auto-truncated to 30 words on cards.</td>
+                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">link</span></td>
+                                                <td>String (URI)</td>
+                                                <td>UI Admin / API</td>
+                                                <td>Required. Valid HTTP/HTTPS URI. Max length 2,048 chars.</td>
+                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">imageUrl</span></td>
+                                                <td>String (URI)</td>
+                                                <td>UI Admin / ImgBB</td>
+                                                <td>Required. Valid URI. Non-post images enforced on <span class="code-tag">i.ibb.co</span>.</td>
+                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">platform</span></td>
+                                                <td>Enum String</td>
+                                                <td>UI / Auto-Detect</td>
+                                                <td>Enum: <span class="code-tag">linkedin</span>, <span class="code-tag">youtube</span>, <span class="code-tag">google</span>, <span class="code-tag">twitter</span>, etc.</td>
+                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            <!-- Domain 3: Media Hosting & Asset Ingestion -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-solid fa-cloud-arrow-up" style="color: #4f46e5;"></i> Domain 3: Media Hosting &amp; Asset Ingestion
+                                    </h3>
+                                    <span class="section-tag tag-media">Media Asset</span>
+                                </div>
+                                <div class="contract-table-wrap">
+                                    <table class="contract-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Field Name</th>
+                                                <th>Type</th>
+                                                <th>Ingestion Channel</th>
+                                                <th>Validation &amp; Constraints</th>
+                                                <th>Target Storage &amp; Lifecycle</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="code-tag">imageBase64</span></td>
+                                                <td>String (Base64)</td>
+                                                <td>UI Dropzone / API</td>
+                                                <td>MIME <span class="code-tag">image/*</span>. Max payload 10MB.</td>
+                                                <td>Ephemeral Memory Transit Buffer</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">name</span></td>
+                                                <td>String</td>
+                                                <td>UI Input / API</td>
+                                                <td>Optional. 1–128 chars. Path traversal characters stripped.</td>
+                                                <td>ImgBB Album <span class="code-tag">1MZdyd</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            <!-- Domain 4: Web Scraping & Metadata Extraction -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-solid fa-globe" style="color: #ea580c;"></i> Domain 4: Web Scraping &amp; Metadata Extraction
+                                    </h3>
+                                    <span class="section-tag tag-ssrf">SSRF Guard</span>
+                                </div>
+                                <div class="rule-callout" style="border-left-color: #ea580c; margin-top: 0;">
+                                    <strong>OWASP SSRF Boundary:</strong> All incoming URLs to <span class="code-tag">/api/extract-metadata</span> must be publicly routable. Connections to private RFC 1918 subnets (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), loopback (127.0.0.1), and cloud instance metadata (169.254.169.254) are strictly blocked.
+                                </div>
+                            </section>
+
+                            <!-- Domain 5: Administrative Access & Security Credentials -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-solid fa-shield" style="color: #dc2626;"></i> Domain 5: Administrative Access &amp; Security Credentials
+                                    </h3>
+                                    <span class="section-tag tag-security">High Security</span>
+                                </div>
+                                <div class="contract-table-wrap">
+                                    <table class="contract-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Credential</th>
+                                                <th>Format</th>
+                                                <th>Ingestion Channel</th>
+                                                <th>Validation Standard</th>
+                                                <th>Storage &amp; Evaluation</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="code-tag">email</span></td>
+                                                <td>Email String</td>
+                                                <td>Google OAuth 2.0</td>
+                                                <td>Authorized AI Foundation Domain or Admin Email</td>
+                                                <td>Verified via <span class="code-tag">/api/auth/admin-verify</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">uid</span></td>
+                                                <td>String (UID)</td>
+                                                <td>Firebase Auth</td>
+                                                <td>Unique Firebase UID</td>
+                                                <td>Firestore <span class="code-tag">users/{uid}</span> with role: admin</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">adminAuth</span></td>
+                                                <td>Cookie String</td>
+                                                <td>Browser Cookie</td>
+                                                <td><span class="code-tag">adminAuth=true</span>; Path: <span class="code-tag">/</span></td>
+                                                <td>Max-Age 31,536,000s (1 Year)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            <!-- Domain 6: Public Inquiries & Community Communication -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-solid fa-envelope-open-text" style="color: #059669;"></i> Domain 6: Public Inquiries &amp; Community Communication
+                                    </h3>
+                                    <span class="section-tag tag-privacy">PII / APP</span>
+                                </div>
+                                <div class="contract-table-wrap">
+                                    <table class="contract-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Field Name</th>
+                                                <th>Type</th>
+                                                <th>Ingestion Channel</th>
+                                                <th>Constraints</th>
+                                                <th>Storage &amp; Retention</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="code-tag">contactFirstName</span></td>
+                                                <td>String</td>
+                                                <td>UI Contact Form</td>
+                                                <td>1–50 chars. Required. Letters and hyphens only.</td>
+                                                <td>Corporate Mailbox (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">contactLastName</span></td>
+                                                <td>String</td>
+                                                <td>UI Contact Form</td>
+                                                <td>1–50 chars. Required. Letters and hyphens only.</td>
+                                                <td>Corporate Mailbox (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">contactSubject</span></td>
+                                                <td>String</td>
+                                                <td>UI Contact Form</td>
+                                                <td>1–150 chars. Newlines stripped to block header injection.</td>
+                                                <td>Corporate Mailbox (7 Years)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">contactMessage</span></td>
+                                                <td>String</td>
+                                                <td>UI Contact Form</td>
+                                                <td>1–5,000 chars. Script and HTML tags stripped.</td>
+                                                <td>Corporate Mailbox (7 Years)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            <!-- Domain 7: AI Agent Tool Calls & Extraction Slots -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-solid fa-robot" style="color: #7c3aed;"></i> Domain 7: AI Agent Tool Calls &amp; Extraction Slots
+                                    </h3>
+                                    <span class="section-tag tag-ai">AI Platform</span>
+                                </div>
+                                <div class="contract-table-wrap">
+                                    <table class="contract-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Slot / Tool Name</th>
+                                                <th>Type</th>
+                                                <th>Validation Rule</th>
+                                                <th>Fail-Safe Rejection Behavior</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="code-tag">amount_slot</span></td>
+                                                <td>Integer</td>
+                                                <td>Clamped to <span class="code-tag">1 &lt;= value &lt;= 10,000</span></td>
+                                                <td>Reject vague strings ("a lot"). Reprompt for whole AUD dollar amount.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">category_slot</span></td>
+                                                <td>Enum String</td>
+                                                <td>Must match: <span class="code-tag">['articles', 'projects', 'tech', 'community']</span></td>
+                                                <td>Reject hallucinated categories. Return allowable enum list.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">tag_enforcement</span></td>
+                                                <td>Enum String</td>
+                                                <td>Always forced to <span class="code-tag">'aifoundation'</span></td>
+                                                <td>Server overrides any conflicting tool argument.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+
+                            <!-- Domain 8: User Identity & Firebase Google Authentication -->
+                            <section class="contract-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">
+                                        <i class="fa-brands fa-google" style="color: #4285F4;"></i> Domain 8: User Identity &amp; Firebase Google Authentication
+                                    </h3>
+                                    <span class="section-tag" style="background: #e0f2fe; color: #0369a1;">Identity &amp; Auth</span>
+                                </div>
+                                <p style="color: #64748b; font-size: 0.88rem; margin: 0 0 16px;">
+                                    Governs Firebase Client SDK Google Authentication, multi-tenant user profile synchronization, and session management. Enforces mandatory partition keys (<span class="code-tag">tag: 'aifoundation'</span>) and 7-year audit retention.
+                                </p>
+                                <div class="contract-table-wrap">
+                                    <table class="contract-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Field Name</th>
+                                                <th>Data Type</th>
+                                                <th>Ingestion Channel</th>
+                                                <th>Classification</th>
+                                                <th>Invariants &amp; Constraints</th>
+                                                <th>Storage &amp; Retention</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="code-tag">uid</span></td>
+                                                <td>String</td>
+                                                <td>Google OAuth / Firebase SDK</td>
+                                                <td>Unique User ID</td>
+                                                <td>Required. Firebase UID format.</td>
+                                                <td>Firestore Document ID. Indexed.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">email</span></td>
+                                                <td>String (Email)</td>
+                                                <td>Google Account Profile</td>
+                                                <td>PII</td>
+                                                <td>Required. Valid RFC 5322 email. Lowercased, trimmed.</td>
+                                                <td>Stored in <span class="code-tag">users/{uid}</span>. AES-256. 7-Year retention.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">displayName</span></td>
+                                                <td>String</td>
+                                                <td>Google Account Profile</td>
+                                                <td>Public Identity</td>
+                                                <td>Optional. Max 120 chars. HTML entities escaped.</td>
+                                                <td>Firestore root field.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">photoURL</span></td>
+                                                <td>String (URI)</td>
+                                                <td>Google Account Profile</td>
+                                                <td>Public Identity</td>
+                                                <td>Optional. Valid HTTPS avatar URI (Google CDN).</td>
+                                                <td>Firestore root field.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">tag</span></td>
+                                                <td>Enum String</td>
+                                                <td>System Enforcement</td>
+                                                <td>Partition Key</td>
+                                                <td><strong>Constant:</strong> <span class="code-tag">'aifoundation'</span></td>
+                                                <td>Firestore root field. Indexed.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">businessId</span></td>
+                                                <td>Enum String</td>
+                                                <td>System Enforcement</td>
+                                                <td>Partition Key</td>
+                                                <td><strong>Constant:</strong> <span class="code-tag">'aifoundation'</span></td>
+                                                <td>Firestore root field.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">authProvider</span></td>
+                                                <td>Enum String</td>
+                                                <td>System Enforcement</td>
+                                                <td>Auth Metadata</td>
+                                                <td><strong>Constant:</strong> <span class="code-tag">'google'</span></td>
+                                                <td>Firestore root field.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">role</span></td>
+                                                <td>Enum String</td>
+                                                <td>Server Verification</td>
+                                                <td>Access Control</td>
+                                                <td>Value: <span class="code-tag">'supporter'</span> | <span class="code-tag">'admin'</span></td>
+                                                <td>Firestore root field.</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="code-tag">lastLoginAt</span></td>
+                                                <td>ISO 8601 Timestamp</td>
+                                                <td>Client / Server Sync</td>
+                                                <td>Audit</td>
+                                                <td>UTC timestamp of most recent authentication.</td>
+                                                <td>Firestore root field. 7-Year statutory retention.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="rule-callout">
+                                    <i class="fa-solid fa-circle-info" style="color: #0066ff; margin-right: 6px;"></i>
+                                    <strong>Multi-Tenant User Isolation:</strong> Even though the underlying Cloud Firestore database is shared among multiple businesses, every user record written by this application is tagged with <code>tag: 'aifoundation'</code>, and user-associated donation transactions automatically tie into their verified Google identity.
+                                </div>
+                            </section>
+
+                            <!-- Compliance Footer -->
+                            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; color: #64748b; font-size: 0.85rem;">
+                                <div><strong>AI Foundation Australia</strong> &bull; ABN 36 339 516 584</div>
+                                <div><span><i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 7-Year Statutory Data Retention Policy Enforced</span></div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -1078,11 +1540,11 @@
     </div>
 
     <!-- Firebase SDK & Client Integration -->
-    <script type="module" src="firebase-client.js?v=38"></script>
+    <script type="module" src="firebase-client.js?v=39"></script>
 
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="app.js?v=38"></script>
+    <script src="app.js?v=39"></script>
 </body>
 
 </html>
