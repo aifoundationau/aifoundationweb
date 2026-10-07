@@ -1,0 +1,331 @@
+================================================================================
+FIREBASE DATABASE & AUTHENTICATION CONFIGURATION GUIDE
+Complete Setup Instructions & Future Role-Based Access Control (RBAC)
+Applicable to: AI Foundation, It's A Simple Job, Pro LMS, RTO AI, and Shared Tenants
+================================================================================
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. OVERVIEW & MULTI-TENANT ARCHITECTURE
+2. STEP-BY-STEP FIREBASE CONSOLE CONFIGURATION
+   - 2.1 Google Authentication Provider Setup
+   - 2.2 Whitelisting Authorized Domains (Vercel, Localhost, Custom Domains)
+   - 2.3 Creating the Cloud Firestore Database
+3. IMMEDIATE FIRESTORE SECURITY RULES (READY TO PASTE)
+4. FUTURE-PROOF ROLE-BASED ACCESS CONTROL (RBAC) SYSTEM
+   - 4.1 Defined User Roles & Hierarchy
+   - 4.2 User Profile Schema for RBAC
+   - 4.3 Production RBAC Firestore Security Rules
+5. MULTI-TENANT PARTITIONING RULES (DATA CONTRACT COMPLIANCE)
+6. COMMON ERRORS & TROUBLESHOOTING CHECKLIST
+================================================================================
+
+
+1. OVERVIEW & MULTI-TENANT ARCHITECTURE
+--------------------------------------------------------------------------------
+All web applications in your ecosystem share or mirror collections in Firebase.
+To maintain complete data separation and security, every document in shared
+collections ('content', 'users', 'transactions', etc.) must adhere to:
+
+  - Content Tagging: Every document must contain a 'tag' string
+    (e.g., tag: 'aifoundation', 'itsasimplejob', 'pro-lms', 'rto-ai').
+  - Read Access:
+      * Public content (articles, projects, tech, community) is publicly readable.
+      * User profiles and transactions are restricted to the owner or admins.
+  - Write Access:
+      * Only authenticated users with designated roles (Admin, Editor) can
+        create, update, or delete content.
+
+
+2. STEP-BY-STEP FIREBASE CONSOLE CONFIGURATION
+--------------------------------------------------------------------------------
+
+2.1 GOOGLE AUTHENTICATION PROVIDER SETUP
+----------------------------------------
+1. Open the Firebase Console: https://console.firebase.google.com/
+2. Select your Firebase project (e.g., 'ai-foundation-firebase').
+3. In the left-hand navigation menu, expand "Build" and click "Authentication".
+4. If this is the first time: Click "Get Started".
+5. Click on the "Sign-in method" tab.
+6. Under "Sign-in providers", select "Google".
+7. Toggle the switch to "Enable".
+8. Set the "Project public-facing name" (e.g., "AI Foundation Australia").
+9. Choose the "Project support email" from the dropdown (e.g., support@aifoundation.net.au).
+10. Click "Save".
+
+2.2 WHITELISTING AUTHORIZED DOMAINS
+-----------------------------------
+Google Sign-In will BLOCK login attempts with error 'auth/unauthorized-domain'
+unless your domains are registered in Firebase.
+
+1. In Firebase Console > Authentication > Click the "Settings" tab.
+2. In the left sub-menu under Settings, click "Authorized domains".
+3. Check the list. By default, localhost and your firebaseapp.com domain exist.
+4. Click "Add domain" and add EACH of the following (without https:// or trailing slashes):
+   - localhost
+   - aifoundationweb.vercel.app
+   - aifoundation.com.au
+   - aifoundation.net.au
+   - (Add any other deployment preview domains or custom domains)
+5. Click "Add".
+* Note: Changes take effect within 1-2 minutes.
+
+2.3 CREATING THE CLOUD FIRESTORE DATABASE
+-----------------------------------------
+1. In the left navigation menu under "Build", click "Firestore Database".
+2. If not yet created, click "Create database".
+3. Database ID: Keep as "(default)".
+4. Location: Select your preferred Google Cloud region:
+   - Recommendation: "australia-southeast1" (Sydney) or "us-central1".
+5. Secure rules setup: Choose "Start in production mode" (or test mode).
+6. Click "Create".
+
+
+3. IMMEDIATE FIRESTORE SECURITY RULES (READY TO PASTE)
+--------------------------------------------------------------------------------
+These rules immediately allow:
+  1. Anyone visiting your website to view published articles, projects, and posts.
+  2. Any authenticated user (e.g., support@aifoundation.net.au logged in via Google)
+     to publish, edit, or delete posts.
+  3. Logged-in users to manage their own user profiles and record donation/checkout transactions.
+
+INSTRUCTIONS TO APPLY:
+1. Go to Firebase Console > Firestore Database.
+2. Click the "Rules" tab at the top.
+3. Replace the entire contents of the text editor with the block below:
+
+----------------------------- COPY FROM HERE ----------------------------------
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. PUBLIC CONTENT (Articles, Projects, Tech R&D, Community Posts)
+    // Anyone on the internet can read content.
+    // Only authenticated users (admins) can publish, update, or delete.
+    match /content/{docId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // 2. USER PROFILES
+    // Public can read basic profile info; users can create/update their own profile.
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 3. TRANSACTIONS & PAYMENTS (Stripe, Token Purchases)
+    // Only authenticated users can write their transactions; owner or admin can read.
+    match /transactions/{txId} {
+      allow create: if request.auth != null;
+      allow read, update: if request.auth != null;
+    }
+
+    // 4. FALLBACK CATCH-ALL FOR MULTI-TENANT COLLECTIONS
+    match /{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
+------------------------------ COPY TO HERE -----------------------------------
+
+4. Click the blue "Publish" button at the top right of the editor.
+5. The rules are live immediately worldwide.
+
+
+4. FUTURE-PROOF ROLE-BASED ACCESS CONTROL (RBAC) SYSTEM
+--------------------------------------------------------------------------------
+When you are ready to scale to multiple staff members, contractors, and public
+contributors across your tenants, transition to this strict RBAC system.
+
+4.1 DEFINED USER ROLES & PERMISSIONS
+------------------------------------
+Role 1: 'super_admin'
+  - Access: Full access to all collections across all tenants.
+  - Can change user roles, delete databases, access financial ledgers.
+  - Example emails: support@aifoundation.net.au, david@aifoundation.com.au.
+
+Role 2: 'admin'
+  - Access: Manage, publish, edit, and delete any content tagged with their business.
+  - Can view all user records and transactions for their tenant tag.
+  - Cannot alter super-admin privileges or other tenants' data.
+
+Role 3: 'editor'
+  - Access: Can upload, publish, and edit posts for their tenant.
+  - Cannot delete other users' posts or access transactions.
+
+Role 4: 'supporter' (Default Logged-In User)
+  - Access: Can read public content, buy tokens, update own profile.
+  - Cannot publish or modify content.
+
+Role 5: 'anonymous' / Public
+  - Access: Read-only access to published content.
+
+4.2 USER PROFILE SCHEMA FOR RBAC
+--------------------------------
+Store user roles in the 'users' collection with the document ID equal to the Firebase Auth UID:
+
+Path: /users/{uid}
+Document fields:
+{
+  "uid": "L5euSJAfNKdDOX6mT0qmrCGjUA53",
+  "email": "support@aifoundation.net.au",
+  "displayName": "David Admin",
+  "role": "admin",                    // Options: 'super_admin', 'admin', 'editor', 'supporter'
+  "tag": "aifoundation",              // Tenant partition
+  "businessId": "aifoundation",
+  "allowedTenants": ["aifoundation"], // Multi-tenant support
+  "createdAt": "2026-10-07T00:00:00.000Z",
+  "updatedAt": "2026-10-07T00:00:00.000Z"
+}
+
+4.3 PRODUCTION RBAC FIRESTORE SECURITY RULES (COPY & PASTE READY)
+-----------------------------------------------------------------
+When switching to full RBAC, paste the following rules into Firestore:
+
+----------------------------- COPY FROM HERE ----------------------------------
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // HELPER FUNCTIONS FOR RBAC VALIDATION
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Direct domain or explicit super-admin emails
+    function isSuperAdminEmail() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'support@aifoundation.net.au' ||
+        request.auth.token.email == 'david@aifoundation.com.au'
+      );
+    }
+
+    // Lookup user profile role in Firestore
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isSuperAdmin() {
+      return isSuperAdminEmail() || (isAuthenticated() && getUserRole() == 'super_admin');
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || (isAuthenticated() && getUserRole() == 'admin');
+    }
+
+    function isEditor() {
+      return isAdmin() || (isAuthenticated() && getUserRole() == 'editor');
+    }
+
+    // 1. CONTENT (Articles, Projects, Tech R&D, Community Posts)
+    match /content/{docId} {
+      // Anyone can read content
+      allow read: if true;
+      
+      // Editors and Admins can create and update content
+      allow create, update: if isEditor();
+
+      // Only Admins and Super Admins can permanently delete content
+      allow delete: if isAdmin();
+    }
+
+    // 2. USER PROFILES
+    match /users/{userId} {
+      // Any authenticated user can view user profiles
+      allow read: if isAuthenticated();
+
+      // Users can write/update their own profile (cannot escalate their own role)
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+                    || isAdmin();
+
+      // Only super admin can delete user records
+      allow delete: if isSuperAdmin();
+    }
+
+    // 3. TRANSACTIONS & PAYMENTS
+    match /transactions/{txId} {
+      // Authenticated users can record transactions (checkout/donations)
+      allow create: if isAuthenticated();
+
+      // Users can only view their own transactions; Admins can view all
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.uid == request.auth.uid);
+
+      // Only Admins can modify or refund transaction statuses
+      allow update, delete: if isAdmin();
+    }
+
+    // 4. ADMIN & AUDIT LOGS
+    match /activity_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // 5. METRICS & TELEMETRY
+    match /metrics/{metricId} {
+      allow read: if isAdmin();
+      allow write: if isAuthenticated();
+    }
+  }
+}
+------------------------------ COPY TO HERE -----------------------------------
+
+
+5. MULTI-TENANT PARTITIONING RULES (DATA CONTRACT COMPLIANCE)
+--------------------------------------------------------------------------------
+When multiple sites (AI Foundation, Pro LMS, It's A Simple Job, RTO AI) write to
+the same database, enforce the tenant tag matching rule in Firestore:
+
+TENANT TAG CODES:
+  - 'aifoundation'  : AI Foundation Australia (https://aifoundation.com.au)
+  - 'itsasimplejob' : It's A Simple Job
+  - 'pro-lms'       : Pro Learning Management System
+  - 'rto-ai'        : Registered Training Organisation AI
+
+DATA CONTRACT FIELD VALIDATION RULE:
+Every new document created in 'content' must have:
+  request.resource.data.tag in ['aifoundation', 'itsasimplejob', 'pro-lms', 'rto-ai']
+  request.resource.data.category in ['articles', 'projects', 'tech', 'community']
+  request.resource.data.title is string
+  request.resource.data.date is string
+
+
+6. COMMON ERRORS & TROUBLESHOOTING CHECKLIST
+--------------------------------------------------------------------------------
+
+ERROR: "Firebase: Error (auth/unauthorized-domain)"
+Cause: The current browser domain (e.g. your-app.vercel.app or a custom domain)
+       has not been added to Firebase Authentication Authorized Domains.
+Fix:   Go to Firebase Console > Authentication > Settings > Authorized domains
+       and click "Add domain" for your exact hostname.
+
+ERROR: "FirebaseError: Missing or insufficient permissions"
+Cause: Firestore Database Security Rules are blocking the operation (default
+       rules reject all client writes).
+Fix:   Go to Firebase Console > Firestore Database > Rules tab. Paste the rules
+       from Section 3 (or Section 4.3) and click "Publish".
+
+ERROR: "auth/popup-closed-by-user"
+Cause: User closed the Google login window before completing sign-in.
+Fix:   Expected behavior when cancelled. Handled gracefully by the frontend.
+
+ERROR: "auth/operation-not-allowed"
+Cause: Google Sign-in provider is disabled in Firebase.
+Fix:   Go to Authentication > Sign-in method > Google > Toggle "Enable" > Save.
+
+ERROR: Posts disappeared or empty list returned
+Cause: Firestore collection is empty and no fallback data was loaded.
+Fix:   The frontend application is configured with 'mergePosts' to merge
+       live Firestore documents with the static JSON files (/data/*.json),
+       ensuring historical posts never disappear.
+
+================================================================================
+END OF INSTRUCTIONS - SAVE THIS FILE FOR DEPLOYMENT ACROSS ALL FIREBASE PROJECTS
+================================================================================
