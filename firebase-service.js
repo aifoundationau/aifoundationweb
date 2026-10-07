@@ -383,6 +383,174 @@ async function listAIFoundationTransactions(limit = 50) {
 }
 
 /**
+ * Synchronize Google Auth User Profile to Cloud Firestore
+ * GUARANTEE: User profiles MUST have tag 'aifoundation' and businessId 'aifoundation'
+ */
+async function syncUser(userData) {
+    if (!userData || !userData.uid) {
+        throw new Error('User UID is required to synchronize user profile.');
+    }
+
+    const now = new Date().toISOString();
+    const payload = {
+        uid: userData.uid,
+        email: (userData.email || '').toLowerCase().trim(),
+        displayName: (userData.displayName || '').trim(),
+        photoURL: userData.photoURL || '',
+        tag: TRANSACTION_TAG, // 'aifoundation'
+        businessId: BUSINESS_ID, // 'aifoundation'
+        businessName: 'AI Foundation',
+        source: 'aifoundation',
+        authProvider: 'google',
+        role: userData.role || 'supporter',
+        lastLoginAt: now,
+        updatedAt: now
+    };
+
+    if (userData.createdAt) {
+        payload.createdAt = userData.createdAt;
+    }
+
+    console.log(`🔥 [Firestore] Syncing user ${payload.uid} (${payload.email}) with tag: ${payload.tag}`);
+
+    // Persist to 'users' collection at doc uid
+    const result = await writeDocument('users', payload.uid, payload, true);
+    return { success: result.success, user: payload, error: result.error };
+}
+
+/**
+ * Retrieve user by UID
+ */
+async function getUser(uid) {
+    if (!uid) return null;
+    return await getDocument('users', uid);
+}
+
+/**
+ * Retrieve recent database inputs across the shared multi-tenant database.
+ * Supports filtering by tenant/website and collection.
+ * 
+ * @param {object} options
+ * @param {string} options.tenant - 'all' or specific tag ('aifoundation', 'itsasimplejob', 'rto-ai', 'pro-lms', 'other')
+ * @param {string} options.collection - 'all' or specific collection ('users', 'transactions', 'chat_interactions', 'activity_logs', 'metrics')
+ * @param {number} options.limit - maximum records to return
+ */
+async function getDatabaseRecentInputs(options = {}) {
+    const tenantFilter = (options.tenant || 'all').toLowerCase().trim();
+    const collectionFilter = (options.collection || 'all').trim();
+    const limit = Math.min(Number(options.limit) || 50, 100);
+
+    const token = await getAccessToken();
+    if (!token) return { records: [], totalCount: 0, error: 'Authentication unavailable' };
+
+    let targetCollections = ['transactions', 'users', 'chat_interactions', 'activity_logs', 'metrics', 'test_ping'];
+    if (collectionFilter !== 'all') {
+        targetCollections = [collectionFilter];
+    }
+
+    const allRecords = [];
+
+    for (const col of targetCollections) {
+        try {
+            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${col}?pageSize=50`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) continue;
+
+            const data = await res.json();
+            const docs = data.documents || [];
+
+            for (const d of docs) {
+                const docId = d.name.split('/').pop();
+                const fields = fromFirestoreFields(d.fields || {});
+
+                // Resolve tenant tag & human-readable website name
+                let rawTag = (fields.tag || fields.businessId || fields.source || '').toLowerCase().trim();
+                let websiteLabel = 'Shared Tenant';
+                let websiteKey = 'other';
+
+                if (rawTag === 'aifoundation' || fields.businessName === 'AI Foundation' || (fields.email && (fields.email.endsWith('@aifoundation.com.au') || fields.email.endsWith('@aifoundation.net.au')))) {
+                    rawTag = 'aifoundation';
+                    websiteLabel = 'AI Foundation';
+                    websiteKey = 'aifoundation';
+                } else if (rawTag.includes('simplejob') || rawTag === 'itsasimplejob') {
+                    websiteLabel = "It's A Simple Job";
+                    websiteKey = 'itsasimplejob';
+                } else if (rawTag.includes('rto') || rawTag === 'rto-ai') {
+                    websiteLabel = 'RTO AI';
+                    websiteKey = 'rto-ai';
+                } else if (rawTag.includes('lms') || rawTag === 'pro-lms' || col === 'chat_interactions') {
+                    websiteLabel = 'Pro LMS / Admissions';
+                    websiteKey = 'pro-lms';
+                } else if (fields.businessName) {
+                    websiteLabel = fields.businessName;
+                    websiteKey = rawTag || 'other';
+                }
+
+                // Apply tenant filter if specified
+                if (tenantFilter !== 'all') {
+                    if (tenantFilter === 'aifoundation' && websiteKey !== 'aifoundation') continue;
+                    if (tenantFilter === 'itsasimplejob' && websiteKey !== 'itsasimplejob') continue;
+                    if (tenantFilter === 'rto-ai' && websiteKey !== 'rto-ai') continue;
+                    if (tenantFilter === 'pro-lms' && websiteKey !== 'pro-lms') continue;
+                    if (tenantFilter === 'other' && ['aifoundation', 'itsasimplejob', 'pro-lms', 'rto-ai'].includes(websiteKey)) continue;
+                }
+
+                // Generate descriptive summary
+                let summary = '';
+                if (col === 'transactions') {
+                    summary = `${fields.paymentMethod?.toUpperCase() || 'PAYMENT'} AUD $${fields.amount || 0} (${fields.status || 'unknown'}) - ${fields.customerEmail || fields.description || docId}`;
+                } else if (col === 'users') {
+                    summary = `User Profile: ${fields.displayName || 'Unnamed'} (${fields.email || 'No email'}) - Role: ${fields.role || 'supporter'}`;
+                } else if (col === 'chat_interactions') {
+                    const userMsg = fields.userMessage ? `"${fields.userMessage.substring(0, 50)}..."` : (fields.currentApplicationId || 'Admissions Inquiry');
+                    summary = `Chat Query: ${userMsg}`;
+                } else if (col === 'metrics') {
+                    summary = `Platform Metrics: ${fields.totalEvents ? fields.totalEvents + ' total events' : 'Stats'} (Last: ${fields.lastActiveUser || 'System'})`;
+                } else {
+                    summary = `${col} record: ${docId}`;
+                }
+
+                const timestamp = fields.updatedAt || fields.recordedAt || fields.lastLoginAt || fields.createdAt || fields.timestamp || fields.lastEventAt || d.updateTime || d.createTime || new Date().toISOString();
+
+                allRecords.push({
+                    id: docId,
+                    collection: col,
+                    tag: rawTag || 'shared',
+                    websiteKey: websiteKey,
+                    websiteLabel: websiteLabel,
+                    summary: summary,
+                    timestamp: timestamp,
+                    raw: fields
+                });
+            }
+        } catch (colErr) {
+            console.warn(`[Firebase] Notice querying collection ${col}:`, colErr.message);
+        }
+    }
+
+    // Sort descending by timestamp
+    allRecords.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const tenantCounts = {
+        total: allRecords.length,
+        aifoundation: allRecords.filter(r => r.websiteKey === 'aifoundation').length,
+        itsasimplejob: allRecords.filter(r => r.websiteKey === 'itsasimplejob').length,
+        pro_lms: allRecords.filter(r => r.websiteKey === 'pro-lms').length,
+        rto_ai: allRecords.filter(r => r.websiteKey === 'rto-ai').length,
+        other: allRecords.filter(r => !['aifoundation', 'itsasimplejob', 'pro-lms', 'rto-ai'].includes(r.websiteKey)).length
+    };
+
+    return {
+        records: allRecords.slice(0, limit),
+        totalCount: allRecords.length,
+        tenantCounts,
+        filters: { tenant: tenantFilter, collection: collectionFilter, limit }
+    };
+}
+
+/**
  * Public configuration for frontend client SDK
  */
 function getFirebasePublicConfig() {
@@ -406,6 +574,9 @@ module.exports = {
     updateTransactionStatus,
     getDocument,
     listAIFoundationTransactions,
+    syncUser,
+    getUser,
+    getDatabaseRecentInputs,
     getFirebasePublicConfig,
     toFirestoreFields,
     fromFirestoreFields

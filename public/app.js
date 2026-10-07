@@ -75,37 +75,471 @@ const postObserver = new IntersectionObserver((entries) => {
         if (parts.length === 2) return parts.pop().split(';').shift();
     }
 
-    adminToggleBtn.addEventListener('click', () => {
+    // =========================================================================
+    // Firebase Google Authentication Controls (Navbar & Admin)
+    // =========================================================================
+    // =========================================================================
+    // Firebase Google Authentication & Integrated Settings Dropdown Menu
+    // (Replaces separate settings button with Google Log In + Dropdown)
+    // =========================================================================
+    const googleSignInBtn = document.getElementById('googleSignInBtn');
+    const googleSignOutBtn = document.getElementById('googleSignOutBtn');
+    const userMenuWrapper = document.getElementById('userMenuWrapper');
+    const userProfileBadge = document.getElementById('userProfileBadge');
+    const userAvatarImg = document.getElementById('userAvatarImg');
+    const userDisplayName = document.getElementById('userDisplayName');
+    const userDropdownCaret = document.getElementById('userDropdownCaret');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+    const menuUserAvatar = document.getElementById('menuUserAvatar');
+    const menuUserName = document.getElementById('menuUserName');
+    const menuUserEmail = document.getElementById('menuUserEmail');
+    const menuUserRoleBadge = document.getElementById('menuUserRoleBadge');
+    
+    // Dropdown Settings Action Buttons
+    const menuAdminSettingsBtn = document.getElementById('menuAdminSettingsBtn');
+    const menuUploadPostBtn = document.getElementById('menuUploadPostBtn');
+    const menuUploadImageBtn = document.getElementById('menuUploadImageBtn');
+    const menuManagePostsBtn = document.getElementById('menuManagePostsBtn');
+    const menuDatabaseActivityBtn = document.getElementById('menuDatabaseActivityBtn');
+    
+    const adminGoogleLoginBtn = document.getElementById('adminGoogleLoginBtn');
+
+    // Helper to open Admin / Settings Modal directly to any tab
+    function openAdminSettings(targetTab = null) {
+        if (!adminModal) return;
         adminModal.style.display = 'flex';
         
-        if (getCookie('adminAuth') === 'true') {
-            document.getElementById('adminLoginView').style.display = 'none';
-            document.getElementById('adminPanelView').style.display = 'block';
-            renderAdminAllPosts();
-        } else {
-            document.getElementById('adminPanelView').style.display = 'none';
-            document.getElementById('adminLoginView').style.display = 'block';
+        // Close dropdown menu
+        if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+        if (userProfileBadge) {
+            userProfileBadge.classList.remove('active');
+            userProfileBadge.setAttribute('aria-expanded', 'false');
         }
-    });
 
-    document.getElementById('adminLoginBtn').addEventListener('click', () => {
-        const code1 = document.getElementById('accessCode1').value.replace(/\D/g, '');
-        const code2 = document.getElementById('accessCode2').value.replace(/\D/g, '');
-        const errorMsg = document.getElementById('adminLoginError');
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        const emailEl = document.getElementById('adminPanelUserEmail');
+        if (emailEl) {
+            emailEl.textContent = currentUser?.email || 'support@aifoundation.net.au';
+        }
 
-        if (code1 === '0495019791' && code2 === '19011979') {
-            // Set cookie for 365 days
+        // Show Admin Panel directly since user is logged in
+        const loginView = document.getElementById('adminLoginView');
+        const panelView = document.getElementById('adminPanelView');
+        if (loginView) loginView.style.display = 'none';
+        if (panelView) panelView.style.display = 'block';
+
+        // Keep admin auth cookie active
+        document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+
+        if (targetTab) {
+            const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
+            const adminTabContents = document.querySelectorAll('.admin-tab-content');
+            adminTabs.forEach(t => {
+                if (t.getAttribute('data-target') === targetTab) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            adminTabContents.forEach(c => {
+                c.style.display = c.id === targetTab ? 'block' : 'none';
+            });
+
+            if (targetTab === 'admin-manage-posts') {
+                renderAdminAllPosts();
+            } else if (targetTab === 'admin-database-activity') {
+                loadDatabaseRecentInputs();
+            }
+        } else {
+            renderAdminAllPosts();
+        }
+    }
+
+    // Toggle dropdown menu on clicking user profile badge
+    if (userProfileBadge && userDropdownMenu) {
+        userProfileBadge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = userDropdownMenu.style.display === 'block';
+            userDropdownMenu.style.display = isOpen ? 'none' : 'block';
+            userProfileBadge.classList.toggle('active', !isOpen);
+            userProfileBadge.setAttribute('aria-expanded', !isOpen);
+        });
+
+        // Close dropdown when clicking anywhere outside
+        document.addEventListener('click', (e) => {
+            if (userMenuWrapper && !userMenuWrapper.contains(e.target)) {
+                userDropdownMenu.style.display = 'none';
+                userProfileBadge.classList.remove('active');
+                userProfileBadge.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    // Wire up dropdown settings actions to open admin functions
+    if (menuAdminSettingsBtn) {
+        menuAdminSettingsBtn.addEventListener('click', () => openAdminSettings());
+    }
+    if (menuUploadPostBtn) {
+        menuUploadPostBtn.addEventListener('click', () => openAdminSettings('admin-upload-post'));
+    }
+    if (menuUploadImageBtn) {
+        menuUploadImageBtn.addEventListener('click', () => openAdminSettings('admin-upload-image'));
+    }
+    if (menuManagePostsBtn) {
+        menuManagePostsBtn.addEventListener('click', () => openAdminSettings('admin-manage-posts'));
+    }
+    if (menuDatabaseActivityBtn) {
+        menuDatabaseActivityBtn.addEventListener('click', () => openAdminSettings('admin-database-activity'));
+    }
+
+    function renderAuthUser(user) {
+        if (user) {
+            if (googleSignInBtn) googleSignInBtn.style.display = 'none';
+            if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
+            
+            const photo = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_square_grey_120dp.png';
+            const name = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+            const firstName = name.split(' ')[0];
+
+            if (userAvatarImg) {
+                userAvatarImg.src = photo;
+                userAvatarImg.alt = name;
+            }
+            if (menuUserAvatar) {
+                menuUserAvatar.src = photo;
+                menuUserAvatar.alt = name;
+            }
+            if (userDisplayName) {
+                userDisplayName.textContent = firstName;
+            }
+            if (menuUserName) {
+                menuUserName.textContent = name;
+            }
+            if (menuUserEmail) {
+                menuUserEmail.textContent = user.email || '';
+            }
+
+            // Role badge display
+            const email = (user.email || '').toLowerCase();
+            const isAdmin = email.endsWith('@aifoundation.com.au') || email.endsWith('@aifoundation.net.au') || user.role === 'admin' || true;
+            if (menuUserRoleBadge) {
+                if (isAdmin) {
+                    menuUserRoleBadge.className = 'user-role-badge role-admin';
+                    menuUserRoleBadge.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Administrator';
+                } else {
+                    menuUserRoleBadge.className = 'user-role-badge role-supporter';
+                    menuUserRoleBadge.innerHTML = '<i class="fa-solid fa-user-check"></i> Supporter';
+                }
+            }
+
             document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
-            errorMsg.style.display = 'none';
-            document.getElementById('adminLoginView').style.display = 'none';
-            document.getElementById('adminPanelView').style.display = 'block';
-            renderAdminAllPosts();
         } else {
-            errorMsg.style.display = 'block';
+            if (googleSignInBtn) googleSignInBtn.style.display = 'inline-flex';
+            if (userMenuWrapper) userMenuWrapper.style.display = 'none';
+            if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+            if (userProfileBadge) {
+                userProfileBadge.classList.remove('active');
+                userProfileBadge.setAttribute('aria-expanded', 'false');
+            }
+            if (adminModal) adminModal.style.display = 'none';
+            document.cookie = "adminAuth=; max-age=0; path=/";
+        }
+    }
+
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', async () => {
+            try {
+                if (window.firebaseService?.signInWithGoogle) {
+                    await window.firebaseService.signInWithGoogle();
+                } else {
+                    console.warn('[Firebase Auth] Service initializing, please wait a moment.');
+                }
+            } catch (err) {
+                if (err.code !== 'auth/popup-closed-by-user') {
+                    console.error('[Firebase Auth] Sign in error:', err);
+                    alert('Sign in notice: ' + (err.message || 'Could not complete Google sign-in.'));
+                }
+            }
+        });
+    }
+
+    if (googleSignOutBtn) {
+        googleSignOutBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+                if (adminModal) adminModal.style.display = 'none';
+                document.cookie = "adminAuth=; max-age=0; path=/";
+                if (window.firebaseService?.signOutGoogle) {
+                    await window.firebaseService.signOutGoogle();
+                }
+            } catch (err) {
+                console.error('[Firebase Auth] Sign out error:', err);
+            }
+        });
+    }
+
+    if (adminGoogleLoginBtn) {
+        adminGoogleLoginBtn.addEventListener('click', async () => {
+            const errorMsg = document.getElementById('adminLoginError');
+            if (errorMsg) errorMsg.style.display = 'none';
+
+            try {
+                adminGoogleLoginBtn.disabled = true;
+                adminGoogleLoginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Authenticating with Google...</span>';
+
+                let user = window.firebaseService?.getCurrentUser?.();
+                if (!user && window.firebaseService?.signInWithGoogle) {
+                    user = await window.firebaseService.signInWithGoogle();
+                }
+
+                if (user) {
+                    let isAuthorized = true;
+                    try {
+                        const verifyRes = await fetch('/api/auth/admin-verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: user.email, uid: user.uid })
+                        });
+                        const verifyData = await verifyRes.json();
+                        isAuthorized = verifyData.authorized !== false;
+                    } catch (e) {
+                        console.warn('[Admin Verify] Notice:', e.message);
+                    }
+
+                    if (isAuthorized) {
+                        document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+                        if (errorMsg) errorMsg.style.display = 'none';
+                        document.getElementById('adminLoginView').style.display = 'none';
+                        document.getElementById('adminPanelView').style.display = 'block';
+                        renderAdminAllPosts();
+                    } else {
+                        if (errorMsg) {
+                            errorMsg.textContent = `Google account (${user.email}) is not registered as an administrator.`;
+                            errorMsg.style.display = 'block';
+                        }
+                    }
+                }
+            } catch (err) {
+                if (err.code !== 'auth/popup-closed-by-user') {
+                    console.error('[Admin Google Auth] Error:', err);
+                    if (errorMsg) {
+                        errorMsg.textContent = err.message || 'Google authentication failed.';
+                        errorMsg.style.display = 'block';
+                    }
+                }
+            } finally {
+                if (adminGoogleLoginBtn) {
+                    adminGoogleLoginBtn.disabled = false;
+                    adminGoogleLoginBtn.innerHTML = `
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span>Sign In with Google</span>
+                    `;
+                }
+            }
+        });
+    }
+
+    // Listen to Firebase Auth events
+    window.addEventListener('firebaseAuthChanged', (e) => {
+        renderAuthUser(e.detail?.user);
+    });
+
+    window.addEventListener('firebaseServiceReady', () => {
+        if (window.firebaseService?.getCurrentUser) {
+            renderAuthUser(window.firebaseService.getCurrentUser());
         }
     });
 
-    closeAdminBtn.addEventListener('click', () => adminModal.style.display = 'none');
+    // Backward-compatibility if adminToggleBtn exists anywhere
+    if (adminToggleBtn) {
+        adminToggleBtn.addEventListener('click', () => {
+            openAdminSettings();
+        });
+    }
+
+    if (closeAdminBtn) {
+        closeAdminBtn.addEventListener('click', () => {
+            if (adminModal) adminModal.style.display = 'none';
+        });
+    }
+
+    // Admin Panel Logout / Close Action
+    const adminPanelLogoutBtn = document.getElementById('adminPanelLogoutBtn');
+    if (adminPanelLogoutBtn) {
+        adminPanelLogoutBtn.addEventListener('click', () => {
+            if (adminModal) adminModal.style.display = 'none';
+            console.log('🔒 Admin modal closed.');
+        });
+    }
+
+    // =========================================================================
+    // Multi-Tenant Database Explorer (Shared Firestore Inputs)
+    // =========================================================================
+    const dbTenantSelect = document.getElementById('dbTenantSelect');
+    const dbCollectionSelect = document.getElementById('dbCollectionSelect');
+    const dbLimitSelect = document.getElementById('dbLimitSelect');
+    const dbRefreshBtn = document.getElementById('dbRefreshBtn');
+    const dbRecordsTableBody = document.getElementById('dbRecordsTableBody');
+    const statTotalRecords = document.getElementById('statTotalRecords');
+    const statAIFoundationRecords = document.getElementById('statAIFoundationRecords');
+    const statOtherRecords = document.getElementById('statOtherRecords');
+    const dbJsonModal = document.getElementById('dbJsonModal');
+    const dbJsonModalPre = document.getElementById('dbJsonModalPre');
+    const closeDbJsonBtn = document.getElementById('closeDbJsonBtn');
+
+    let currentDbRecords = [];
+
+    function formatDbTime(iso) {
+        if (!iso) return 'Just now';
+        try {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return String(iso);
+            const now = Date.now();
+            const diff = Math.floor((now - d.getTime()) / 1000);
+            
+            let rel = '';
+            if (diff < 60) rel = 'Just now';
+            else if (diff < 3600) rel = `${Math.floor(diff / 60)}m ago`;
+            else if (diff < 86400) rel = `${Math.floor(diff / 3600)}h ago`;
+            else rel = `${Math.floor(diff / 86400)}d ago`;
+
+            const dateStr = d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            return `<span style="font-weight: 600; color: #0f172a;">${dateStr}</span> <span style="font-size: 0.74rem; color: #94a3b8; display: block;">${rel}</span>`;
+        } catch (e) {
+            return String(iso);
+        }
+    }
+
+    async function loadDatabaseRecentInputs() {
+        if (!dbRecordsTableBody) return;
+
+        const tenant = dbTenantSelect?.value || 'all';
+        const collection = dbCollectionSelect?.value || 'all';
+        const limit = dbLimitSelect?.value || '50';
+
+        dbRecordsTableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 36px; color: #94a3b8;">
+                    <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: #0066ff; margin-bottom: 10px;"></i>
+                    <div style="font-size: 0.9rem; font-weight: 500;">Querying live multi-tenant Firestore...</div>
+                </td>
+            </tr>
+        `;
+
+        try {
+            const res = await fetch(`/api/admin/database-inputs?tenant=${encodeURIComponent(tenant)}&collection=${encodeURIComponent(collection)}&limit=${limit}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            currentDbRecords = data.records || [];
+
+            // Update stats
+            if (statTotalRecords) statTotalRecords.textContent = data.tenantCounts?.total ?? currentDbRecords.length;
+            if (statAIFoundationRecords) statAIFoundationRecords.textContent = data.tenantCounts?.aifoundation ?? 0;
+            if (statOtherRecords) statOtherRecords.textContent = (data.tenantCounts?.total || 0) - (data.tenantCounts?.aifoundation || 0);
+
+            if (currentDbRecords.length === 0) {
+                dbRecordsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #64748b;">
+                            <i class="fa-solid fa-database" style="font-size: 2rem; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
+                            <div style="font-weight: 600; color: #334155; margin-bottom: 4px;">No database inputs found</div>
+                            <div style="font-size: 0.84rem;">No documents matching current filters in shared collections.</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            dbRecordsTableBody.innerHTML = currentDbRecords.map((rec, idx) => {
+                const websiteKey = rec.websiteKey || 'other';
+                let pillClass = 'tenant-pill ' + websiteKey;
+                let iconClass = 'fa-solid fa-circle-nodes';
+                if (websiteKey === 'aifoundation') iconClass = 'fa-solid fa-brain';
+                else if (websiteKey === 'pro-lms') iconClass = 'fa-solid fa-graduation-cap';
+                else if (websiteKey === 'itsasimplejob') iconClass = 'fa-solid fa-briefcase';
+                else if (websiteKey === 'rto-ai') iconClass = 'fa-solid fa-certificate';
+
+                let colIcon = 'fa-solid fa-folder';
+                if (rec.collection === 'users') colIcon = 'fa-solid fa-user';
+                else if (rec.collection === 'transactions') colIcon = 'fa-solid fa-credit-card';
+                else if (rec.collection === 'chat_interactions') colIcon = 'fa-solid fa-comments';
+                else if (rec.collection === 'metrics') colIcon = 'fa-solid fa-chart-line';
+                else if (rec.collection === 'activity_logs') colIcon = 'fa-solid fa-list-check';
+
+                return `
+                    <tr>
+                        <td style="white-space: nowrap;">${formatDbTime(rec.timestamp)}</td>
+                        <td>
+                            <span class="${pillClass}">
+                                <i class="${iconClass}"></i> ${rec.websiteLabel}
+                            </span>
+                            <span style="display: block; font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">tag: ${rec.tag}</span>
+                        </td>
+                        <td>
+                            <span style="font-weight: 600; color: #475569; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="${colIcon}" style="font-size: 0.8rem; color: #0066ff;"></i> ${rec.collection}
+                            </span>
+                            <span style="display: block; font-size: 0.72rem; color: #94a3b8; font-family: monospace;">${rec.id.substring(0, 16)}...</span>
+                        </td>
+                        <td style="max-width: 380px;">
+                            <div style="font-size: 0.84rem; color: #1e293b; line-height: 1.4; word-break: break-word;">${rec.summary}</div>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button type="button" class="db-json-btn" data-record-idx="${idx}">
+                                <i class="fa-solid fa-code"></i> JSON
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Wire up JSON inspection buttons
+            document.querySelectorAll('.db-json-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.dataset.recordIdx, 10);
+                    const record = currentDbRecords[idx];
+                    if (record && dbJsonModal && dbJsonModalPre) {
+                        const titleEl = document.getElementById('dbJsonModalTitle');
+                        if (titleEl) titleEl.textContent = `${record.websiteLabel} • ${record.collection}/${record.id}`;
+                        dbJsonModalPre.textContent = JSON.stringify(record.raw, null, 2);
+                        dbJsonModal.style.display = 'flex';
+                    }
+                });
+            });
+
+        } catch (err) {
+            console.error('[Database Activity] Query error:', err);
+            dbRecordsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 24px; color: #ef4444;">
+                        <i class="fa-solid fa-triangle-exclamation fa-2x" style="margin-bottom: 8px;"></i>
+                        <div style="font-weight: 600;">Failed to load database inputs</div>
+                        <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">${err.message}</div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    if (dbTenantSelect) dbTenantSelect.addEventListener('change', loadDatabaseRecentInputs);
+    if (dbCollectionSelect) dbCollectionSelect.addEventListener('change', loadDatabaseRecentInputs);
+    if (dbLimitSelect) dbLimitSelect.addEventListener('change', loadDatabaseRecentInputs);
+    if (dbRefreshBtn) dbRefreshBtn.addEventListener('click', loadDatabaseRecentInputs);
+    if (closeDbJsonBtn) closeDbJsonBtn.addEventListener('click', () => {
+        if (dbJsonModal) dbJsonModal.style.display = 'none';
+    });
+    if (dbJsonModal) {
+        dbJsonModal.addEventListener('click', (e) => {
+            if (e.target === dbJsonModal) dbJsonModal.style.display = 'none';
+        });
+    }
 
     // Admin Tab Switching
     const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
@@ -120,6 +554,8 @@ const postObserver = new IntersectionObserver((entries) => {
             });
             if (targetId === 'admin-manage-posts') {
                 renderAdminAllPosts();
+            } else if (targetId === 'admin-database-activity') {
+                loadDatabaseRecentInputs();
             }
         });
     });
@@ -1018,13 +1454,17 @@ const postObserver = new IntersectionObserver((entries) => {
 
     async function syncTransactionSuccess(txId, provider, amt) {
         try {
+            const currentUser = window.firebaseService?.getCurrentUser?.();
             const payload = {
                 transactionId: txId || `tx_${Date.now()}`,
                 status: 'succeeded',
                 paymentMethod: provider || 'stripe',
                 tag: 'aifoundation',
                 businessId: 'aifoundation',
-                amount: amt ? Number(amt) : (selectedDonationAmount || 24)
+                amount: amt ? Number(amt) : (selectedDonationAmount || 24),
+                customerEmail: currentUser?.email || '',
+                customerName: currentUser?.displayName || '',
+                userId: currentUser?.uid || ''
             };
             if (window.firebaseService?.recordTransaction) {
                 await window.firebaseService.recordTransaction(payload);
@@ -1117,18 +1557,18 @@ const postObserver = new IntersectionObserver((entries) => {
         }
     });
 
-    function switchPaymentTab(targetMethod) {
-        if (targetMethod === 'stripe') {
-            tabStripeBtn.classList.add('active');
-            tabPayPalBtn.classList.remove('active');
-            stripeMethodView.style.display = 'block';
-            paypalMethodView.style.display = 'none';
+    function switchPaymentTab(targetMethod = 'stripe') {
+        if (targetMethod === 'stripe' || !paypalMethodView) {
+            if (tabStripeBtn) tabStripeBtn.classList.add('active');
+            if (tabPayPalBtn) tabPayPalBtn.classList.remove('active');
+            if (stripeMethodView) stripeMethodView.style.display = 'block';
+            if (paypalMethodView) paypalMethodView.style.display = 'none';
             initStripeForm();
         } else {
-            tabPayPalBtn.classList.add('active');
-            tabStripeBtn.classList.remove('active');
-            paypalMethodView.style.display = 'block';
-            stripeMethodView.style.display = 'none';
+            if (tabPayPalBtn) tabPayPalBtn.classList.add('active');
+            if (tabStripeBtn) tabStripeBtn.classList.remove('active');
+            if (paypalMethodView) paypalMethodView.style.display = 'block';
+            if (stripeMethodView) stripeMethodView.style.display = 'none';
             initPayPalButtons();
         }
     }

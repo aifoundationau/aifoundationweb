@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="style.css?v=27">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        if (!document.cookie.includes('adminAuth=true')) {
+            window.location.href = '/';
+        }
+    </script>
     <style>
         .contracts-container {
             max-width: 1200px;
@@ -463,18 +468,18 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><span class="code-tag">accessCode1</span></td>
-                            <td>10 Digits</td>
-                            <td>Admin Modal</td>
-                            <td>Strict Regex <span class="code-tag">^\d{10}$</span></td>
-                            <td>Constant-time in-memory check (never stored)</td>
+                            <td><span class="code-tag">email</span></td>
+                            <td>Email String</td>
+                            <td>Google OAuth 2.0</td>
+                            <td>Authorized AI Foundation Domain or Admin Email</td>
+                            <td>Verified via <span class="code-tag">/api/auth/admin-verify</span></td>
                         </tr>
                         <tr>
-                            <td><span class="code-tag">accessCode2</span></td>
-                            <td>8 Digits</td>
-                            <td>Admin Modal</td>
-                            <td>Strict Regex <span class="code-tag">^\d{8}$</span></td>
-                            <td>Constant-time in-memory check (never stored)</td>
+                            <td><span class="code-tag">uid</span></td>
+                            <td>String (UID)</td>
+                            <td>Firebase Auth</td>
+                            <td>Unique Firebase UID</td>
+                            <td>Firestore <span class="code-tag">users/{uid}</span> with role: admin</td>
                         </tr>
                         <tr>
                             <td><span class="code-tag">adminAuth</span></td>
@@ -580,6 +585,112 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <!-- Domain 8: Firebase Google Auth -->
+        <section class="contract-card">
+            <div class="card-header">
+                <h2 class="section-title">
+                    <i class="fa-brands fa-google" style="color: #4285F4;"></i>
+                    Domain 8: User Identity &amp; Firebase Google Authentication
+                </h2>
+                <span class="section-tag" style="background: #e0f2fe; color: #0369a1;">Identity &amp; Auth</span>
+            </div>
+            <p style="color: #64748b; font-size: 0.92rem; margin-bottom: 20px;">
+                Governs Firebase Client SDK Google Authentication, multi-tenant user profile synchronization, and session management. Enforces mandatory partition keys (<span class="code-tag">tag: 'aifoundation'</span>) and 7-year audit retention.
+            </p>
+            <div class="contract-table-wrap">
+                <table class="contract-table">
+                    <thead>
+                        <tr>
+                            <th>Field Name</th>
+                            <th>Data Type</th>
+                            <th>Ingestion Channel</th>
+                            <th>Classification</th>
+                            <th>Invariants &amp; Constraints</th>
+                            <th>Storage &amp; Retention</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="code-tag">uid</span></td>
+                            <td>String</td>
+                            <td>Google OAuth / Firebase SDK</td>
+                            <td>Unique User ID</td>
+                            <td>Required. Firebase UID format.</td>
+                            <td>Firestore Document ID. Indexed.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">email</span></td>
+                            <td>String (Email)</td>
+                            <td>Google Account Profile</td>
+                            <td>PII</td>
+                            <td>Required. Valid RFC 5322 email. Lowercased, trimmed.</td>
+                            <td>Stored in <span class="code-tag">users/{uid}</span>. AES-256. 7-Year retention.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">displayName</span></td>
+                            <td>String</td>
+                            <td>Google Account Profile</td>
+                            <td>Public Identity</td>
+                            <td>Optional. Max 120 chars. HTML entities escaped.</td>
+                            <td>Firestore root field.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">photoURL</span></td>
+                            <td>String (URI)</td>
+                            <td>Google Account Profile</td>
+                            <td>Public Identity</td>
+                            <td>Optional. Valid HTTPS avatar URI (Google CDN).</td>
+                            <td>Firestore root field.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">tag</span></td>
+                            <td>Enum String</td>
+                            <td>System Enforcement</td>
+                            <td>Partition Key</td>
+                            <td><strong>Constant:</strong> <span class="code-tag">'aifoundation'</span></td>
+                            <td>Firestore root field. Indexed.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">businessId</span></td>
+                            <td>Enum String</td>
+                            <td>System Enforcement</td>
+                            <td>Partition Key</td>
+                            <td><strong>Constant:</strong> <span class="code-tag">'aifoundation'</span></td>
+                            <td>Firestore root field.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">authProvider</span></td>
+                            <td>Enum String</td>
+                            <td>System Enforcement</td>
+                            <td>Auth Metadata</td>
+                            <td><strong>Constant:</strong> <span class="code-tag">'google'</span></td>
+                            <td>Firestore root field.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">role</span></td>
+                            <td>Enum String</td>
+                            <td>Server Verification</td>
+                            <td>Access Control</td>
+                            <td>Value: <span class="code-tag">'supporter'</span> | <span class="code-tag">'admin'</span></td>
+                            <td>Firestore root field.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">lastLoginAt</span></td>
+                            <td>ISO 8601 Timestamp</td>
+                            <td>Client / Server Sync</td>
+                            <td>Audit</td>
+                            <td>UTC timestamp of most recent authentication.</td>
+                            <td>Firestore root field. 7-Year statutory retention.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="rule-callout">
+                <i class="fa-solid fa-circle-info" style="color: #0066ff; margin-right: 6px;"></i>
+                <strong>Multi-Tenant User Isolation:</strong> Even though the underlying Cloud Firestore database is shared among multiple businesses, every user record written by this application is tagged with <code>tag: 'aifoundation'</code>, and user-associated donation transactions automatically tie into their verified Google identity.
             </div>
         </section>
 

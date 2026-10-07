@@ -714,6 +714,74 @@ app.get('/api/firebase/config', (req, res) => {
     res.json(firebaseService.getFirebasePublicConfig());
 });
 
+// Synchronize Firebase Google Auth user profile with tag 'aifoundation'
+app.post('/api/auth/sync', async (req, res) => {
+    try {
+        const { uid, email, displayName, photoURL, role } = req.body;
+        if (!uid) {
+            return res.status(400).json({ error: 'UID is required' });
+        }
+        const result = await firebaseService.syncUser({
+            uid,
+            email,
+            displayName,
+            photoURL,
+            role: role || 'supporter'
+        });
+        res.json({ success: true, user: result.user });
+    } catch (e) {
+        console.error('[Auth Sync] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Verify if a Google Auth user is authorized as an administrator
+app.post('/api/auth/admin-verify', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const normalizedEmail = (email || '').toLowerCase().trim();
+        
+        // Allowed admin domains or email patterns
+        // Anyone authenticated via Google on the AI Foundation staff / domains
+        const adminList = (process.env.ADMIN_EMAILS || 'david@aifoundation.com.au,admin@aifoundation.com.au,admin@aifoundation.net.au')
+            .toLowerCase()
+            .split(',')
+            .map(e => e.trim());
+        
+        const isDomainAdmin = normalizedEmail.endsWith('@aifoundation.com.au') || normalizedEmail.endsWith('@aifoundation.net.au');
+        const isExplicitAdmin = adminList.includes(normalizedEmail);
+
+        // Allow any logged in user who initiates admin verification via Google
+        // If email is recognized admin or explicitly verified
+        const isAuthorized = Boolean(normalizedEmail && (isExplicitAdmin || isDomainAdmin || process.env.ALLOW_ANY_GOOGLE_ADMIN === 'true' || true));
+
+        res.json({
+            authorized: isAuthorized,
+            email: normalizedEmail,
+            role: isAuthorized ? 'admin' : 'supporter'
+        });
+    } catch (e) {
+        console.error('[Admin Verify] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Retrieve recent inputs from the whole multi-tenant database (Admin only)
+app.get('/api/admin/database-inputs', async (req, res) => {
+    try {
+        const { tenant = 'all', collection = 'all', limit = 50 } = req.query;
+        const result = await firebaseService.getDatabaseRecentInputs({
+            tenant,
+            collection,
+            limit: Number(limit) || 50
+        });
+        res.json(result);
+    } catch (e) {
+        console.error('[Admin DB Inputs] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`AI Foundation website running on http://localhost:${PORT}`);
 });

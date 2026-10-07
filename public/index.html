@@ -21,9 +21,118 @@
                 </a>
             </div>
             <div class="nav-actions">
-                <button class="admin-gear-btn" id="adminToggleBtn" title="Admin Settings">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
+                <!-- Firebase Google Auth Component (Replaces Settings Button) -->
+                <div id="authContainer" class="auth-header-container">
+                    <!-- Logged Out State: Google Sign In Button -->
+                    <button type="button" class="google-auth-btn" id="googleSignInBtn" title="Sign in with Google">
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span class="auth-btn-text">Sign In with Google</span>
+                    </button>
+
+                    <!-- Logged In State: User Profile Trigger with Dropdown -->
+                    <div class="user-menu-wrapper" id="userMenuWrapper" style="display: none;">
+                        <button type="button" class="user-profile-badge" id="userProfileBadge" aria-haspopup="true" aria-expanded="false" title="Account &amp; Settings">
+                            <img id="userAvatarImg" src="assets/logo.png" alt="User Avatar" class="user-avatar-small" />
+                            <span id="userDisplayName" class="user-display-name">AI Foundation</span>
+                            <i class="fa-solid fa-chevron-down user-dropdown-caret" id="userDropdownCaret"></i>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;">
+                            <!-- Profile Header -->
+                            <div class="user-dropdown-header">
+                                <img id="menuUserAvatar" src="assets/logo.png" alt="Avatar" class="dropdown-avatar-img" />
+                                <div class="dropdown-user-details">
+                                    <div id="menuUserName" class="dropdown-user-name">AI Foundation</div>
+                                    <div id="menuUserEmail" class="dropdown-user-email">support@aifoundation.net.au</div>
+                                    <span id="menuUserRoleBadge" class="user-role-badge role-admin">
+                                        <i class="fa-solid fa-shield-halved"></i> Administrator
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="dropdown-divider"></div>
+
+                            <!-- Settings & Management Actions -->
+                            <div class="dropdown-section-title">
+                                <i class="fa-solid fa-gear"></i> Administration &amp; Settings
+                            </div>
+
+                            <ul class="dropdown-items-list">
+                                <li>
+                                    <button type="button" class="dropdown-item" id="menuAdminSettingsBtn">
+                                        <span class="item-icon-wrap primary"><i class="fa-solid fa-sliders"></i></span>
+                                        <div class="item-text">
+                                            <strong>Settings &amp; Admin Panel</strong>
+                                            <small>Full administrative controls</small>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item" id="menuUploadPostBtn">
+                                        <span class="item-icon-wrap"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                                        <div class="item-text">
+                                            <strong>Upload Content</strong>
+                                            <small>Publish new articles &amp; projects</small>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item" id="menuUploadImageBtn">
+                                        <span class="item-icon-wrap"><i class="fa-solid fa-image"></i></span>
+                                        <div class="item-text">
+                                            <strong>Upload Image</strong>
+                                            <small>Direct ImgBB cloud storage</small>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item" id="menuManagePostsBtn">
+                                        <span class="item-icon-wrap"><i class="fa-solid fa-list-check"></i></span>
+                                        <div class="item-text">
+                                            <strong>Manage Posts</strong>
+                                            <small>Review &amp; delete published entries</small>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item" id="menuDatabaseActivityBtn">
+                                        <span class="item-icon-wrap database"><i class="fa-solid fa-database"></i></span>
+                                        <div class="item-text">
+                                            <strong>Database Activity</strong>
+                                            <small>Multi-tenant recent inputs</small>
+                                        </div>
+                                    </button>
+                                </li>
+                                <li>
+                                    <a href="/data-contracts" class="dropdown-item" style="text-decoration: none;">
+                                        <span class="item-icon-wrap" style="background: rgba(0, 102, 255, 0.1); color: var(--primary);"><i class="fa-solid fa-file-contract"></i></span>
+                                        <div class="item-text">
+                                            <strong>Data Contracts</strong>
+                                            <small>System Integrity</small>
+                                        </div>
+                                    </a>
+                                </li>
+                            </ul>
+
+                            <div class="dropdown-divider"></div>
+
+                            <!-- Sign Out -->
+                            <button type="button" class="dropdown-item logout" id="googleSignOutBtn">
+                                <span class="item-icon-wrap danger"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+                                <div class="item-text">
+                                    <strong>Sign Out</strong>
+                                    <small>End Google authenticated session</small>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -424,9 +533,6 @@
                             <button type="button" id="payWithStripeBtn" class="donation-pay-btn pay-stripe">
                                 <i class="fa-solid fa-credit-card"></i> Pay with Card
                             </button>
-                            <button type="button" id="payWithPayPalBtn" class="donation-pay-btn pay-paypal">
-                                <i class="fa-brands fa-paypal"></i> PayPal
-                            </button>
                         </div>
                     </div>
                     <div id="donationStatusMsg" style="display: none; font-size: 0.9rem; font-weight: 600; padding-top: 4px;"></div>
@@ -446,15 +552,8 @@
                         onmouseover="this.style.color='var(--primary)'"
                         onmouseout="this.style.color='var(--text-muted)'">support@aifoundation.net.au</a>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-file-contract" style="color: var(--primary);"></i>
-                    <a href="/data-contracts"
-                        style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s;"
-                        onmouseover="this.style.color='var(--primary)'"
-                        onmouseout="this.style.color='var(--text-muted)'">Data Contracts</a>
-                </div>
                 <div style="display: flex; align-items: center; gap: 16px;">
-                    <span style="font-size: 0.85rem; color: #94a3b8;"><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe &amp; PayPal</span>
+                    <span style="font-size: 0.85rem; color: #94a3b8;"><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe</span>
                 </div>
             </footer>
         </div>
@@ -466,24 +565,45 @@
         <div class="modal-content">
             <span class="close" id="closeAdminBtn">&times;</span>
             <!-- Login View -->
-            <div id="adminLoginView" style="display: none;">
-                <h2 style="margin-bottom: 8px;">Admin Verification</h2>
-                <p style="margin-bottom: 24px; color: var(--text-muted); font-size: 0.95rem;">Please enter your access
-                    codes to continue.</p>
-                <div class="admin-form">
-                    <input type="text" id="accessCode1" placeholder="Access Code 1: XXXX-XXX-XXX" />
-                    <input type="text" id="accessCode2" placeholder="Access Code 2: XX-XX-XXXX" />
-                    <button id="adminLoginBtn"
-                        style="background: var(--primary); color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 8px;">Verify</button>
+            <div id="adminLoginView" style="display: none; padding: 24px 12px; text-align: center;">
+                <div style="width: 64px; height: 64px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #0066ff; font-size: 26px; box-shadow: 0 4px 14px rgba(0, 102, 255, 0.15);">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 style="margin-bottom: 8px; font-size: 1.4rem; color: #0f172a;">Admin Authentication</h2>
+                <p style="margin-bottom: 24px; color: var(--text-muted); font-size: 0.95rem; max-width: 380px; margin-left: auto; margin-right: auto; line-height: 1.5;">
+                    Sign in with your authorized Google administrator account to manage articles, projects, and site settings.
+                </p>
+
+                <div style="max-width: 320px; margin: 0 auto;">
+                    <button type="button" id="adminGoogleLoginBtn" class="admin-google-login-btn" style="box-shadow: 0 4px 14px rgba(0,0,0,0.06); padding: 14px 20px;">
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span>Sign In with Google</span>
+                    </button>
+
                     <p id="adminLoginError"
-                        style="color: #ef4444; font-size: 0.85rem; margin-top: 12px; display: none;">Invalid access
-                        codes. Please try again.</p>
+                        style="color: #ef4444; font-size: 0.88rem; margin-top: 14px; display: none; font-weight: 500;"></p>
                 </div>
             </div>
 
             <!-- Panel View -->
-            <div id="adminPanelView" style="display: none; height: 75vh;">
-                <div style="display: flex; height: 100%;">
+            <div id="adminPanelView" style="display: none; height: 78vh; display: flex; flex-direction: column;">
+                <!-- Admin Panel Header Bar -->
+                <div class="admin-panel-topbar">
+                    <div class="admin-user-info">
+                        <i class="fa-solid fa-shield-halved" style="color: #0066ff;"></i>
+                        <span>Admin Verified: <strong id="adminPanelUserEmail">support@aifoundation.net.au</strong></span>
+                    </div>
+                    <button type="button" id="adminPanelLogoutBtn" class="admin-logout-action-btn" title="Sign out of Admin Session">
+                        <i class="fa-solid fa-right-from-bracket"></i> Exit Admin
+                    </button>
+                </div>
+
+                <div style="display: flex; flex: 1; min-height: 0;">
                     <!-- Admin Sidebar -->
                     <div
                         style="width: 240px; border-right: 1px solid #e2e8f0; padding-right: 24px; padding-top: 12px; flex-shrink: 0;">
@@ -500,6 +620,10 @@
                             <li class="sidebar-item" data-target="admin-manage-posts">
                                 <i class="fa-solid fa-list"></i>
                                 <span>Manage Posts</span>
+                            </li>
+                            <li class="sidebar-item" data-target="admin-database-activity">
+                                <i class="fa-solid fa-database"></i>
+                                <span>Database Activity</span>
                             </li>
                         </ul>
                     </div>
@@ -604,6 +728,116 @@
                             </div>
                         </div>
 
+                        <!-- Database Explorer Section -->
+                        <div id="admin-database-activity" class="admin-tab-content" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 18px;">
+                                <div>
+                                    <h2 style="font-size: 1.25rem; margin: 0 0 4px; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+                                        <i class="fa-solid fa-database" style="color: #0066ff;"></i>
+                                        Shared Database Inputs &amp; Live Feeds
+                                    </h2>
+                                    <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
+                                        Multi-tenant Cloud Firestore explorer (<code>ai-foundation-firebase</code>). Inspect live records from AI Foundation and connected systems.
+                                    </p>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="db-live-badge"><i class="fa-solid fa-circle"></i> Live Connected</span>
+                                    <button type="button" id="dbRefreshBtn" class="db-refresh-btn" title="Refresh Live Data">
+                                        <i class="fa-solid fa-arrows-rotate"></i> Refresh Feed
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Filter Controls Bar -->
+                            <div class="db-filters-card">
+                                <div class="db-filter-group">
+                                    <label for="dbTenantSelect"><i class="fa-solid fa-globe"></i> Website / Partner Filter</label>
+                                    <select id="dbTenantSelect" class="db-filter-select">
+                                        <option value="all">🌐 Whole Database (All Websites)</option>
+                                        <option value="aifoundation">🔵 AI Foundation (aifoundation)</option>
+                                        <option value="pro-lms">🟣 Pro LMS / Admissions (pro-lms)</option>
+                                        <option value="itsasimplejob">🟢 It's A Simple Job (itsasimplejob)</option>
+                                        <option value="rto-ai">🟠 RTO AI (rto-ai)</option>
+                                        <option value="other">⚪ Other Tenants / Shared Logs</option>
+                                    </select>
+                                </div>
+
+                                <div class="db-filter-group">
+                                    <label for="dbCollectionSelect"><i class="fa-solid fa-folder-tree"></i> Collection Type</label>
+                                    <select id="dbCollectionSelect" class="db-filter-select">
+                                        <option value="all" selected>All Collections</option>
+                                        <option value="users">👤 users (Accounts &amp; Profiles)</option>
+                                        <option value="transactions">💳 transactions (Financial Records)</option>
+                                        <option value="chat_interactions">💬 chat_interactions (Admissions / Chat)</option>
+                                        <option value="metrics">📊 metrics (Platform Usage)</option>
+                                        <option value="activity_logs">📜 activity_logs (Audit Events)</option>
+                                    </select>
+                                </div>
+
+                                <div class="db-filter-group" style="max-width: 120px;">
+                                    <label for="dbLimitSelect"><i class="fa-solid fa-list-ol"></i> Limit</label>
+                                    <select id="dbLimitSelect" class="db-filter-select">
+                                        <option value="25">25 items</option>
+                                        <option value="50" selected>50 items</option>
+                                        <option value="100">100 items</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Summary Metric Counters -->
+                            <div class="db-stats-row">
+                                <div class="db-stat-card">
+                                    <span class="db-stat-num" id="statTotalRecords">--</span>
+                                    <span class="db-stat-label">Total Recent Inputs</span>
+                                </div>
+                                <div class="db-stat-card">
+                                    <span class="db-stat-num" id="statAIFoundationRecords" style="color: #0066ff;">--</span>
+                                    <span class="db-stat-label">AI Foundation Records</span>
+                                </div>
+                                <div class="db-stat-card">
+                                    <span class="db-stat-num" id="statOtherRecords" style="color: #8b5cf6;">--</span>
+                                    <span class="db-stat-label">Other Partner Websites</span>
+                                </div>
+                            </div>
+
+                            <!-- Live Feed Table -->
+                            <div class="db-table-wrap">
+                                <table class="db-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Website / Tenant</th>
+                                            <th>Collection</th>
+                                            <th>Document Summary</th>
+                                            <th style="text-align: right;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dbRecordsTableBody">
+                                        <tr>
+                                            <td colspan="5" style="text-align: center; padding: 32px; color: #94a3b8;">
+                                                <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: #0066ff; margin-bottom: 8px;"></i>
+                                                <div>Loading database inputs...</div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Raw JSON Inspection Modal -->
+                            <div id="dbJsonModal" class="db-json-modal" style="display: none;">
+                                <div class="db-json-content">
+                                    <div class="db-json-header">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <i class="fa-solid fa-code" style="color: #0066ff;"></i>
+                                            <span style="font-weight: 700; font-size: 0.95rem;" id="dbJsonModalTitle">Firestore Document JSON</span>
+                                        </div>
+                                        <button type="button" id="closeDbJsonBtn" class="close" style="font-size: 1.4rem; color: #94a3b8; background: none; border: none; cursor: pointer;">&times;</button>
+                                    </div>
+                                    <pre id="dbJsonModalPre" class="db-json-pre"></pre>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -627,21 +861,11 @@
                 </div>
             </div>
 
-            <!-- Payment Method Tabs -->
-            <div class="payment-method-tabs" id="paymentMethodTabs">
-                <button type="button" class="payment-tab-btn active" id="tabStripeBtn" data-target="stripeMethodView">
-                    <i class="fa-solid fa-credit-card"></i> Card / Digital Wallet
-                </button>
-                <button type="button" class="payment-tab-btn" id="tabPayPalBtn" data-target="paypalMethodView">
-                    <i class="fa-brands fa-paypal"></i> PayPal
-                </button>
-            </div>
-
             <!-- Payment Method Views -->
             <div id="stripeMethodView" class="payment-method-view" style="display: block;">
                 <div id="stripeLoadingIndicator" style="padding: 20px 0; text-align: center; color: #64748b;">
                     <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: #635bff; margin-bottom: 10px;"></i>
-                    <p style="margin: 0; font-size: 0.9rem; font-weight: 500;">Loading secure Stripe form...</p>
+                    <p style="margin: 0; font-size: 0.9rem; font-weight: 500;">Loading secure card payment form...</p>
                 </div>
                 <form id="stripePaymentForm" style="display: block;">
                     <div id="stripePaymentElement" style="min-height: 160px; margin-bottom: 16px;"></div>
@@ -663,15 +887,6 @@
                 </div>
             </div>
 
-            <div id="paypalMethodView" class="payment-method-view" style="display: none;">
-                <div id="paypalLoadingIndicator" style="padding: 24px; text-align: center; color: #64748b;">
-                    <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: #0070ba; margin-bottom: 10px;"></i>
-                    <p style="margin: 0; font-size: 0.9rem; font-weight: 500;">Connecting to PayPal...</p>
-                </div>
-                <div id="paypalButtonsContainer" style="margin-top: 8px;"></div>
-                <div id="paypalPaymentError" style="display: none; color: #ef4444; font-size: 0.88rem; margin-top: 12px; font-weight: 600;"></div>
-            </div>
-
             <!-- Success State View -->
             <div id="paymentSuccessView" style="display: none; text-align: center; padding: 20px 8px;">
                 <div style="width: 60px; height: 60px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px;">
@@ -688,7 +903,7 @@
 
             <div class="payment-popup-footer">
                 <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i>
-                <span>Direct 256-bit encrypted checkout via Stripe &amp; PayPal</span>
+                <span>Direct 256-bit encrypted checkout via Stripe</span>
             </div>
         </div>
     </div>
@@ -698,8 +913,7 @@
 
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="https://www.paypal.com/sdk/js?client-id=Ab_V9fZYgYYOIO_tXT4yV79gSQMdj0w1TK8-VNjr4arXCkYvi9DBzoR6abYFIE38pql5dAvaqlWZRp5V&currency=AUD"></script>
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=28"></script>
 </body>
 
 </html>

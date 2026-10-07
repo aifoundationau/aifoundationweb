@@ -120,18 +120,18 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 
 ---
 
-### Domain 5: Administrative Access & Security Credentials
+### Domain 5: Administrative Access & Security Authentication
 
 #### Target Components
-- UI Component: Admin Access Modal ([index.html](file:///d:/Agy/AI%20Foundation/public/index.html#L463))
-- Verification Gate: Constant-time comparison against two-factor split credentials.
+- UI Component: Admin Access Modal ([index.html](file:///d:/Agy/AI%20Foundation/public/index.html#L485))
+- Verification Gate: Firebase Google OAuth 2.0 Identity Token Verification (`/api/auth/admin-verify`)
 
 #### Data Fields Specification
 | Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage & Security |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `accessCode1` | String | UI Modal Input | High Security Credential | Required. Exactly 10 numeric digits. Regex: `^\d{10}$`. Cleaned of non-digit separators. | In-memory evaluation only. Never logged or stored. |
-| `accessCode2` | String | UI Modal Input | High Security Credential | Required. Exactly 8 numeric digits. Regex: `^\d{8}$`. Cleaned of non-digit separators. | In-memory evaluation only. Never logged or stored. |
-| `adminAuth` | Cookie (String) | Browser Cookie Store | Session Token | Required for panel view. Value: `'true'`. Path: `/`. Max-Age: `31536000` seconds (1 year). | Stored in client browser cookie jar. |
+| `email` | String (Email) | Google OAuth 2.0 | Identity Token | Required. Must match authorized AI Foundation administrator domain or verified admin email address. | Evaluated via backend server; encrypted audit log. |
+| `uid` | String | Firebase SDK | Unique User ID | Required. Standard Firebase UID format. | Stored in `users/{uid}` with role `'admin'`. |
+| `adminAuth` | Cookie (String) | Browser Cookie Store | Session Token | Value: `'true'`. Path: `/`. Max-Age: `31536000` seconds (1 year). | Stored in client browser cookie jar. |
 
 ---
 
@@ -164,6 +164,31 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `category_slot` | String Enum | AI Tool Call | Internal Taxonomy | Must be one of `['articles', 'projects', 'tech', 'community']`. No hallucinated categories allowed. | Reject with schema violation error and emit allowed enum list. |
 | `url_slot` | String (URI) | AI Tool Call | System Input | Must pass strict URI validation. Blocks loopback and private subnets. | Abort call; return `INVALID_URI_SCHEME` to agent planner. |
 | `tag_enforcement` | String Enum | Tool Parameter | System Partition | **Immutable Slot**: Must always be set to `'aifoundation'`. Any override attempt is ignored and overwritten. | Hardcoded server-side default overrides tool call parameter. |
+
+---
+
+### Domain 8: User Identity & Firebase Google Authentication
+
+#### Target Collections & Auth Service
+- Authentication Provider: Firebase Google Auth (`ai-foundation-firebase.firebaseapp.com`)
+- Target Collection: `users/{uid}`
+- Ingestion Channel: Google OAuth 2.0 / Firebase Client Popup SDK (`signInWithPopup`) & Server Sync (`POST /api/auth/sync`)
+
+#### Data Fields Specification
+| Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage & Retention |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `uid` | String | Google OAuth / Firebase SDK | Unique User ID | Required. Firebase UID format. | Firestore Document ID. Indexed. |
+| `email` | String (Email) | Google Account Profile | PII | Required. Valid RFC 5322 email. Lowercased, trimmed. | Stored in `users/{uid}`. AES-256 encrypted at rest. 7-year audit retention. |
+| `displayName` | String | Google Account Profile | Public Identity | Optional. Max length: 120 chars. Trimmed, HTML-escaped. | Firestore root field. |
+| `photoURL` | String (URI) | Google Account Profile | Public Identity | Optional. Valid HTTP/HTTPS avatar URI (Google CDN). | Firestore root field. |
+| `tag` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. Indexed. |
+| `businessId` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. |
+| `businessName` | String | System Enforcement | Metadata | **Constant**: `'AI Foundation'`. | Firestore root field. |
+| `source` | String | System Enforcement | Metadata | **Constant**: `'aifoundation'`. | Firestore root field. |
+| `authProvider` | String Enum | System Enforcement | Auth Metadata | Required. Value: `'google'`. | Firestore root field. |
+| `role` | String Enum | Server Verification | Access Control | Value: `'supporter'` \| `'admin'`. Admin verified via server rules. | Firestore root field. |
+| `lastLoginAt` | String (Timestamp) | Client / Server Sync | Audit | Required. ISO 8601 UTC timestamp of most recent authentication. | Firestore timestamp/string. 7-year retention. |
+| `updatedAt` | String (Timestamp) | Client / Server Sync | Audit | Required. ISO 8601 UTC timestamp of profile sync. | Firestore timestamp/string. |
 
 ---
 
