@@ -560,10 +560,32 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     });
 
+    // Firestore Helper
+    async function loadCategoryFromFirestore(category) {
+        if (window.firebaseService && window.firebaseService.isConnected) {
+            try {
+                const { db, collection, getDocs, query, where, TRANSACTION_TAG } = window.firebaseService;
+                const q = query(collection(db, 'content'), where('tag', '==', TRANSACTION_TAG), where('category', '==', category));
+                const snap = await getDocs(q);
+                let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                items.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+                items.reverse();
+                return items;
+            } catch (err) {
+                console.error('Firebase error loading ' + category + ':', err);
+            }
+        }
+        return null;
+    }
+
     // Community Posts Logic
     async function loadCommunityPosts() {
-        const res = await fetch('/api/community');
-        allCommunityPosts = await res.json();
+        const fbData = await loadCategoryFromFirestore('community');
+        if (fbData) {
+            allCommunityPosts = fbData;
+        } else {
+            try { allCommunityPosts = await (await fetch('/api/community')).json(); } catch(e) { allCommunityPosts = []; }
+        }
         renderCommunityPosts();
         renderAdminAllPosts();
     }
@@ -612,8 +634,12 @@ const postObserver = new IntersectionObserver((entries) => {
 
     // Tech Posts Logic
     async function loadTechPosts() {
-        const res = await fetch('/api/tech');
-        allTechPosts = await res.json();
+        const fbData = await loadCategoryFromFirestore('tech');
+        if (fbData) {
+            allTechPosts = fbData;
+        } else {
+            try { allTechPosts = await (await fetch('/api/tech')).json(); } catch(e) { allTechPosts = []; }
+        }
         renderTechPosts();
         renderAdminAllPosts();
     }
@@ -662,20 +688,14 @@ const postObserver = new IntersectionObserver((entries) => {
 
     // Projects Logic
     async function loadProjects() {
-        try {
-            const res = await fetch('/api/projects');
-            if (res.ok) {
-                allProjects = await res.json();
-            } else {
-                throw new Error('API status ' + res.status);
-            }
-        } catch (e) {
+        const fbData = await loadCategoryFromFirestore('projects');
+        if (fbData) {
+            allProjects = fbData;
+        } else {
             try {
-                const fallback = await fetch('/data/projects.json');
-                allProjects = await fallback.json();
-            } catch (err) {
-                allProjects = [];
-            }
+                const res = await fetch('/api/projects');
+                allProjects = res.ok ? await res.json() : await (await fetch('/data/projects.json')).json();
+            } catch (e) { allProjects = []; }
         }
         renderProjects();
         renderAdminAllPosts();
@@ -789,20 +809,14 @@ const postObserver = new IntersectionObserver((entries) => {
     });
 
     async function loadPosts() {
-        try {
-            const res = await fetch('/api/posts');
-            if (res.ok) {
-                allPosts = await res.json();
-            } else {
-                throw new Error('API status ' + res.status);
-            }
-        } catch (e) {
+        const fbData = await loadCategoryFromFirestore('articles');
+        if (fbData) {
+            allPosts = fbData;
+        } else {
             try {
-                const fallback = await fetch('/data/posts.json');
-                allPosts = await fallback.json();
-            } catch (err) {
-                allPosts = [];
-            }
+                const res = await fetch('/api/posts');
+                allPosts = res.ok ? await res.json() : await (await fetch('/data/posts.json')).json();
+            } catch (e) { allPosts = []; }
         }
         renderPosts();
         renderAdminAllPosts();
@@ -1064,22 +1078,24 @@ const postObserver = new IntersectionObserver((entries) => {
                 author: 'Admin'
             };
             
-            const endpoints = {
-                'articles': '/api/posts',
-                'projects': '/api/projects',
-                'tech': '/api/tech',
-                'community': '/api/community'
-            };
-            const endpoint = endpoints[category] || '/api/posts';
-
+            payload.category = category;
+            payload.date = new Date().toISOString();
+            payload.tag = window.firebaseService?.TRANSACTION_TAG || 'aifoundation';
             try {
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (res.ok) {
+                if (window.firebaseService && window.firebaseService.isConnected) {
+                    const { db, collection, addDoc } = window.firebaseService;
+                    await addDoc(collection(db, 'content'), payload);
                     successCount++;
+                } else {
+                    const endpoints = {
+                        'articles': '/api/posts', 'projects': '/api/projects',
+                        'tech': '/api/tech', 'community': '/api/community'
+                    };
+                    const res = await fetch(endpoints[category] || '/api/posts', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) successCount++;
                 }
             } catch (err) {
                 console.error('Publish error:', err);
@@ -1100,7 +1116,7 @@ const postObserver = new IntersectionObserver((entries) => {
             const adminModal = document.getElementById('adminModal');
             if (adminModal) adminModal.style.display = 'none';
         } else {
-            alert('No items could be published. Please enter a valid URL or fill in the title and link.');
+            alert('No items could be published. Please ensure the server is running and the inputs are valid.');
         }
     });
 
@@ -1299,24 +1315,23 @@ const postObserver = new IntersectionObserver((entries) => {
 
     window.deleteAnyPost = async (category, id) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
-        const endpoints = {
-            'articles': '/api/posts/',
-            'projects': '/api/projects/',
-            'tech': '/api/tech/',
-            'community': '/api/community/'
-        };
-        const url = (endpoints[category] || '/api/posts/') + id;
         try {
-            const res = await fetch(url, { method: 'DELETE' });
-            if (res.ok) {
-                if (category === 'articles') await loadPosts();
-                if (category === 'projects') await loadProjects();
-                if (category === 'tech') await loadTechPosts();
-                if (category === 'community') await loadCommunityPosts();
-                renderAdminAllPosts();
+            if (window.firebaseService && window.firebaseService.isConnected) {
+                const { db, doc, deleteDoc } = window.firebaseService;
+                await deleteDoc(doc(db, 'content', id));
             } else {
-                alert('Failed to delete item');
+                const endpoints = {
+                    'articles': '/api/posts/', 'projects': '/api/projects/',
+                    'tech': '/api/tech/', 'community': '/api/community/'
+                };
+                const res = await fetch((endpoints[category] || '/api/posts/') + id, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete item');
             }
+            if (category === 'articles') await loadPosts();
+            if (category === 'projects') await loadProjects();
+            if (category === 'tech') await loadTechPosts();
+            if (category === 'community') await loadCommunityPosts();
+            renderAdminAllPosts();
         } catch (e) {
             alert('Error deleting item');
         }

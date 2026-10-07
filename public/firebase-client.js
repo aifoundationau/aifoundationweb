@@ -17,7 +17,12 @@ import {
   collection, 
   doc, 
   setDoc, 
-  addDoc 
+  addDoc,
+  getDocs,
+  deleteDoc,
+  query,
+  where,
+  orderBy
 } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
 
 export const firebaseConfig = {
@@ -232,7 +237,16 @@ window.firebaseService = {
   getCurrentUser,
   onAuthChange,
   syncUserProfile,
-  recordTransaction
+  recordTransaction,
+  collection,
+  doc,
+  setDoc,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  query,
+  where,
+  orderBy
 };
 
 window.dispatchEvent(new CustomEvent('firebaseServiceReady', { 
