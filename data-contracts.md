@@ -186,6 +186,8 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `businessName` | String | System Enforcement | Metadata | **Constant**: `'AI Foundation'`. | Firestore root field. |
 | `source` | String | System Enforcement | Metadata | **Constant**: `'aifoundation'`. | Firestore root field. |
 | `authProvider` | String Enum | System Enforcement | Auth Metadata | Required. Value: `'google'`. | Firestore root field. |
+| `phoneNumber` | String | Supporter Registration | PII | Optional. Australian or international E.164 phone format. | Stored in `users/{uid}`. AES-256 encrypted at rest. |
+| `address` | Map / Object | Supporter Registration | PII | Optional. Contains `apartment`, `street`, `suburb`, `state`, `country`, `postcode`. | Stored in `users/{uid}`. AES-256 encrypted at rest. |
 | `role` | String Enum | Server Verification | Access Control | Value: `'supporter'` \| `'admin'`. Admin verified via server rules. | Firestore root field. |
 | `lastLoginAt` | String (Timestamp) | Client / Server Sync | Audit | Required. ISO 8601 UTC timestamp of most recent authentication. | Firestore timestamp/string. 7-year retention. |
 | `updatedAt` | String (Timestamp) | Client / Server Sync | Audit | Required. ISO 8601 UTC timestamp of profile sync. | Firestore timestamp/string. |

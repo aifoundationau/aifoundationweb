@@ -2126,11 +2126,11 @@ p { margin: 0; }
 .supporter-modal-content {
   background: #ffffff;
   width: 95%;
-  max-width: 480px;
+  max-width: 520px;
   height: auto !important;
   max-height: 90vh;
   border-radius: 20px;
-  padding: 32px 28px;
+  padding: 28px 24px;
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(226, 232, 240, 0.9);
   position: relative;
   box-sizing: border-box;
@@ -2138,6 +2138,41 @@ p { margin: 0; }
   flex-direction: column;
   overflow-y: auto;
   animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.supporter-address-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.supporter-address-header {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.supporter-address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .supporter-modal-content {
+    height: auto !important;
+    max-height: 94vh !important;
+    padding: 20px 14px !important;
+  }
+  .supporter-address-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .supporter-modal-content input:focus {

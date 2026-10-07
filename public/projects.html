@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects & Initiatives - AI Foundation Australia</title>
-    <link rel="stylesheet" href="style.css?v=35">
+    <link rel="stylesheet" href="style.css?v=36">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -329,13 +329,87 @@
                     <small style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: block;">Linked with your verified Google Account</small>
                 </div>
 
-                <div style="margin-bottom: 22px;">
+                <div style="margin-bottom: 20px;">
                     <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
                         Phone Number <span style="color: #ef4444;">*</span>
                     </label>
                     <div style="position: relative;">
                         <input type="tel" id="userFormPhone" required placeholder="e.g. 0412 345 678 or +61 412 345 678" style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
                         <i class="fa-solid fa-phone" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                    </div>
+                </div>
+
+                <!-- Address Box -->
+                <div class="supporter-address-box">
+                    <div class="supporter-address-header">
+                        <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i>
+                        <span>Address</span>
+                    </div>
+
+                    <!-- Apartment Line -->
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                            Apartment Line
+                        </label>
+                        <div style="position: relative;">
+                            <input type="text" id="userFormAddressApartment" placeholder="e.g. Apt 4B, Unit 12, Suite 300 (optional)" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                            <i class="fa-solid fa-building" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                        </div>
+                    </div>
+
+                    <!-- Street Line -->
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                            Street Line
+                        </label>
+                        <div style="position: relative;">
+                            <input type="text" id="userFormAddressStreet" placeholder="e.g. 123 Collins Street" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                            <i class="fa-solid fa-road" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                        </div>
+                    </div>
+
+                    <!-- Suburb Line & State Line -->
+                    <div class="supporter-address-grid" style="margin-bottom: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                Suburb Line
+                            </label>
+                            <div style="position: relative;">
+                                <input type="text" id="userFormAddressSuburb" placeholder="e.g. Melbourne" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                <i class="fa-solid fa-city" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                State Line
+                            </label>
+                            <div style="position: relative;">
+                                <input type="text" id="userFormAddressState" placeholder="e.g. VIC or NSW" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                <i class="fa-solid fa-map" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Country Line & Postcode Line -->
+                    <div class="supporter-address-grid">
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                Country Line
+                            </label>
+                            <div style="position: relative;">
+                                <input type="text" id="userFormAddressCountry" placeholder="e.g. Australia" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                <i class="fa-solid fa-globe" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                Postcode Line
+                            </label>
+                            <div style="position: relative;">
+                                <input type="text" id="userFormAddressPostcode" placeholder="e.g. 3000" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                <i class="fa-solid fa-signs-post" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -714,10 +788,10 @@
     </div>
 
     <!-- Firebase SDK & Client Integration -->
-    <script type="module" src="firebase-client.js?v=35"></script>
+    <script type="module" src="firebase-client.js?v=36"></script>
 
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="app.js?v=35"></script>
+    <script src="app.js?v=36"></script>
 </body>
 </html>

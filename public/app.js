@@ -114,6 +114,14 @@ const postObserver = new IntersectionObserver((entries) => {
     const userFormEmail = document.getElementById('userFormEmail');
     const userFormPhone = document.getElementById('userFormPhone');
     const userFormStatusMsg = document.getElementById('userFormStatusMsg');
+
+    // Address Box Elements
+    const userFormAddressApartment = document.getElementById('userFormAddressApartment');
+    const userFormAddressStreet = document.getElementById('userFormAddressStreet');
+    const userFormAddressSuburb = document.getElementById('userFormAddressSuburb');
+    const userFormAddressState = document.getElementById('userFormAddressState');
+    const userFormAddressCountry = document.getElementById('userFormAddressCountry');
+    const userFormAddressPostcode = document.getElementById('userFormAddressPostcode');
     
     const adminGoogleLoginBtn = document.getElementById('adminGoogleLoginBtn');
 
@@ -232,13 +240,22 @@ const postObserver = new IntersectionObserver((entries) => {
         if (userFormPhone) {
             userFormPhone.value = currentUser.phoneNumber || '';
         }
+
+        // Initialize address fields
+        if (userFormAddressApartment) userFormAddressApartment.value = '';
+        if (userFormAddressStreet) userFormAddressStreet.value = '';
+        if (userFormAddressSuburb) userFormAddressSuburb.value = '';
+        if (userFormAddressState) userFormAddressState.value = '';
+        if (userFormAddressCountry) userFormAddressCountry.value = 'Australia';
+        if (userFormAddressPostcode) userFormAddressPostcode.value = '';
+
         if (userFormStatusMsg) {
             userFormStatusMsg.style.display = 'none';
         }
 
         userDetailsModal.style.display = 'flex';
 
-        // Fetch existing database record to retrieve previously saved phone number
+        // Fetch existing database record to retrieve previously saved phone number & address
         try {
             const profile = await window.firebaseService?.getUserProfile?.(currentUser.uid);
             if (profile) {
@@ -248,6 +265,13 @@ const postObserver = new IntersectionObserver((entries) => {
                 if (profile.displayName && userFormDisplayName && !userFormDisplayName.value) {
                     userFormDisplayName.value = profile.displayName;
                 }
+                const addr = profile.address || {};
+                if (userFormAddressApartment) userFormAddressApartment.value = addr.apartment || profile.addressApartment || '';
+                if (userFormAddressStreet) userFormAddressStreet.value = addr.street || profile.addressStreet || '';
+                if (userFormAddressSuburb) userFormAddressSuburb.value = addr.suburb || profile.addressSuburb || '';
+                if (userFormAddressState) userFormAddressState.value = addr.state || profile.addressState || '';
+                if (userFormAddressCountry) userFormAddressCountry.value = addr.country || profile.addressCountry || 'Australia';
+                if (userFormAddressPostcode) userFormAddressPostcode.value = addr.postcode || profile.addressPostcode || '';
             }
         } catch (e) {
             console.warn('[Profile Lookup] Notice:', e.message);
@@ -312,6 +336,28 @@ const postObserver = new IntersectionObserver((entries) => {
 
             const newDisplayName = (userFormDisplayName?.value || '').trim();
             const newPhone = (userFormPhone?.value || '').trim();
+            const addressApartment = (userFormAddressApartment?.value || '').trim();
+            const addressStreet = (userFormAddressStreet?.value || '').trim();
+            const addressSuburb = (userFormAddressSuburb?.value || '').trim();
+            const addressState = (userFormAddressState?.value || '').trim();
+            const addressCountry = (userFormAddressCountry?.value || '').trim();
+            const addressPostcode = (userFormAddressPostcode?.value || '').trim();
+
+            const addressData = {
+                apartment: addressApartment,
+                street: addressStreet,
+                suburb: addressSuburb,
+                state: addressState,
+                country: addressCountry,
+                postcode: addressPostcode
+            };
+
+            const userProfileUpdate = {
+                displayName: newDisplayName,
+                phoneNumber: newPhone,
+                address: addressData
+            };
+
             const saveBtn = document.getElementById('saveUserDetailsBtn');
 
             if (!newDisplayName) {
@@ -334,10 +380,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
                 // 1. Dual-layer client sync to Firestore
                 if (window.firebaseService?.syncUserProfile) {
-                    await window.firebaseService.syncUserProfile(currentUser, {
-                        displayName: newDisplayName,
-                        phoneNumber: newPhone
-                    });
+                    await window.firebaseService.syncUserProfile(currentUser, userProfileUpdate);
                 }
 
                 // 2. Dual-layer server sync
@@ -349,6 +392,7 @@ const postObserver = new IntersectionObserver((entries) => {
                         email: currentUser.email,
                         displayName: newDisplayName,
                         phoneNumber: newPhone,
+                        address: addressData,
                         role: isAdmin ? 'admin' : 'supporter'
                     })
                 });

@@ -724,7 +724,7 @@ app.get('/api/firebase/config', (req, res) => {
 // Synchronize Firebase Google Auth user profile with tag 'aifoundation'
 app.post('/api/auth/sync', async (req, res) => {
     try {
-        const { uid, email, displayName, photoURL, phoneNumber, role } = req.body;
+        const { uid, email, displayName, photoURL, phoneNumber, address, role } = req.body;
         if (!uid) {
             return res.status(400).json({ error: 'UID is required' });
         }
@@ -734,6 +734,7 @@ app.post('/api/auth/sync', async (req, res) => {
             displayName,
             photoURL,
             phoneNumber,
+            address,
             role: role || 'supporter'
         });
         res.json({ success: true, user: result.user });

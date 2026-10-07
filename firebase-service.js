@@ -418,6 +418,17 @@ async function syncUser(userData) {
         } catch (e) {}
     }
 
+    if (userData.address !== undefined && userData.address !== null) {
+        payload.address = userData.address;
+    } else {
+        try {
+            const existing = await getUser(userData.uid);
+            if (existing && existing.address) {
+                payload.address = existing.address;
+            }
+        } catch (e) {}
+    }
+
     if (userData.createdAt) {
         payload.createdAt = userData.createdAt;
     }
@@ -513,7 +524,8 @@ async function getDatabaseRecentInputs(options = {}) {
                 if (col === 'transactions') {
                     summary = `${fields.paymentMethod?.toUpperCase() || 'PAYMENT'} AUD $${fields.amount || 0} (${fields.status || 'unknown'}) - ${fields.customerEmail || fields.description || docId}`;
                 } else if (col === 'users') {
-                    summary = `User Profile: ${fields.displayName || 'Unnamed'} (${fields.email || 'No email'}) - Role: ${fields.role || 'supporter'}`;
+                    const addrInfo = fields.address ? ` [${[fields.address.suburb, fields.address.state].filter(Boolean).join(', ')}]` : '';
+                    summary = `User Profile: ${fields.displayName || 'Unnamed'} (${fields.email || 'No email'})${addrInfo} - Role: ${fields.role || 'supporter'}`;
                 } else if (col === 'chat_interactions') {
                     const userMsg = fields.userMessage ? `"${fields.userMessage.substring(0, 50)}..."` : (fields.currentApplicationId || 'Admissions Inquiry');
                     summary = `Chat Query: ${userMsg}`;
