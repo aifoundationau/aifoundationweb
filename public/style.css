@@ -2122,4 +2122,67 @@ p { margin: 0; }
   word-break: break-all;
 }
 
+/* Supporter Details Registration Modal */
+.supporter-modal-content {
+  background: #ffffff;
+  width: 95%;
+  max-width: 480px;
+  height: auto !important;
+  max-height: 90vh;
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(226, 232, 240, 0.9);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.supporter-modal-content input:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.15) !important;
+}
+
+.supporter-save-btn {
+  padding: 10px 22px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25);
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.supporter-save-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.supporter-cancel-btn {
+  padding: 10px 18px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.supporter-cancel-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+
 

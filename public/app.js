@@ -95,14 +95,37 @@ const postObserver = new IntersectionObserver((entries) => {
     const menuUserEmail = document.getElementById('menuUserEmail');
     const menuUserRoleBadge = document.getElementById('menuUserRoleBadge');
     
-    // Dropdown Settings Action Buttons
+    // Dropdown Settings Action Buttons & Role Sections
+    const supporterMenuSection = document.getElementById('supporterMenuSection');
+    const adminMenuSection = document.getElementById('adminMenuSection');
+    const menuRegisterDetailsBtn = document.getElementById('menuRegisterDetailsBtn');
     const menuAdminSettingsBtn = document.getElementById('menuAdminSettingsBtn');
     const menuUploadPostBtn = document.getElementById('menuUploadPostBtn');
     const menuUploadImageBtn = document.getElementById('menuUploadImageBtn');
     const menuManagePostsBtn = document.getElementById('menuManagePostsBtn');
     const menuDatabaseActivityBtn = document.getElementById('menuDatabaseActivityBtn');
     
+    // Supporter Register Details Modal Elements
+    const userDetailsModal = document.getElementById('userDetailsModal');
+    const closeUserDetailsBtn = document.getElementById('closeUserDetailsBtn');
+    const cancelUserDetailsBtn = document.getElementById('cancelUserDetailsBtn');
+    const userDetailsForm = document.getElementById('userDetailsForm');
+    const userFormDisplayName = document.getElementById('userFormDisplayName');
+    const userFormEmail = document.getElementById('userFormEmail');
+    const userFormPhone = document.getElementById('userFormPhone');
+    const userFormStatusMsg = document.getElementById('userFormStatusMsg');
+    
     const adminGoogleLoginBtn = document.getElementById('adminGoogleLoginBtn');
+
+    // Robust Administrator Role Checker
+    function checkIsAdmin(user) {
+        if (!user) return false;
+        const email = (user.email || '').toLowerCase().trim();
+        return email.endsWith('@aifoundation.com.au') || 
+               email.endsWith('@aifoundation.net.au') || 
+               user.role === 'admin' || 
+               user.role === 'super_admin';
+    }
 
     // Admin Tab Switching (Synchronized between desktop sidebar and mobile dropdown)
     function switchAdminTab(targetId) {
@@ -141,8 +164,7 @@ const postObserver = new IntersectionObserver((entries) => {
     // Helper to open Admin / Settings Modal directly to any tab
     function openAdminSettings(targetTab = null) {
         if (!adminModal) return;
-        adminModal.style.display = 'flex';
-        
+
         // Close dropdown menu
         if (userDropdownMenu) userDropdownMenu.style.display = 'none';
         if (userProfileBadge) {
@@ -151,18 +173,28 @@ const postObserver = new IntersectionObserver((entries) => {
         }
 
         const currentUser = window.firebaseService?.getCurrentUser?.();
+        const isAdmin = checkIsAdmin(currentUser);
+
+        // Security gate: supporters cannot view or open the admin panel
+        if (!isAdmin) {
+            alert('Access restricted: The Administration Panel is reserved exclusively for AI Foundation administrators.');
+            return;
+        }
+
+        adminModal.style.display = 'flex';
+        
         const emailEl = document.getElementById('adminPanelUserEmail');
         if (emailEl) {
             emailEl.textContent = currentUser?.email || 'support@aifoundation.net.au';
         }
 
-        // Show Admin Panel directly since user is logged in
+        // Show Admin Panel directly since user is verified admin
         const loginView = document.getElementById('adminLoginView');
         const panelView = document.getElementById('adminPanelView');
         if (loginView) loginView.style.display = 'none';
         if (panelView) panelView.style.display = 'flex';
 
-        // Keep admin auth cookie active
+        // Keep admin auth cookie active for verified admins
         document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
 
         if (targetTab) {
@@ -171,6 +203,54 @@ const postObserver = new IntersectionObserver((entries) => {
             const activeTab = document.querySelector('#adminTabs .sidebar-item.active');
             const currentTabId = activeTab ? activeTab.getAttribute('data-target') : 'admin-upload-post';
             switchAdminTab(currentTabId);
+        }
+    }
+
+    // Helper to open Register Your Details modal
+    async function openUserDetailsModal() {
+        if (!userDetailsModal) return;
+
+        // Close dropdown
+        if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+        if (userProfileBadge) {
+            userProfileBadge.classList.remove('active');
+            userProfileBadge.setAttribute('aria-expanded', 'false');
+        }
+
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) {
+            alert('Please sign in with Google first to register your details.');
+            return;
+        }
+
+        if (userFormDisplayName) {
+            userFormDisplayName.value = currentUser.displayName || '';
+        }
+        if (userFormEmail) {
+            userFormEmail.value = currentUser.email || '';
+        }
+        if (userFormPhone) {
+            userFormPhone.value = currentUser.phoneNumber || '';
+        }
+        if (userFormStatusMsg) {
+            userFormStatusMsg.style.display = 'none';
+        }
+
+        userDetailsModal.style.display = 'flex';
+
+        // Fetch existing database record to retrieve previously saved phone number
+        try {
+            const profile = await window.firebaseService?.getUserProfile?.(currentUser.uid);
+            if (profile) {
+                if (profile.phoneNumber && userFormPhone) {
+                    userFormPhone.value = profile.phoneNumber;
+                }
+                if (profile.displayName && userFormDisplayName && !userFormDisplayName.value) {
+                    userFormDisplayName.value = profile.displayName;
+                }
+            }
+        } catch (e) {
+            console.warn('[Profile Lookup] Notice:', e.message);
         }
     }
 
@@ -190,6 +270,119 @@ const postObserver = new IntersectionObserver((entries) => {
                 userDropdownMenu.style.display = 'none';
                 userProfileBadge.classList.remove('active');
                 userProfileBadge.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    // Wire up Supporter Register Details Modal Actions
+    if (menuRegisterDetailsBtn) {
+        menuRegisterDetailsBtn.addEventListener('click', () => {
+            openUserDetailsModal();
+        });
+    }
+
+    if (closeUserDetailsBtn) {
+        closeUserDetailsBtn.addEventListener('click', () => {
+            if (userDetailsModal) userDetailsModal.style.display = 'none';
+        });
+    }
+
+    if (cancelUserDetailsBtn) {
+        cancelUserDetailsBtn.addEventListener('click', () => {
+            if (userDetailsModal) userDetailsModal.style.display = 'none';
+        });
+    }
+
+    if (userDetailsModal) {
+        userDetailsModal.addEventListener('click', (e) => {
+            if (e.target === userDetailsModal) {
+                userDetailsModal.style.display = 'none';
+            }
+        });
+    }
+
+    if (userDetailsForm) {
+        userDetailsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+            if (!currentUser) {
+                alert('Please sign in first.');
+                return;
+            }
+
+            const newDisplayName = (userFormDisplayName?.value || '').trim();
+            const newPhone = (userFormPhone?.value || '').trim();
+            const saveBtn = document.getElementById('saveUserDetailsBtn');
+
+            if (!newDisplayName) {
+                if (userFormStatusMsg) {
+                    userFormStatusMsg.style.display = 'block';
+                    userFormStatusMsg.style.background = '#fef2f2';
+                    userFormStatusMsg.style.color = '#991b1b';
+                    userFormStatusMsg.textContent = 'Please enter your full name.';
+                }
+                return;
+            }
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+            }
+
+            try {
+                const isAdmin = checkIsAdmin(currentUser);
+
+                // 1. Dual-layer client sync to Firestore
+                if (window.firebaseService?.syncUserProfile) {
+                    await window.firebaseService.syncUserProfile(currentUser, {
+                        displayName: newDisplayName,
+                        phoneNumber: newPhone
+                    });
+                }
+
+                // 2. Dual-layer server sync
+                await fetch('/api/auth/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        uid: currentUser.uid,
+                        email: currentUser.email,
+                        displayName: newDisplayName,
+                        phoneNumber: newPhone,
+                        role: isAdmin ? 'admin' : 'supporter'
+                    })
+                });
+
+                // Update UI text immediately
+                if (userDisplayName) userDisplayName.textContent = newDisplayName.split(' ')[0];
+                if (menuUserName) menuUserName.textContent = newDisplayName;
+
+                if (userFormStatusMsg) {
+                    userFormStatusMsg.style.display = 'block';
+                    userFormStatusMsg.style.background = '#ecfdf5';
+                    userFormStatusMsg.style.color = '#065f46';
+                    userFormStatusMsg.style.border = '1px solid #a7f3d0';
+                    userFormStatusMsg.innerHTML = '<i class="fa-solid fa-circle-check"></i> Details registered successfully!';
+                }
+
+                setTimeout(() => {
+                    if (userDetailsModal) userDetailsModal.style.display = 'none';
+                    if (userFormStatusMsg) userFormStatusMsg.style.display = 'none';
+                }, 1300);
+            } catch (err) {
+                console.error('[Save Details Error]:', err);
+                if (userFormStatusMsg) {
+                    userFormStatusMsg.style.display = 'block';
+                    userFormStatusMsg.style.background = '#fef2f2';
+                    userFormStatusMsg.style.color = '#991b1b';
+                    userFormStatusMsg.style.border = '1px solid #fecaca';
+                    userFormStatusMsg.textContent = 'Could not save details: ' + (err.message || 'Please try again.');
+                }
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save Details';
+                }
             }
         });
     }
@@ -238,9 +431,8 @@ const postObserver = new IntersectionObserver((entries) => {
                 menuUserEmail.textContent = user.email || '';
             }
 
-            // Role badge display
-            const email = (user.email || '').toLowerCase();
-            const isAdmin = email.endsWith('@aifoundation.com.au') || email.endsWith('@aifoundation.net.au') || user.role === 'admin' || true;
+            // Role badge display and RBAC menu partitioning
+            const isAdmin = checkIsAdmin(user);
             if (menuUserRoleBadge) {
                 if (isAdmin) {
                     menuUserRoleBadge.className = 'user-role-badge role-admin';
@@ -251,7 +443,20 @@ const postObserver = new IntersectionObserver((entries) => {
                 }
             }
 
-            document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+            // Supporter Role: gets only Register Your Details
+            // Admin Role: gets Administration & Settings
+            if (supporterMenuSection) {
+                supporterMenuSection.style.display = 'block';
+            }
+            if (adminMenuSection) {
+                adminMenuSection.style.display = isAdmin ? 'block' : 'none';
+            }
+
+            if (isAdmin) {
+                document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+            } else {
+                document.cookie = "adminAuth=; max-age=0; path=/";
+            }
         } else {
             if (googleSignInBtn) googleSignInBtn.style.display = 'inline-flex';
             if (userMenuWrapper) userMenuWrapper.style.display = 'none';
@@ -261,6 +466,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 userProfileBadge.setAttribute('aria-expanded', 'false');
             }
             if (adminModal) adminModal.style.display = 'none';
+            if (userDetailsModal) userDetailsModal.style.display = 'none';
             document.cookie = "adminAuth=; max-age=0; path=/";
         }
     }
@@ -313,7 +519,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 }
 
                 if (user) {
-                    let isAuthorized = true;
+                    let isAuthorized = checkIsAdmin(user);
                     try {
                         const verifyRes = await fetch('/api/auth/admin-verify', {
                             method: 'POST',
@@ -321,7 +527,7 @@ const postObserver = new IntersectionObserver((entries) => {
                             body: JSON.stringify({ email: user.email, uid: user.uid })
                         });
                         const verifyData = await verifyRes.json();
-                        isAuthorized = verifyData.authorized !== false;
+                        isAuthorized = Boolean(verifyData.authorized);
                     } catch (e) {
                         console.warn('[Admin Verify] Notice:', e.message);
                     }

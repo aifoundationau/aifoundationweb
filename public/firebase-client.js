@@ -67,6 +67,7 @@ export async function syncUserProfile(user, additionalData = {}) {
     email: (user.email || '').toLowerCase().trim(),
     displayName: user.displayName || '',
     photoURL: user.photoURL || '',
+    phoneNumber: user.phoneNumber || '',
     tag: TRANSACTION_TAG, // CRITICAL: 'aifoundation'
     businessId: BUSINESS_ID, // 'aifoundation'
     businessName: 'AI Foundation',
@@ -208,6 +209,22 @@ export async function recordTransaction(txRecord) {
   return payload;
 }
 
+/**
+ * Retrieve user profile from server or Firestore
+ */
+export async function getUserProfile(uid) {
+  if (!uid) return null;
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(uid)}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[Get User Profile] Notice:', err.message);
+  }
+  return null;
+}
+
 // Global Auth State Observer
 if (auth) {
   onAuthStateChanged(auth, async (user) => {
@@ -235,6 +252,7 @@ window.firebaseService = {
   signInWithGoogle,
   signOutGoogle,
   getCurrentUser,
+  getUserProfile,
   onAuthChange,
   syncUserProfile,
   recordTransaction,

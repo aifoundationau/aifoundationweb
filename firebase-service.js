@@ -407,6 +407,17 @@ async function syncUser(userData) {
         updatedAt: now
     };
 
+    if (userData.phoneNumber !== undefined && userData.phoneNumber !== null) {
+        payload.phoneNumber = String(userData.phoneNumber).trim();
+    } else {
+        try {
+            const existing = await getUser(userData.uid);
+            if (existing && existing.phoneNumber) {
+                payload.phoneNumber = existing.phoneNumber;
+            }
+        } catch (e) {}
+    }
+
     if (userData.createdAt) {
         payload.createdAt = userData.createdAt;
     }

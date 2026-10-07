@@ -56,69 +56,89 @@
                                 </div>
                             </div>
 
-                            <div class="dropdown-divider"></div>
-
-                            <!-- Settings & Management Actions -->
-                            <div class="dropdown-section-title">
-                                <i class="fa-solid fa-gear"></i> Administration &amp; Settings
+                            <!-- Supporter Section: Only Register Details -->
+                            <div id="supporterMenuSection" class="dropdown-menu-section">
+                                <div class="dropdown-divider"></div>
+                                <div class="dropdown-section-title">
+                                    <i class="fa-solid fa-user"></i> Supporter Portal
+                                </div>
+                                <ul class="dropdown-items-list">
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuRegisterDetailsBtn">
+                                            <span class="item-icon-wrap primary"><i class="fa-solid fa-id-card"></i></span>
+                                            <div class="item-text">
+                                                <strong>Register Your Details</strong>
+                                                <small>Update name, email &amp; phone</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                </ul>
                             </div>
 
-                            <ul class="dropdown-items-list">
-                                <li>
-                                    <button type="button" class="dropdown-item" id="menuAdminSettingsBtn">
-                                        <span class="item-icon-wrap primary"><i class="fa-solid fa-sliders"></i></span>
-                                        <div class="item-text">
-                                            <strong>Settings &amp; Admin Panel</strong>
-                                            <small>Full administrative controls</small>
-                                        </div>
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button" class="dropdown-item" id="menuUploadPostBtn">
-                                        <span class="item-icon-wrap"><i class="fa-solid fa-cloud-arrow-up"></i></span>
-                                        <div class="item-text">
-                                            <strong>Upload Content</strong>
-                                            <small>Publish new articles &amp; projects</small>
-                                        </div>
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button" class="dropdown-item" id="menuUploadImageBtn">
-                                        <span class="item-icon-wrap"><i class="fa-solid fa-image"></i></span>
-                                        <div class="item-text">
-                                            <strong>Upload Image</strong>
-                                            <small>Direct ImgBB cloud storage</small>
-                                        </div>
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button" class="dropdown-item" id="menuManagePostsBtn">
-                                        <span class="item-icon-wrap"><i class="fa-solid fa-list-check"></i></span>
-                                        <div class="item-text">
-                                            <strong>Manage Posts</strong>
-                                            <small>Review &amp; delete published entries</small>
-                                        </div>
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button" class="dropdown-item" id="menuDatabaseActivityBtn">
-                                        <span class="item-icon-wrap database"><i class="fa-solid fa-database"></i></span>
-                                        <div class="item-text">
-                                            <strong>Database Activity</strong>
-                                            <small>Multi-tenant recent inputs</small>
-                                        </div>
-                                    </button>
-                                </li>
-                                <li>
-                                    <a href="/data-contracts" class="dropdown-item" style="text-decoration: none;">
-                                        <span class="item-icon-wrap" style="background: rgba(0, 102, 255, 0.1); color: var(--primary);"><i class="fa-solid fa-file-contract"></i></span>
-                                        <div class="item-text">
-                                            <strong>Data Contracts</strong>
-                                            <small>System Integrity</small>
-                                        </div>
-                                    </a>
-                                </li>
-                            </ul>
+                            <!-- Admin Section: Settings & Management Actions (Admins only) -->
+                            <div id="adminMenuSection" class="dropdown-menu-section" style="display: none;">
+                                <div class="dropdown-divider"></div>
+                                <div class="dropdown-section-title">
+                                    <i class="fa-solid fa-gear"></i> Administration &amp; Settings
+                                </div>
+
+                                <ul class="dropdown-items-list">
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuAdminSettingsBtn">
+                                            <span class="item-icon-wrap primary"><i class="fa-solid fa-sliders"></i></span>
+                                            <div class="item-text">
+                                                <strong>Settings &amp; Admin Panel</strong>
+                                                <small>Full administrative controls</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuUploadPostBtn">
+                                            <span class="item-icon-wrap"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                                            <div class="item-text">
+                                                <strong>Upload Content</strong>
+                                                <small>Publish new articles &amp; projects</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuUploadImageBtn">
+                                            <span class="item-icon-wrap"><i class="fa-solid fa-image"></i></span>
+                                            <div class="item-text">
+                                                <strong>Upload Image</strong>
+                                                <small>Direct ImgBB cloud storage</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuManagePostsBtn">
+                                            <span class="item-icon-wrap"><i class="fa-solid fa-list-check"></i></span>
+                                            <div class="item-text">
+                                                <strong>Manage Posts</strong>
+                                                <small>Review &amp; delete published entries</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuDatabaseActivityBtn">
+                                            <span class="item-icon-wrap database"><i class="fa-solid fa-database"></i></span>
+                                            <div class="item-text">
+                                                <strong>Database Activity</strong>
+                                                <small>Multi-tenant recent inputs</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <a href="/data-contracts" class="dropdown-item" style="text-decoration: none;">
+                                            <span class="item-icon-wrap" style="background: rgba(0, 102, 255, 0.1); color: var(--primary);"><i class="fa-solid fa-file-contract"></i></span>
+                                            <div class="item-text">
+                                                <strong>Data Contracts</strong>
+                                                <small>System Integrity</small>
+                                            </div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
 
                             <div class="dropdown-divider"></div>
 
@@ -558,7 +578,65 @@
             </footer>
         </div>
 
-    </main>
+    <!-- Supporter Profile / Register Details Modal -->
+    <div class="modal" id="userDetailsModal" style="display: none;">
+        <div class="modal-content supporter-modal-content">
+            <span class="close" id="closeUserDetailsBtn">&times;</span>
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="width: 56px; height: 56px; background: rgba(0, 102, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: var(--primary); font-size: 24px;">
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <h2 style="font-size: 1.35rem; color: #0f172a; margin-bottom: 6px;">Register Your Details</h2>
+                <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.4; margin: 0 auto;">
+                    Keep your contact information up to date to receive AI literacy updates, research briefings, and event invitations.
+                </p>
+            </div>
+
+            <form id="userDetailsForm">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                        Full Name <span style="color: #ef4444;">*</span>
+                    </label>
+                    <div style="position: relative;">
+                        <input type="text" id="userFormDisplayName" required placeholder="e.g. Jane Doe" style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                        <i class="fa-solid fa-user" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                        Email Address
+                    </label>
+                    <div style="position: relative;">
+                        <input type="email" id="userFormEmail" readonly style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #f8fafc; color: #64748b; cursor: not-allowed;" />
+                        <i class="fa-solid fa-envelope" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                    </div>
+                    <small style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: block;">Linked with your verified Google Account</small>
+                </div>
+
+                <div style="margin-bottom: 22px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                        Phone Number <span style="color: #ef4444;">*</span>
+                    </label>
+                    <div style="position: relative;">
+                        <input type="tel" id="userFormPhone" required placeholder="e.g. 0412 345 678 or +61 412 345 678" style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                        <i class="fa-solid fa-phone" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                    </div>
+                </div>
+
+                <div id="userFormStatusMsg" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; margin-bottom: 16px;"></div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" id="cancelUserDetailsBtn" class="supporter-cancel-btn">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveUserDetailsBtn" class="supporter-save-btn">
+                        <i class="fa-solid fa-check"></i> Save Details
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Admin Modal -->
     <div class="modal" id="adminModal">

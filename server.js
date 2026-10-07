@@ -717,7 +717,7 @@ app.get('/api/firebase/config', (req, res) => {
 // Synchronize Firebase Google Auth user profile with tag 'aifoundation'
 app.post('/api/auth/sync', async (req, res) => {
     try {
-        const { uid, email, displayName, photoURL, role } = req.body;
+        const { uid, email, displayName, photoURL, phoneNumber, role } = req.body;
         if (!uid) {
             return res.status(400).json({ error: 'UID is required' });
         }
@@ -726,11 +726,26 @@ app.post('/api/auth/sync', async (req, res) => {
             email,
             displayName,
             photoURL,
+            phoneNumber,
             role: role || 'supporter'
         });
         res.json({ success: true, user: result.user });
     } catch (e) {
         console.error('[Auth Sync] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Retrieve user profile by UID
+app.get('/api/users/:uid', async (req, res) => {
+    try {
+        const user = await firebaseService.getUser(req.params.uid);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(user);
+    } catch (e) {
+        console.error('[User Fetch] Error:', e);
         res.status(500).json({ error: e.message });
     }
 });
@@ -751,9 +766,8 @@ app.post('/api/auth/admin-verify', async (req, res) => {
         const isDomainAdmin = normalizedEmail.endsWith('@aifoundation.com.au') || normalizedEmail.endsWith('@aifoundation.net.au');
         const isExplicitAdmin = adminList.includes(normalizedEmail);
 
-        // Allow any logged in user who initiates admin verification via Google
-        // If email is recognized admin or explicitly verified
-        const isAuthorized = Boolean(normalizedEmail && (isExplicitAdmin || isDomainAdmin || process.env.ALLOW_ANY_GOOGLE_ADMIN === 'true' || true));
+        // Strict authorization: Domain matches or explicitly whitelisted admin
+        const isAuthorized = Boolean(normalizedEmail && (isExplicitAdmin || isDomainAdmin || process.env.ALLOW_ANY_GOOGLE_ADMIN === 'true'));
 
         res.json({
             authorized: isAuthorized,
