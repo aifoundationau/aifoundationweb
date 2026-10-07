@@ -560,7 +560,7 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     });
 
-    // Firestore Helper
+    // Firestore & Fallback Content Helpers
     async function loadCategoryFromFirestore(category) {
         if (window.firebaseService && window.firebaseService.isConnected) {
             try {
@@ -569,23 +569,47 @@ const postObserver = new IntersectionObserver((entries) => {
                 const snap = await getDocs(q);
                 let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 items.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-                items.reverse();
                 return items;
             } catch (err) {
-                console.error('Firebase error loading ' + category + ':', err);
+                console.warn('Firebase notice loading ' + category + ':', err.message);
             }
         }
         return null;
     }
 
+    async function fetchFallbackData(category, jsonFileName) {
+        try {
+            const apiRes = await fetch(`/api/${category === 'articles' ? 'posts' : category}`);
+            if (apiRes.ok) return await apiRes.json();
+        } catch (e) {}
+        try {
+            const staticRes = await fetch(`/data/${jsonFileName}`);
+            if (staticRes.ok) return await staticRes.json();
+        } catch (e) {}
+        return [];
+    }
+
+    function mergePosts(primary, fallback) {
+        const list = Array.isArray(primary) ? [...primary] : [];
+        const existingKeys = new Set(list.map(p => p.id || p.link || p.title));
+        if (Array.isArray(fallback)) {
+            for (const item of fallback) {
+                const key = item.id || item.link || item.title;
+                if (!existingKeys.has(key)) {
+                    list.push(item);
+                    existingKeys.add(key);
+                }
+            }
+        }
+        list.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+        return list;
+    }
+
     // Community Posts Logic
     async function loadCommunityPosts() {
         const fbData = await loadCategoryFromFirestore('community');
-        if (fbData) {
-            allCommunityPosts = fbData;
-        } else {
-            try { allCommunityPosts = await (await fetch('/api/community')).json(); } catch(e) { allCommunityPosts = []; }
-        }
+        const fallback = await fetchFallbackData('community', 'community.json');
+        allCommunityPosts = mergePosts(fbData, fallback);
         renderCommunityPosts();
         renderAdminAllPosts();
     }
@@ -628,18 +652,21 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     window.deleteCommunityPost = async (id) => {
-        await fetch('/api/community/' + id, { method: 'DELETE' });
+        if (window.firebaseService && window.firebaseService.isConnected) {
+            try {
+                const { db, doc, deleteDoc } = window.firebaseService;
+                await deleteDoc(doc(db, 'content', id));
+            } catch (e) { console.warn('Firestore delete notice:', e); }
+        }
+        try { await fetch('/api/community/' + id, { method: 'DELETE' }); } catch(e) {}
         loadCommunityPosts();
     };
 
     // Tech Posts Logic
     async function loadTechPosts() {
         const fbData = await loadCategoryFromFirestore('tech');
-        if (fbData) {
-            allTechPosts = fbData;
-        } else {
-            try { allTechPosts = await (await fetch('/api/tech')).json(); } catch(e) { allTechPosts = []; }
-        }
+        const fallback = await fetchFallbackData('tech', 'tech.json');
+        allTechPosts = mergePosts(fbData, fallback);
         renderTechPosts();
         renderAdminAllPosts();
     }
@@ -682,21 +709,21 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     window.deleteTechPost = async (id) => {
-        await fetch('/api/tech/' + id, { method: 'DELETE' });
+        if (window.firebaseService && window.firebaseService.isConnected) {
+            try {
+                const { db, doc, deleteDoc } = window.firebaseService;
+                await deleteDoc(doc(db, 'content', id));
+            } catch (e) { console.warn('Firestore delete notice:', e); }
+        }
+        try { await fetch('/api/tech/' + id, { method: 'DELETE' }); } catch(e) {}
         loadTechPosts();
     };
 
     // Projects Logic
     async function loadProjects() {
         const fbData = await loadCategoryFromFirestore('projects');
-        if (fbData) {
-            allProjects = fbData;
-        } else {
-            try {
-                const res = await fetch('/api/projects');
-                allProjects = res.ok ? await res.json() : await (await fetch('/data/projects.json')).json();
-            } catch (e) { allProjects = []; }
-        }
+        const fallback = await fetchFallbackData('projects', 'projects.json');
+        allProjects = mergePosts(fbData, fallback);
         renderProjects();
         renderAdminAllPosts();
     }
@@ -810,14 +837,8 @@ const postObserver = new IntersectionObserver((entries) => {
 
     async function loadPosts() {
         const fbData = await loadCategoryFromFirestore('articles');
-        if (fbData) {
-            allPosts = fbData;
-        } else {
-            try {
-                const res = await fetch('/api/posts');
-                allPosts = res.ok ? await res.json() : await (await fetch('/data/posts.json')).json();
-            } catch (e) { allPosts = []; }
-        }
+        const fallback = await fetchFallbackData('articles', 'posts.json');
+        allPosts = mergePosts(fbData, fallback);
         renderPosts();
         renderAdminAllPosts();
     }

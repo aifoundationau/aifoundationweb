@@ -1,0 +1,20 @@
+[
+  {
+    "id": "google_1790904459905",
+    "title": "Google Search",
+    "summary": "Hello",
+    "platform": "google",
+    "link": "https://share.google/6LPzp6qccRMZlthjc",
+    "imageUrl": "Test",
+    "date": "2026-10-02T01:27:39.905Z"
+  },
+  {
+    "id": "google_1790903705969",
+    "title": "Google Search",
+    "summary": "",
+    "platform": "google",
+    "link": "https://share.google/6LPzp6qccRMZlthjc",
+    "imageUrl": "assets/logo.png",
+    "date": "2026-10-02T01:15:05.969Z"
+  }
+]

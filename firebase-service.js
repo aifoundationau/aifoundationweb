@@ -579,5 +579,6 @@ module.exports = {
     getDatabaseRecentInputs,
     getFirebasePublicConfig,
     toFirestoreFields,
-    fromFirestoreFields
+    fromFirestoreFields,
+    writeDocument
 };
