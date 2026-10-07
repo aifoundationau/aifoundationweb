@@ -104,6 +104,40 @@ const postObserver = new IntersectionObserver((entries) => {
     
     const adminGoogleLoginBtn = document.getElementById('adminGoogleLoginBtn');
 
+    // Admin Tab Switching (Synchronized between desktop sidebar and mobile dropdown)
+    function switchAdminTab(targetId) {
+        if (!targetId) return;
+        const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
+        const adminTabContents = document.querySelectorAll('.admin-tab-content');
+        const mobileSelect = document.getElementById('adminMobileTabSelect');
+
+        // Update desktop sidebar items
+        adminTabs.forEach(t => {
+            if (t.getAttribute('data-target') === targetId) {
+                t.classList.add('active');
+            } else {
+                t.classList.remove('active');
+            }
+        });
+
+        // Update mobile dropdown select
+        if (mobileSelect && mobileSelect.value !== targetId) {
+            mobileSelect.value = targetId;
+        }
+
+        // Show matching content pane
+        adminTabContents.forEach(content => {
+            content.style.display = content.id === targetId ? 'block' : 'none';
+        });
+
+        // Trigger dynamic tab loaders
+        if (targetId === 'admin-manage-posts') {
+            if (typeof renderAdminAllPosts === 'function') renderAdminAllPosts();
+        } else if (targetId === 'admin-database-activity') {
+            if (typeof loadDatabaseRecentInputs === 'function') loadDatabaseRecentInputs();
+        }
+    }
+
     // Helper to open Admin / Settings Modal directly to any tab
     function openAdminSettings(targetTab = null) {
         if (!adminModal) return;
@@ -132,26 +166,11 @@ const postObserver = new IntersectionObserver((entries) => {
         document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
 
         if (targetTab) {
-            const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
-            const adminTabContents = document.querySelectorAll('.admin-tab-content');
-            adminTabs.forEach(t => {
-                if (t.getAttribute('data-target') === targetTab) {
-                    t.classList.add('active');
-                } else {
-                    t.classList.remove('active');
-                }
-            });
-            adminTabContents.forEach(c => {
-                c.style.display = c.id === targetTab ? 'block' : 'none';
-            });
-
-            if (targetTab === 'admin-manage-posts') {
-                renderAdminAllPosts();
-            } else if (targetTab === 'admin-database-activity') {
-                loadDatabaseRecentInputs();
-            }
+            switchAdminTab(targetTab);
         } else {
-            renderAdminAllPosts();
+            const activeTab = document.querySelector('#adminTabs .sidebar-item.active');
+            const currentTabId = activeTab ? activeTab.getAttribute('data-target') : 'admin-upload-post';
+            switchAdminTab(currentTabId);
         }
     }
 
@@ -541,24 +560,21 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     }
 
-    // Admin Tab Switching
+    // Admin Tab Switching (Sidebar & Mobile Dropdown)
     const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
-    const adminTabContents = document.querySelectorAll('.admin-tab-content');
     adminTabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            adminTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
             const targetId = tab.getAttribute('data-target');
-            adminTabContents.forEach(content => {
-                content.style.display = content.id === targetId ? 'block' : 'none';
-            });
-            if (targetId === 'admin-manage-posts') {
-                renderAdminAllPosts();
-            } else if (targetId === 'admin-database-activity') {
-                loadDatabaseRecentInputs();
-            }
+            switchAdminTab(targetId);
         });
     });
+
+    const adminMobileTabSelect = document.getElementById('adminMobileTabSelect');
+    if (adminMobileTabSelect) {
+        adminMobileTabSelect.addEventListener('change', (e) => {
+            switchAdminTab(e.target.value);
+        });
+    }
 
     // Firestore & Fallback Content Helpers
     async function loadCategoryFromFirestore(category) {

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects & Initiatives - AI Foundation Australia</title>
-    <link rel="stylesheet" href="style.css?v=33">
+    <link rel="stylesheet" href="style.css?v=34">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -318,6 +318,19 @@
                     </button>
                 </div>
 
+                <!-- Mobile Dropdown Navigation Menu -->
+                <div class="admin-mobile-nav-bar">
+                    <label for="adminMobileTabSelect" class="admin-mobile-nav-label">
+                        <i class="fa-solid fa-bars-staggered"></i> Menu:
+                    </label>
+                    <select id="adminMobileTabSelect" class="admin-mobile-nav-select" aria-label="Select Admin Section">
+                        <option value="admin-upload-post">Upload Content</option>
+                        <option value="admin-upload-image">Upload Image</option>
+                        <option value="admin-manage-posts">Manage Posts</option>
+                        <option value="admin-database-activity">Database Activity</option>
+                    </select>
+                </div>
+
                 <div class="admin-panel-layout">
                     <!-- Admin Sidebar -->
                     <div class="admin-panel-sidebar">
@@ -627,6 +640,6 @@
 
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="app.js?v=33"></script>
+    <script src="app.js?v=34"></script>
 </body>
 </html>
