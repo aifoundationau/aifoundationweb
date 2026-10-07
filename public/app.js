@@ -921,19 +921,19 @@ const postObserver = new IntersectionObserver((entries) => {
         const row = document.createElement('div');
         row.className = 'link-row-container';
         row.innerHTML = `
-            <div class="admin-form" style="margin-bottom: 24px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 12px; position: relative;">
+            <div class="admin-form" style="margin: 0;">
                 <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <h4 style="margin: 0;">Link Entry</h4>
-                    <button type="button" class="removeRowBtn" style="background: none; color: #ef4444; border: none; cursor: pointer; font-size: 1.2rem;">&times;</button>
+                    <h4 style="margin: 0; font-size: 1rem; color: #0f172a;">Link Entry</h4>
+                    <button type="button" class="removeRowBtn" style="background: none; color: #ef4444; border: none; cursor: pointer; font-size: 1.3rem; padding: 4px 8px; line-height: 1;">&times;</button>
                 </div>
                 <input type="text" class="multiLinkInput" placeholder="Enter URL to scrape" style="margin-bottom: 8px;" />
-                <button type="button" class="multiExtractBtn" style="background: #0f172a; color: white; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; border: none; cursor: pointer;">Extract Metadata</button>
+                <button type="button" class="multiExtractBtn" style="background: #0f172a; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; border: none; cursor: pointer;">Extract Metadata</button>
                 
-                <div class="multiPreviewCard" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-                        <img class="multiImagePreview" src="" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;" />
+                <div class="multiPreviewCard" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+                        <img class="multiImagePreview" src="" style="width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; flex-shrink: 0;" />
                         <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="background: #0284c7; color: white; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: fit-content;">
+                            <label style="background: #0284c7; color: white; padding: 7px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: fit-content;">
                                 <i class="fa-solid fa-cloud-arrow-up"></i> Upload to ImgBB
                                 <input type="file" class="multiFileImgbb" accept="image/*" style="display: none;" />
                             </label>

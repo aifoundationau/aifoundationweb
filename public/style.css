@@ -807,6 +807,214 @@ p { margin: 0; }
   .welcome-card, .filter-card { padding: 20px; }
   .welcome-card h1 { font-size: 1.85rem; }
   .card-decoration { display: none; }
+
+  /* ==========================================================================
+     Admin Panel Mobile & Android Responsiveness (< 768px)
+     ========================================================================== */
+  .modal,
+  .admin-modal {
+    padding: 6px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .modal-content,
+  .admin-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 96vh !important;
+    max-height: 96vh !important;
+    padding: 14px 12px !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45) !important;
+  }
+
+  .close {
+    top: 10px !important;
+    right: 10px !important;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 1.15rem !important;
+  }
+
+  /* Admin Header Bar on Mobile */
+  .admin-panel-topbar {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 10px !important;
+    margin: -6px -6px 8px -6px !important;
+    border-radius: 8px 8px 0 0 !important;
+  }
+
+  .admin-user-info {
+    font-size: 0.74rem !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    flex: 1 !important;
+  }
+
+  .admin-user-info span {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: block !important;
+  }
+
+  .admin-logout-action-btn {
+    padding: 5px 9px !important;
+    font-size: 0.72rem !important;
+    flex-shrink: 0 !important;
+    border-radius: 6px !important;
+  }
+
+  /* Stack Layout: Horizontal Tab Bar on Top, Content Below */
+  .admin-panel-layout {
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Turn Sidebar into a sleek horizontal scrollable pill bar */
+  .admin-panel-sidebar {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+    flex-shrink: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .admin-panel-sidebar h2 {
+    display: none !important; /* Hide sidebar title on mobile to preserve vertical space */
+  }
+
+  .admin-panel-sidebar .sidebar-list {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    padding: 2px 0 !important;
+    margin: 0 !important;
+    overflow-x: auto !important;
+  }
+
+  .admin-panel-sidebar .sidebar-item {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 7px 12px !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+    border-radius: 8px !important;
+    margin-bottom: 0 !important;
+    flex-shrink: 0 !important;
+    gap: 6px !important;
+  }
+
+  .admin-panel-sidebar .sidebar-item i {
+    font-size: 0.85rem !important;
+    width: auto !important;
+  }
+
+  /* Full-width scrollable content pane */
+  .admin-panel-content-pane {
+    flex: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 2px !important;
+    padding-top: 4px !important;
+    padding-bottom: 20px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Admin Form Elements for Android touch & no auto-zoom */
+  .admin-form {
+    gap: 12px !important;
+    margin-top: 8px !important;
+  }
+
+  .admin-form input,
+  .admin-form textarea,
+  .admin-form select {
+    font-size: 16px !important; /* Required on Android to prevent unwanted browser auto-zoom */
+    padding: 12px !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .link-row-container {
+    padding: 12px 10px !important;
+    margin-bottom: 12px !important;
+    border-radius: 10px !important;
+  }
+
+  .multiPreviewCard {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  #publishAllBtn,
+  #addLinkRowBtn,
+  .multiExtractBtn {
+    font-size: 0.92rem !important;
+    padding: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Database Explorer on Mobile */
+  .db-filters-card {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+  }
+
+  .db-filter-group {
+    min-width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  .db-stats-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .db-stat-card {
+    padding: 8px 10px !important;
+  }
+
+  .db-stat-num {
+    font-size: 1.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content,
+  .admin-content {
+    height: 98vh !important;
+    max-height: 98vh !important;
+    padding: 10px 8px !important;
+    border-radius: 12px !important;
+  }
+
+  .admin-panel-sidebar .sidebar-item {
+    padding: 6px 9px !important;
+    font-size: 0.74rem !important;
+  }
 }
 
 .platform-youtube { background: #ff0000; color: white; }
@@ -1362,7 +1570,8 @@ p { margin: 0; }
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 310px;
+  width: min(310px, 92vw);
+  max-width: 92vw;
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
