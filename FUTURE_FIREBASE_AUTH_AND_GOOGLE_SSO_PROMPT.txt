@@ -1,0 +1,194 @@
+================================================================================
+FUTURE ARCHITECTURE PROMPT & SPECIFICATION:
+FIREBASE AUTH & UNIFIED GOOGLE ECOSYSTEM SSO (CLASSROOM, GMAIL, WORKSPACE)
+================================================================================
+Target Systems: AI Foundation Australia, It's A Simple Job, Pro LMS, RTO AI
+File Reference: FUTURE_FIREBASE_AUTH_AND_GOOGLE_SSO_PROMPT.txt
+
+
+1. THE FUTURE MASTER PROMPT (COPY & PASTE READY)
+--------------------------------------------------------------------------------
+Copy and paste the prompt below into any future AI chat, developer specification,
+or engineering task:
+
+"""
+Role & Goal:
+You are an expert Cloud & Web Security Architect. Implement a centralized,
+serverless authentication architecture for our web platform where:
+
+1. Centralized Identity Authority:
+   - ALL user authentication MUST go exclusively through Firebase Authentication 
+     using the Google Identity Provider (GoogleAuthProvider).
+   - No separate login system, custom password database, or third-party auth 
+     service should ever be introduced.
+
+2. Unified Google SSO & Ecosystem Access (Classroom, Gmail, Workspace, Drive):
+   - When a user logs in with their Google account via Firebase Auth on our website,
+     that identical Google credential and identity session must be leveraged to 
+     access Google ecosystem services (e.g., Google Classroom, Gmail, Google 
+     Workspace, Google Drive, Google Calendar).
+   - Request the necessary Google OAuth 2.0 scopes during or incrementally after 
+     Firebase sign-in (using GoogleAuthProvider.addScope(...)).
+   - Capture the Google OAuth access token returned in the Firebase credential 
+     (GoogleAuthProvider.credentialFromResult(result).accessToken) to interact 
+     with Google APIs (Google Classroom API, Gmail API, Drive API) directly from 
+     the client application or authorized serverless workers.
+
+3. Zero-Authentication Hosting Service (Stateless / Edge Hosting):
+   - MINIMIZE and ELIMINATE authentication coding on the web hosting service 
+     (e.g., Firebase Hosting, Vercel, Netlify, Cloudflare Pages, S3/CloudFront).
+   - The hosting service MUST only serve static HTML, CSS, JavaScript, and assets.
+   - DO NOT build custom session managers, cookie decryptors, JWT session stores, 
+     or custom auth middleware on the hosting server.
+   - The hosting provider should remain 100% stateless and decoupled from user 
+     session tracking.
+
+4. Enforcement Confined to Website Client & Firebase Database Rules:
+   - All authentication logic takes place on the client-side website using the 
+     official Firebase Web SDK (v9+ / v11 modular).
+   - All access control, tenant data segregation, and Role-Based Access Control 
+     (RBAC) MUST be enforced directly within Firebase Cloud Firestore Security Rules 
+     (using request.auth.uid, request.auth.token.email, and custom claims / user 
+     document roles).
+   - If a database request does not satisfy Firestore Security Rules, Firebase 
+     rejects it at the database layer, ensuring no unauthenticated or unauthorized 
+     reads or writes occur regardless of the hosting platform.
+
+5. Deliverables & Standards:
+   - Maintain seamless mobile (Android/iOS) and desktop responsiveness.
+   - Ensure clean sign-out mechanisms that invalidate the Firebase session.
+   - Store OAuth access tokens securely in browser memory/sessionStorage with 
+     proper expiration handling and incremental permission requests.
+   - Adhere strictly to the organization's multi-tenant tagging data contracts.
+"""
+
+
+2. SYSTEM ARCHITECTURE & FLOW
+--------------------------------------------------------------------------------
+1. User visits web app hosted on a static edge host (Firebase Hosting, Vercel, etc.).
+2. Hosting server does ZERO authentication processing; it only delivers static JS/HTML.
+3. User clicks "Sign in with Google" on the website.
+4. Client-side Firebase SDK triggers Google login popup/redirect with requested
+   Google OAuth scopes (Classroom, Gmail, Workspace).
+5. Firebase returns:
+   a. Firebase User (UID + ID Token) -> used for Firestore database calls.
+   b. Google OAuth Access Token -> used to call Google Classroom & Workspace APIs.
+6. Cloud Firestore independently verifies every read/write via Firestore Security Rules:
+   - If not authenticated -> blocked.
+   - If not admin -> write blocked.
+   - If not owner -> profile update blocked.
+7. Google Classroom / Gmail APIs independently verify the OAuth access token.
+
+
+3. CLIENT-SIDE IMPLEMENTATION BLUEPRINT (FIREBASE SDK v11)
+--------------------------------------------------------------------------------
+// public/firebase-auth-sso.js
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+import { 
+    getAuth, 
+    signInWithPopup, 
+    GoogleAuthProvider, 
+    signOut 
+} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-project.firebaseapp.com",
+    projectId: "your-project",
+    storageBucket: "your-project.firebasestorage.app",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Configure Google Provider with Workspace & Classroom Scopes
+const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
+
+// Optional: Prompt user to choose their organization account
+googleProvider.setCustomParameters({
+    prompt: 'select_account',
+    hd: 'aifoundation.net.au'
+});
+
+export async function loginWithGoogleSSO() {
+    try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const googleAccessToken = credential?.accessToken;
+
+        if (googleAccessToken) {
+            sessionStorage.setItem('google_oauth_access_token', googleAccessToken);
+            console.log('[Auth] Google OAuth Token saved for Classroom & Gmail');
+        }
+
+        return { user, googleAccessToken };
+    } catch (error) {
+        console.error('[Auth Error]:', error);
+        throw error;
+    }
+}
+
+export async function logoutUser() {
+    sessionStorage.removeItem('google_oauth_access_token');
+    await signOut(auth);
+}
+
+
+4. PURE FIRESTORE SECURITY RULES (ZERO SERVER OVERHEAD)
+--------------------------------------------------------------------------------
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email.matches('.*@aifoundation\\.net\\.au$') ||
+        request.auth.token.email.matches('.*@aifoundation\\.com\\.au$') ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    match /content/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    match /classroom_sync/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+
+5. GOOGLE CLOUD CONSOLE CHECKLIST
+--------------------------------------------------------------------------------
+1. Google Cloud Console > APIs & Services > Library:
+   - Enable "Google Classroom API"
+   - Enable "Gmail API"
+   - Enable "Google Drive API"
+2. Google Cloud Console > APIs & Services > OAuth consent screen:
+   - Add scopes: email, profile, classroom.courses.readonly, gmail.send
+   - Set User Type to Internal or External as required
+3. Firebase Console > Authentication > Settings > Authorized domains:
+   - Whitelist all production hostnames (e.g. aifoundation.net.au, aifoundation.com.au)
+================================================================================
