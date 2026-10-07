@@ -16,8 +16,15 @@ const TECH_DATA_FILE = path.join(__dirname, 'data', 'tech.json');
 const PROJECTS_DATA_FILE = path.join(__dirname, 'data', 'projects.json');
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // Ensure data folder & initial posts exist
 if (!fs.existsSync(path.join(__dirname, 'data'))) {

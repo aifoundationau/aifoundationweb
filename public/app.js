@@ -456,6 +456,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
             } else {
                 document.cookie = "adminAuth=; max-age=0; path=/";
+                document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             }
         } else {
             if (googleSignInBtn) googleSignInBtn.style.display = 'inline-flex';
@@ -468,6 +469,7 @@ const postObserver = new IntersectionObserver((entries) => {
             if (adminModal) adminModal.style.display = 'none';
             if (userDetailsModal) userDetailsModal.style.display = 'none';
             document.cookie = "adminAuth=; max-age=0; path=/";
+            document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         }
     }
 
@@ -495,6 +497,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 if (userDropdownMenu) userDropdownMenu.style.display = 'none';
                 if (adminModal) adminModal.style.display = 'none';
                 document.cookie = "adminAuth=; max-age=0; path=/";
+                document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 if (window.firebaseService?.signOutGoogle) {
                     await window.firebaseService.signOutGoogle();
                 }
