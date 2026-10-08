@@ -278,10 +278,13 @@ app.post('/api/community', async (req, res) => {
     res.json({ success: true, post: newPost });
 });
 
-app.delete('/api/community/:id', (req, res) => {
+app.delete('/api/community/:id', async (req, res) => {
     let posts = getCommunityPosts();
     posts = posts.filter(p => p.id !== req.params.id);
     saveCommunityPosts(posts);
+    try {
+        await firebaseService.deleteDocument('content', req.params.id);
+    } catch (e) {}
     res.json({ success: true });
 });
 
@@ -311,10 +314,13 @@ app.post('/api/tech', async (req, res) => {
     res.json({ success: true, post: newPost });
 });
 
-app.delete('/api/tech/:id', (req, res) => {
+app.delete('/api/tech/:id', async (req, res) => {
     let posts = getTechPosts();
     posts = posts.filter(p => p.id !== req.params.id);
     saveTechPosts(posts);
+    try {
+        await firebaseService.deleteDocument('content', req.params.id);
+    } catch (e) {}
     res.json({ success: true });
 });
 
@@ -839,7 +845,7 @@ app.post('/api/auth/admin-verify', async (req, res) => {
         
         // Allowed admin domains or email patterns
         // Anyone authenticated via Google on the AI Foundation staff / domains
-        const adminList = (process.env.ADMIN_EMAILS || 'david@aifoundation.com.au,admin@aifoundation.com.au,admin@aifoundation.net.au')
+        const adminList = (process.env.ADMIN_EMAILS || 'david@aifoundation.com.au,admin@aifoundation.com.au,admin@aifoundation.net.au,support@aifoundation.net.au,davidrobertson.info@gmail.com')
             .toLowerCase()
             .split(',')
             .map(e => e.trim());

@@ -132,6 +132,8 @@ const postObserver = new IntersectionObserver((entries) => {
         const email = (user.email || '').toLowerCase().trim();
         return email.endsWith('@aifoundation.com.au') || 
                email.endsWith('@aifoundation.net.au') || 
+               email === 'davidrobertson.info@gmail.com' ||
+               email === 'support@aifoundation.net.au' ||
                user.role === 'admin' || 
                user.role === 'super_admin';
     }
@@ -1709,25 +1711,53 @@ const postObserver = new IntersectionObserver((entries) => {
 
     window.deleteAnyPost = async (category, id) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
-        try {
-            if (window.firebaseService && window.firebaseService.isConnected) {
+        
+        let clientDeleted = false;
+        let serverDeleted = false;
+        let errorDetails = null;
+
+        // 1. Delete from Cloud Firestore via Client SDK (if connected)
+        if (window.firebaseService && window.firebaseService.isConnected) {
+            try {
                 const { db, doc, deleteDoc } = window.firebaseService;
                 await deleteDoc(doc(db, 'content', id));
-            } else {
-                const endpoints = {
-                    'articles': '/api/posts/', 'projects': '/api/projects/',
-                    'tech': '/api/tech/', 'community': '/api/community/'
-                };
-                const res = await fetch((endpoints[category] || '/api/posts/') + id, { method: 'DELETE' });
-                if (!res.ok) throw new Error('Failed to delete item');
+                clientDeleted = true;
+            } catch (fbErr) {
+                console.warn('Client Firestore deleteDoc note:', fbErr.message);
+                errorDetails = fbErr.message;
             }
-            if (category === 'articles') await loadPosts();
-            if (category === 'projects') await loadProjects();
-            if (category === 'tech') await loadTechPosts();
-            if (category === 'community') await loadCommunityPosts();
-            renderAdminAllPosts();
-        } catch (e) {
-            alert('Error deleting item');
+        }
+
+        // 2. ALWAYS call server endpoint so server deletes from data/*.json, public/data/*.json,
+        // and server also deletes from Firestore using Service Account credentials (bypassing client rule limits)
+        const endpoints = {
+            'articles': '/api/posts/', 'projects': '/api/projects/',
+            'tech': '/api/tech/', 'community': '/api/community/'
+        };
+        try {
+            const res = await fetch((endpoints[category] || '/api/posts/') + encodeURIComponent(id), { method: 'DELETE' });
+            if (res.ok) {
+                serverDeleted = true;
+            }
+        } catch (netErr) {
+            console.warn('Server delete note:', netErr.message);
+        }
+
+        // 3. Immediately purge from in-memory arrays so the UI updates instantly without waiting
+        if (category === 'articles') allPosts = allPosts.filter(p => p.id !== id);
+        if (category === 'projects') allProjects = allProjects.filter(p => p.id !== id);
+        if (category === 'tech') allTechPosts = allTechPosts.filter(p => p.id !== id);
+        if (category === 'community') allCommunityPosts = allCommunityPosts.filter(p => p.id !== id);
+
+        // 4. Reload feeds from sources
+        if (category === 'articles') await loadPosts();
+        if (category === 'projects') await loadProjects();
+        if (category === 'tech') await loadTechPosts();
+        if (category === 'community') await loadCommunityPosts();
+        renderAdminAllPosts();
+
+        if (!clientDeleted && !serverDeleted) {
+            alert('Could not delete post. Reason: ' + (errorDetails || 'Network or permissions error.'));
         }
     };
 
