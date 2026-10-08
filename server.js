@@ -124,7 +124,11 @@ async function uploadToImgBB(imageInput) {
         return trimmed;
     }
 
-    const apiKey = process.env.IMGBB_API_KEY || '89dbf8bab69adf99de2c727bd9de3e37';
+    const apiKey = process.env.IMGBB_API_KEY;
+    if (!apiKey) {
+        console.warn('IMGBB_API_KEY is not set in .env; skipping external image upload.');
+        return imageInput;
+    }
     try {
         const formData = new FormData();
         if (trimmed.startsWith('data:image')) {
@@ -388,7 +392,10 @@ app.post('/api/extract-metadata', async (req, res) => {
 // PROXY Upload to ImgBB (https://api.imgbb.com/1/upload)
 app.post('/api/upload-imgbb', async (req, res) => {
     const { imageBase64, imageUrl, apiKey, name } = req.body;
-    const finalKey = apiKey || process.env.IMGBB_API_KEY || '89dbf8bab69adf99de2c727bd9de3e37';
+    const finalKey = apiKey || process.env.IMGBB_API_KEY;
+    if (!finalKey) {
+        return res.status(500).json({ error: 'IMGBB_API_KEY is not configured in .env' });
+    }
     try {
         const imagePayload = imageBase64 || imageUrl;
         if (!imagePayload) {

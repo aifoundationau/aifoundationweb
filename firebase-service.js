@@ -415,7 +415,7 @@ async function syncUser(userData) {
             if (existing && existing.phoneNumber) {
                 payload.phoneNumber = existing.phoneNumber;
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     if (userData.address !== undefined && userData.address !== null) {
@@ -426,7 +426,7 @@ async function syncUser(userData) {
             if (existing && existing.address) {
                 payload.address = existing.address;
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     if (userData.createdAt) {
@@ -578,7 +578,7 @@ async function getDatabaseRecentInputs(options = {}) {
  */
 function getFirebasePublicConfig() {
     return {
-        apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyCPeAOWQj8456TeIWDIPsyxyWT7QLrC8J8',
+        apiKey: process.env.FIREBASE_API_KEY || '',
         authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'ai-foundation-firebase.firebaseapp.com',
         projectId: process.env.FIREBASE_PROJECT_ID || 'ai-foundation-firebase',
         storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'ai-foundation-firebase.firebasestorage.app',

@@ -25,17 +25,9 @@ import {
   orderBy
 } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyCPeAOWQj8456TeIWDIPsyxyWT7QLrC8J8",
-  authDomain: "ai-foundation-firebase.firebaseapp.com",
-  projectId: "ai-foundation-firebase",
-  storageBucket: "ai-foundation-firebase.firebasestorage.app",
-  messagingSenderId: "614773274800",
-  appId: "1:614773274800:web:a7c2a66e4e8c4409afb221"
-};
-
-export const BUSINESS_ID = "aifoundation";
-export const TRANSACTION_TAG = "aifoundation";
+export let firebaseConfig = {};
+export let BUSINESS_ID = "aifoundation";
+export let TRANSACTION_TAG = "aifoundation";
 
 let app = null;
 let db = null;
@@ -44,13 +36,25 @@ let googleProvider = null;
 let isConnected = false;
 
 try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  auth = getAuth(app);
-  googleProvider = new GoogleAuthProvider();
-  googleProvider.setCustomParameters({ prompt: 'select_account' });
-  isConnected = true;
-  console.log("🔥 [Firebase] Client SDK & Google Auth initialized for AI Foundation (Tenant tag: aifoundation)");
+  const configRes = await fetch('/api/firebase/config');
+  if (configRes.ok) {
+    firebaseConfig = await configRes.json();
+    if (firebaseConfig.businessId) BUSINESS_ID = firebaseConfig.businessId;
+    if (firebaseConfig.tag) TRANSACTION_TAG = firebaseConfig.tag;
+    if (firebaseConfig.apiKey) {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+      googleProvider = new GoogleAuthProvider();
+      googleProvider.setCustomParameters({ prompt: 'select_account' });
+      isConnected = true;
+      console.log(`🔥 [Firebase] Client SDK & Google Auth initialized for AI Foundation (Tenant tag: ${TRANSACTION_TAG})`);
+    } else {
+      console.warn("⚠️ [Firebase] API key is missing from environment configuration (.env).");
+    }
+  } else {
+    console.warn("⚠️ [Firebase] Failed to fetch Firebase public config from server.");
+  }
 } catch (err) {
   console.warn("⚠️ [Firebase] Client SDK initialization notice:", err.message);
 }
