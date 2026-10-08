@@ -635,6 +635,11 @@ const postObserver = new IntersectionObserver((entries) => {
         if (window.firebaseService?.getCurrentUser) {
             renderAuthUser(window.firebaseService.getCurrentUser());
         }
+        // Immediately fetch and render posts from Firestore as soon as Firebase is ready
+        loadPosts();
+        loadProjects();
+        loadCommunityPosts();
+        loadTechPosts();
     });
 
     // Backward-compatibility if adminToggleBtn exists anywhere
@@ -839,14 +844,52 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     // Firestore & Fallback Content Helpers
+    function getPostTimestamp(p) {
+        if (!p || !p.date) return 0;
+        if (typeof p.date.toDate === 'function') return p.date.toDate().getTime();
+        if (p.date.seconds) return p.date.seconds * 1000;
+        const t = new Date(p.date).getTime();
+        return isNaN(t) ? 0 : t;
+    }
+
+    function formatPostDate(d) {
+        if (!d) return 'Recent';
+        if (typeof d.toDate === 'function') return d.toDate().toLocaleDateString();
+        if (d.seconds) return new Date(d.seconds * 1000).toLocaleDateString();
+        const parsed = new Date(d);
+        return isNaN(parsed.getTime()) ? 'Recent' : parsed.toLocaleDateString();
+    }
+
     async function loadCategoryFromFirestore(category) {
+        // If firebaseService is initializing, give it a moment to become ready
+        if (!window.firebaseService?.isConnected) {
+            await new Promise(resolve => {
+                if (window.firebaseService?.isConnected) return resolve();
+                const handler = () => {
+                    window.removeEventListener('firebaseServiceReady', handler);
+                    resolve();
+                };
+                window.addEventListener('firebaseServiceReady', handler);
+                setTimeout(resolve, 800);
+            });
+        }
+
         if (window.firebaseService && window.firebaseService.isConnected) {
             try {
                 const { db, collection, getDocs, query, where, TRANSACTION_TAG } = window.firebaseService;
                 const q = query(collection(db, 'content'), where('tag', '==', TRANSACTION_TAG), where('category', '==', category));
                 const snap = await getDocs(q);
-                let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                items.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+                let items = snap.docs.map(d => {
+                    const data = d.data();
+                    let dateVal = data.date;
+                    if (dateVal && typeof dateVal.toDate === 'function') {
+                        dateVal = dateVal.toDate().toISOString();
+                    } else if (dateVal && dateVal.seconds) {
+                        dateVal = new Date(dateVal.seconds * 1000).toISOString();
+                    }
+                    return { id: d.id, ...data, date: dateVal || data.date };
+                });
+                items.sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a));
                 return items;
             } catch (err) {
                 console.warn('Firebase notice loading ' + category + ':', err.message);
@@ -879,7 +922,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 }
             }
         }
-        list.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+        list.sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a));
         return list;
     }
 
@@ -1061,7 +1104,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     <div class="post-actions">
                         ${generateShareButtonsHtml(project.title, project.link, project.summary)}
                         <div class="post-footer">
-                            <span>${project.date ? new Date(project.date).toLocaleDateString() : 'Project'}</span>
+                            <span>${formatPostDate(project.date)}</span>
                             <a href="${project.link}" target="_blank" rel="noopener noreferrer">View Project ↗</a>
                         </div>
                     </div>
@@ -1161,7 +1204,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     <div class="post-actions">
                         ${generateShareButtonsHtml(post.title, post.link, post.summary)}
                         <div class="post-footer">
-                            <span>${new Date(post.date).toLocaleDateString()}</span>
+                            <span>${formatPostDate(post.date)}</span>
                             <a href="${post.link}" target="_blank" rel="noopener noreferrer">View Post ↗</a>
                         </div>
                     </div>
@@ -1395,24 +1438,42 @@ const postObserver = new IntersectionObserver((entries) => {
             payload.date = new Date().toISOString();
             payload.tag = window.firebaseService?.TRANSACTION_TAG || 'aifoundation';
             try {
+                let saved = false;
+
+                // 1. Direct Firestore write if connected
                 if (window.firebaseService && window.firebaseService.isConnected) {
-                    const { db, collection, addDoc } = window.firebaseService;
-                    await addDoc(collection(db, 'content'), payload);
-                    successCount++;
-                } else {
-                    const endpoints = {
-                        'articles': '/api/posts', 'projects': '/api/projects',
-                        'tech': '/api/tech', 'community': '/api/community'
-                    };
+                    try {
+                        const { db, collection, addDoc } = window.firebaseService;
+                        await addDoc(collection(db, 'content'), payload);
+                        saved = true;
+                    } catch (fbErr) {
+                        console.warn('Direct Firestore save note:', fbErr);
+                    }
+                }
+
+                // 2. Dual-sync with server backend so local JSON fallback stays updated
+                const endpoints = {
+                    'articles': '/api/posts', 'projects': '/api/projects',
+                    'tech': '/api/tech', 'community': '/api/community'
+                };
+                try {
                     const res = await fetch(endpoints[category] || '/api/posts', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     if (res.ok) {
-                        successCount++;
-                    } else {
-                        lastPublishError = `Backend returned HTTP ${res.status}. If running on Vercel, please configure Firestore Security Rules in Firebase Console.`;
+                        saved = true;
+                    } else if (!saved) {
+                        lastPublishError = `Backend returned HTTP ${res.status}. If running on Vercel, please check your network connection.`;
                     }
+                } catch (netErr) {
+                    // Endpoint may not exist on static hosting
+                }
+
+                if (saved) {
+                    successCount++;
+                } else if (!lastPublishError) {
+                    lastPublishError = 'Failed to write to database or server.';
                 }
             } catch (err) {
                 console.error('Publish error:', err);
@@ -1426,17 +1487,28 @@ const postObserver = new IntersectionObserver((entries) => {
         
         btn.innerHTML = 'Publish All Posts';
         if (successCount > 0) {
-            alert(`Successfully published ${successCount} item(s) to ${category}!`);
+            const catName = category === 'projects' ? 'Projects & Initiatives' : 'Articles / Posts';
+            alert(`Successfully published ${successCount} item(s) to ${catName}!`);
             document.getElementById('multiLinksContainer').innerHTML = '';
             createLinkRow(); 
             
-            if (category === 'articles') loadPosts();
-            if (category === 'projects') loadProjects();
-            if (category === 'tech') loadTechPosts();
-            if (category === 'community') loadCommunityPosts();
+            // Reload all feeds immediately
+            await loadPosts();
+            await loadProjects();
+            await loadTechPosts();
+            await loadCommunityPosts();
+            renderAdminAllPosts();
             
             const adminModal = document.getElementById('adminModal');
             if (adminModal) adminModal.style.display = 'none';
+
+            // If user published a project, make sure they know how to view it
+            if (category === 'projects' && typeof activateSection === 'function') {
+                const goToProjects = confirm('Your project was published! Would you like to switch to the Projects section to view it now?');
+                if (goToProjects) {
+                    activateSection('section-projects');
+                }
+            }
         } else {
             alert('No items could be published.\n\nReason: ' + (lastPublishError || 'Please ensure you entered a valid URL or Title/Link, and that database rules allow writes.'));
         }
@@ -1684,6 +1756,7 @@ const postObserver = new IntersectionObserver((entries) => {
             targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services') ? 'flex' : 'block';
         }
     }
+    window.activateSection = activateSection;
 
     function scrollToContentOnMobile() {
         if (window.innerWidth <= 1024) {

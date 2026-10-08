@@ -74,8 +74,18 @@ function getPosts() {
     }
 }
 
+const PUBLIC_DATA_DIR = path.join(__dirname, 'public', 'data');
+if (!fs.existsSync(PUBLIC_DATA_DIR)) {
+    fs.mkdirSync(PUBLIC_DATA_DIR, { recursive: true });
+}
+
 function savePosts(posts) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
+    try {
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'posts.json'), JSON.stringify(posts, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Could not mirror posts to public/data:', e.message);
+    }
 }
 
 function getCommunityPosts() {
@@ -88,6 +98,11 @@ function getCommunityPosts() {
 
 function saveCommunityPosts(posts) {
     fs.writeFileSync(COMM_DATA_FILE, JSON.stringify(posts, null, 2));
+    try {
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'community.json'), JSON.stringify(posts, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Could not mirror community to public/data:', e.message);
+    }
 }
 
 function getTechPosts() {
@@ -100,6 +115,11 @@ function getTechPosts() {
 
 function saveTechPosts(posts) {
     fs.writeFileSync(TECH_DATA_FILE, JSON.stringify(posts, null, 2));
+    try {
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'tech.json'), JSON.stringify(posts, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Could not mirror tech to public/data:', e.message);
+    }
 }
 
 function getProjects() {
@@ -112,6 +132,11 @@ function getProjects() {
 
 function saveProjects(projects) {
     fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(projects, null, 2));
+    try {
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'projects.json'), JSON.stringify(projects, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Could not mirror projects to public/data:', e.message);
+    }
 }
 
 // Helper to upload any image other than posts to ImgBB (using IMGBB_API_KEY)
@@ -173,36 +198,57 @@ function detectPlatform(url) {
 
 // GET all posts
 app.get('/api/posts', (req, res) => {
-    res.json(getPosts());
+    const posts = getPosts();
+    res.json(posts.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
 });
 
 // CREATE new post
-app.post('/api/posts', (req, res) => {
-    const { title, summary, link, imageUrl, platform, author } = req.body;
+app.post('/api/posts', async (req, res) => {
+    const { title, summary, link, imageUrl, platform, author, id } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
     }
     const posts = getPosts();
     const newPost = {
-        id: 'post_' + Date.now(),
+        id: id || ('post_' + Date.now()),
         title: title.trim(),
         summary: (summary || '').trim(),
         link: link.trim(),
         imageUrl: imageUrl || '',
         platform: platform || detectPlatform(link),
         author: author || 'AI Foundation Australia',
-        date: new Date().toISOString()
+        date: req.body.date || new Date().toISOString()
     };
-    posts.unshift(newPost);
+    const idx = posts.findIndex(p => p.id === newPost.id || (p.link && p.link === newPost.link));
+    if (idx >= 0) {
+        posts[idx] = newPost;
+    } else {
+        posts.unshift(newPost);
+    }
     savePosts(posts);
+
+    try {
+        await firebaseService.writeDocument('content', newPost.id, {
+            ...newPost,
+            category: 'articles',
+            tag: 'aifoundation',
+            businessId: 'aifoundation'
+        }, true);
+    } catch (e) {
+        console.warn('[Firebase] Warning writing post to firestore:', e.message);
+    }
+
     res.json({ success: true, post: newPost });
 });
 
 // DELETE post
-app.delete('/api/posts/:id', (req, res) => {
+app.delete('/api/posts/:id', async (req, res) => {
     let posts = getPosts();
     posts = posts.filter(p => p.id !== req.params.id);
     savePosts(posts);
+    try {
+        await firebaseService.deleteDocument('content', req.params.id);
+    } catch (e) {}
     res.json({ success: true });
 });
 
@@ -275,11 +321,11 @@ app.delete('/api/tech/:id', (req, res) => {
 // PROJECTS API (Images uploaded to ImgBB)
 app.get('/api/projects', (req, res) => {
     const projects = getProjects();
-    res.json(projects.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    res.json(projects.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
 });
 
 app.post('/api/projects', async (req, res) => {
-    const { title, summary, link, imageUrl, imageBase64, platform, author } = req.body;
+    const { title, summary, link, imageUrl, imageBase64, platform, author, id } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
     }
@@ -289,24 +335,44 @@ app.post('/api/projects', async (req, res) => {
     }
     const projects = getProjects();
     const newProject = {
-        id: 'proj_' + Date.now(),
+        id: id || ('proj_' + Date.now()),
         title: title.trim(),
         summary: (summary || '').trim(),
         link: link.trim(),
         imageUrl: imgUrl,
         platform: platform || detectPlatform(link),
         author: author || 'AI Foundation Australia',
-        date: new Date().toISOString()
+        date: req.body.date || new Date().toISOString()
     };
-    projects.unshift(newProject);
+    const idx = projects.findIndex(p => p.id === newProject.id || (p.link && p.link === newProject.link));
+    if (idx >= 0) {
+        projects[idx] = newProject;
+    } else {
+        projects.unshift(newProject);
+    }
     saveProjects(projects);
+
+    try {
+        await firebaseService.writeDocument('content', newProject.id, {
+            ...newProject,
+            category: 'projects',
+            tag: 'aifoundation',
+            businessId: 'aifoundation'
+        }, true);
+    } catch (e) {
+        console.warn('[Firebase] Warning writing project to firestore:', e.message);
+    }
+
     res.json({ success: true, project: newProject });
 });
 
-app.delete('/api/projects/:id', (req, res) => {
+app.delete('/api/projects/:id', async (req, res) => {
     let projects = getProjects();
     projects = projects.filter(p => p.id !== req.params.id);
     saveProjects(projects);
+    try {
+        await firebaseService.deleteDocument('content', req.params.id);
+    } catch (e) {}
     res.json({ success: true });
 });
 

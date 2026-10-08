@@ -25,7 +25,16 @@ import {
   orderBy
 } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
 
-export let firebaseConfig = {};
+export const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCPeAOWQj8456TeIWDIPsyxyWT7QLrC8J8",
+  authDomain: "ai-foundation-firebase.firebaseapp.com",
+  projectId: "ai-foundation-firebase",
+  storageBucket: "ai-foundation-firebase.firebasestorage.app",
+  messagingSenderId: "614773274800",
+  appId: "1:614773274800:web:a7c2a66e4e8c4409afb221"
+};
+
+export let firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
 export let BUSINESS_ID = "aifoundation";
 export let TRANSACTION_TAG = "aifoundation";
 
@@ -35,28 +44,35 @@ let auth = null;
 let googleProvider = null;
 let isConnected = false;
 
+// 1. Initialize synchronously with default public configuration
+try {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+  googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
+  isConnected = true;
+  console.log(`🔥 [Firebase] Client SDK & Google Auth initialized for AI Foundation (Tenant tag: ${TRANSACTION_TAG})`);
+} catch (syncErr) {
+  console.warn("⚠️ [Firebase] Synchronous init note:", syncErr.message);
+}
+
+// 2. Fetch server configuration if available to override environment parameters dynamically
 try {
   const configRes = await fetch('/api/firebase/config');
   if (configRes.ok) {
-    firebaseConfig = await configRes.json();
-    if (firebaseConfig.businessId) BUSINESS_ID = firebaseConfig.businessId;
-    if (firebaseConfig.tag) TRANSACTION_TAG = firebaseConfig.tag;
-    if (firebaseConfig.apiKey) {
+    const serverConfig = await configRes.json();
+    if (serverConfig.businessId) BUSINESS_ID = serverConfig.businessId;
+    if (serverConfig.tag) TRANSACTION_TAG = serverConfig.tag;
+    if (serverConfig.apiKey && serverConfig.apiKey !== firebaseConfig.apiKey) {
+      firebaseConfig = { ...firebaseConfig, ...serverConfig };
       app = initializeApp(firebaseConfig);
       db = getFirestore(app);
       auth = getAuth(app);
-      googleProvider = new GoogleAuthProvider();
-      googleProvider.setCustomParameters({ prompt: 'select_account' });
-      isConnected = true;
-      console.log(`🔥 [Firebase] Client SDK & Google Auth initialized for AI Foundation (Tenant tag: ${TRANSACTION_TAG})`);
-    } else {
-      console.warn("⚠️ [Firebase] API key is missing from environment configuration (.env).");
     }
-  } else {
-    console.warn("⚠️ [Firebase] Failed to fetch Firebase public config from server.");
   }
-} catch (err) {
-  console.warn("⚠️ [Firebase] Client SDK initialization notice:", err.message);
+} catch (fetchErr) {
+  // Silent fallback to standard initialized config
 }
 
 /**

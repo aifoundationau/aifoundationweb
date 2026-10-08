@@ -245,6 +245,26 @@ async function getDocument(collectionId, documentId) {
 }
 
 /**
+ * Delete document from Cloud Firestore
+ */
+async function deleteDocument(collectionId, documentId) {
+    const token = await getAccessToken();
+    if (!token) return { success: false, error: 'No token' };
+
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionId}/${encodeURIComponent(documentId)}`;
+    try {
+        const res = await fetch(url, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return { success: res.ok, status: res.status };
+    } catch (err) {
+        console.error(`[Firebase] Error deleting ${collectionId}/${documentId}:`, err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
  * Record a transaction in Cloud Firestore.
  * GUARANTEE: Every transaction MUST have tag 'aifoundation' attached to it.
  * 
@@ -603,5 +623,6 @@ module.exports = {
     getFirebasePublicConfig,
     toFirestoreFields,
     fromFirestoreFields,
-    writeDocument
+    writeDocument,
+    deleteDocument
 };
