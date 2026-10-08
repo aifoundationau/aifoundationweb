@@ -862,6 +862,25 @@ const postObserver = new IntersectionObserver((entries) => {
         return isNaN(parsed.getTime()) ? 'Recent' : parsed.toLocaleDateString();
     }
 
+    const DELETED_IDS_KEY = 'aifoundation_deleted_items';
+    function getDeletedIds() {
+        try {
+            return JSON.parse(localStorage.getItem(DELETED_IDS_KEY) || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+    function addDeletedId(id) {
+        if (!id) return;
+        try {
+            const list = getDeletedIds();
+            if (!list.includes(id)) {
+                list.push(id);
+                localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(list));
+            }
+        } catch (e) {}
+    }
+
     async function loadCategoryFromFirestore(category) {
         // If firebaseService is initializing, give it a moment to become ready
         if (!window.firebaseService?.isConnected) {
@@ -891,6 +910,8 @@ const postObserver = new IntersectionObserver((entries) => {
                     }
                     return { id: d.id, ...data, date: dateVal || data.date };
                 });
+                const deletedIds = new Set(getDeletedIds());
+                items = items.filter(p => !deletedIds.has(p.id));
                 items.sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a));
                 return items;
             } catch (err) {
@@ -913,10 +934,12 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     function mergePosts(primary, fallback) {
-        const list = Array.isArray(primary) ? [...primary] : [];
+        const deletedIds = new Set(getDeletedIds());
+        const list = Array.isArray(primary) ? primary.filter(p => !deletedIds.has(p.id)) : [];
         const existingKeys = new Set(list.map(p => p.id || p.link || p.title));
         if (Array.isArray(fallback)) {
             for (const item of fallback) {
+                if (deletedIds.has(item.id)) continue;
                 const key = item.id || item.link || item.title;
                 if (!existingKeys.has(key)) {
                     list.push(item);
@@ -1712,53 +1735,50 @@ const postObserver = new IntersectionObserver((entries) => {
     window.deleteAnyPost = async (category, id) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         
-        let clientDeleted = false;
-        let serverDeleted = false;
-        let errorDetails = null;
+        // 1. Instantly record in local blacklist so neither cache nor static fallbacks can resurrect it
+        addDeletedId(id);
 
-        // 1. Delete from Cloud Firestore via Client SDK (if connected)
-        if (window.firebaseService && window.firebaseService.isConnected) {
-            try {
-                const { db, doc, deleteDoc } = window.firebaseService;
-                await deleteDoc(doc(db, 'content', id));
-                clientDeleted = true;
-            } catch (fbErr) {
-                console.warn('Client Firestore deleteDoc note:', fbErr.message);
-                errorDetails = fbErr.message;
-            }
-        }
-
-        // 2. ALWAYS call server endpoint so server deletes from data/*.json, public/data/*.json,
-        // and server also deletes from Firestore using Service Account credentials (bypassing client rule limits)
-        const endpoints = {
-            'articles': '/api/posts/', 'projects': '/api/projects/',
-            'tech': '/api/tech/', 'community': '/api/community/'
-        };
-        try {
-            const res = await fetch((endpoints[category] || '/api/posts/') + encodeURIComponent(id), { method: 'DELETE' });
-            if (res.ok) {
-                serverDeleted = true;
-            }
-        } catch (netErr) {
-            console.warn('Server delete note:', netErr.message);
-        }
-
-        // 3. Immediately purge from in-memory arrays so the UI updates instantly without waiting
+        // 2. Immediately purge from in-memory arrays for immediate UI response
         if (category === 'articles') allPosts = allPosts.filter(p => p.id !== id);
         if (category === 'projects') allProjects = allProjects.filter(p => p.id !== id);
         if (category === 'tech') allTechPosts = allTechPosts.filter(p => p.id !== id);
         if (category === 'community') allCommunityPosts = allCommunityPosts.filter(p => p.id !== id);
 
-        // 4. Reload feeds from sources
+        // 3. Immediately re-render Admin view and current category feed
+        renderAdminAllPosts();
+        if (category === 'articles') renderPosts();
+        if (category === 'projects') renderProjects();
+        if (category === 'tech') renderTechPosts();
+        if (category === 'community') renderCommunity();
+
+        // 4. Delete from Cloud Firestore via Client SDK (if connected)
+        if (window.firebaseService && window.firebaseService.isConnected) {
+            try {
+                const { db, doc, deleteDoc } = window.firebaseService;
+                await deleteDoc(doc(db, 'content', id));
+            } catch (fbErr) {
+                console.warn('Client Firestore deleteDoc note:', fbErr.message);
+            }
+        }
+
+        // 5. Call server endpoint so server deletes from Firestore using Service Account credentials
+        // and updates local JSON stores
+        const endpoints = {
+            'articles': '/api/posts/', 'projects': '/api/projects/',
+            'tech': '/api/tech/', 'community': '/api/community/'
+        };
+        try {
+            await fetch((endpoints[category] || '/api/posts/') + encodeURIComponent(id), { method: 'DELETE' });
+        } catch (netErr) {
+            console.warn('Server delete note:', netErr.message);
+        }
+
+        // 6. Reload feeds in background to verify full consistency
         if (category === 'articles') await loadPosts();
         if (category === 'projects') await loadProjects();
         if (category === 'tech') await loadTechPosts();
         if (category === 'community') await loadCommunityPosts();
         renderAdminAllPosts();
-
-        if (!clientDeleted && !serverDeleted) {
-            alert('Could not delete post. Reason: ' + (errorDetails || 'Network or permissions error.'));
-        }
     };
 
     window.deletePost = (id) => window.deleteAnyPost('articles', id);

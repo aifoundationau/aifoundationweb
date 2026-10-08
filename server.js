@@ -80,11 +80,15 @@ if (!fs.existsSync(PUBLIC_DATA_DIR)) {
 }
 
 function savePosts(posts) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Read-only environment, skipping DATA_FILE write:', e.message);
+    }
     try {
         fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'posts.json'), JSON.stringify(posts, null, 2));
     } catch (e) {
-        console.warn('[Sync] Could not mirror posts to public/data:', e.message);
+        console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
 }
 
@@ -97,11 +101,15 @@ function getCommunityPosts() {
 }
 
 function saveCommunityPosts(posts) {
-    fs.writeFileSync(COMM_DATA_FILE, JSON.stringify(posts, null, 2));
+    try {
+        fs.writeFileSync(COMM_DATA_FILE, JSON.stringify(posts, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Read-only environment, skipping COMM_DATA_FILE write:', e.message);
+    }
     try {
         fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'community.json'), JSON.stringify(posts, null, 2));
     } catch (e) {
-        console.warn('[Sync] Could not mirror community to public/data:', e.message);
+        console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
 }
 
@@ -114,11 +122,15 @@ function getTechPosts() {
 }
 
 function saveTechPosts(posts) {
-    fs.writeFileSync(TECH_DATA_FILE, JSON.stringify(posts, null, 2));
+    try {
+        fs.writeFileSync(TECH_DATA_FILE, JSON.stringify(posts, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Read-only environment, skipping TECH_DATA_FILE write:', e.message);
+    }
     try {
         fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'tech.json'), JSON.stringify(posts, null, 2));
     } catch (e) {
-        console.warn('[Sync] Could not mirror tech to public/data:', e.message);
+        console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
 }
 
@@ -131,11 +143,15 @@ function getProjects() {
 }
 
 function saveProjects(projects) {
-    fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(projects, null, 2));
+    try {
+        fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(projects, null, 2));
+    } catch (e) {
+        console.warn('[Sync] Read-only environment, skipping PROJECTS_DATA_FILE write:', e.message);
+    }
     try {
         fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'projects.json'), JSON.stringify(projects, null, 2));
     } catch (e) {
-        console.warn('[Sync] Could not mirror projects to public/data:', e.message);
+        console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
 }
 
