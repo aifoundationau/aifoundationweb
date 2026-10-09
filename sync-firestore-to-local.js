@@ -64,16 +64,30 @@ async function syncFirestoreToLocal() {
             if (fs.existsSync(dataPath)) localItems = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
         } catch (e) {}
 
-        // Merge without duplicates (by link or title or id)
-        const merged = [...remoteItems];
-        const keys = new Set(merged.map(m => m.link || m.title || m.id));
+        // Merge without duplicates (by normalized link, title, or id)
+        const merged = [];
+        const keys = new Set();
 
+        const addUnique = (item) => {
+            if (!item) return;
+            const normLink = (item.link || '').trim().toLowerCase().replace(/\/+$/, '');
+            const normTitle = (item.title || '').trim().toLowerCase();
+            const id = (item.id || '').trim();
+            const key = id || normLink || normTitle;
+            if (key && keys.has(key)) return;
+            if (normLink && keys.has(normLink)) return;
+            if (normTitle && keys.has(normTitle)) return;
+            if (key) keys.add(key);
+            if (normLink) keys.add(normLink);
+            if (normTitle) keys.add(normTitle);
+            merged.push(item);
+        };
+
+        for (const item of remoteItems) {
+            addUnique(item);
+        }
         for (const item of localItems) {
-            const k = item.link || item.title || item.id;
-            if (!keys.has(k)) {
-                merged.push(item);
-                keys.add(k);
-            }
+            addUnique(item);
         }
 
         merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

@@ -863,6 +863,7 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     const DELETED_IDS_KEY = 'aifoundation_deleted_items';
+    const DELETED_KEYS_KEY = 'aifoundation_deleted_keys';
     function getDeletedIds() {
         try {
             return JSON.parse(localStorage.getItem(DELETED_IDS_KEY) || '[]');
@@ -877,6 +878,24 @@ const postObserver = new IntersectionObserver((entries) => {
             if (!list.includes(id)) {
                 list.push(id);
                 localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(list));
+            }
+        } catch (e) {}
+    }
+
+    function getDeletedKeys() {
+        try {
+            return JSON.parse(localStorage.getItem(DELETED_KEYS_KEY) || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+    function addDeletedKey(key) {
+        if (!key) return;
+        try {
+            const list = getDeletedKeys();
+            if (!list.includes(key)) {
+                list.push(key);
+                localStorage.setItem(DELETED_KEYS_KEY, JSON.stringify(list));
             }
         } catch (e) {}
     }
@@ -935,17 +954,38 @@ const postObserver = new IntersectionObserver((entries) => {
 
     function mergePosts(primary, fallback) {
         const deletedIds = new Set(getDeletedIds());
-        const list = Array.isArray(primary) ? primary.filter(p => !deletedIds.has(p.id)) : [];
-        const existingKeys = new Set(list.map(p => p.id || p.link || p.title));
+        const deletedKeys = new Set(getDeletedKeys());
+        const list = [];
+        const seenIds = new Set();
+        const seenLinks = new Set();
+        const seenTitles = new Set();
+
+        const addIfUnique = (item) => {
+            if (!item) return;
+            const id = (item.id || '').trim();
+            if (id && deletedIds.has(id)) return;
+
+            const normLink = (item.link || '').trim().toLowerCase().replace(/\/+$/, '');
+            const normTitle = (item.title || '').trim().toLowerCase();
+
+            if (normLink && deletedKeys.has(normLink)) return;
+            if (normTitle && deletedKeys.has(normTitle)) return;
+
+            if (id && seenIds.has(id)) return;
+            if (normLink && seenLinks.has(normLink)) return;
+            if (normTitle && seenTitles.has(normTitle)) return;
+
+            if (id) seenIds.add(id);
+            if (normLink) seenLinks.add(normLink);
+            if (normTitle) seenTitles.add(normTitle);
+            list.push(item);
+        };
+
+        if (Array.isArray(primary)) {
+            primary.forEach(addIfUnique);
+        }
         if (Array.isArray(fallback)) {
-            for (const item of fallback) {
-                if (deletedIds.has(item.id)) continue;
-                const key = item.id || item.link || item.title;
-                if (!existingKeys.has(key)) {
-                    list.push(item);
-                    existingKeys.add(key);
-                }
-            }
+            fallback.forEach(addIfUnique);
         }
         list.sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a));
         return list;
@@ -1163,10 +1203,7 @@ const postObserver = new IntersectionObserver((entries) => {
         `).join('');
     }
 
-    window.deleteProject = async (id) => {
-        await fetch('/api/projects/' + id, { method: 'DELETE' });
-        loadProjects();
-    };
+    window.deleteProject = (id) => window.deleteAnyPost('projects', id);
 
 
     document.querySelectorAll('.sample-chip').forEach(chip => {
@@ -1382,135 +1419,150 @@ const postObserver = new IntersectionObserver((entries) => {
         const rows = document.querySelectorAll('.link-row-container');
         const category = document.getElementById('postCategory').value;
         const btn = document.getElementById('publishAllBtn');
+        if (btn.disabled) return;
+
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
         btn.innerHTML = 'Publishing...';
         
         let successCount = 0;
         let lastPublishError = null;
 
-        for (const row of rows) {
-            let title = row.querySelector('.multiPostTitle')?.value?.trim();
-            let link = row.querySelector('.multiPostLink')?.value?.trim();
-            const inputUrl = row.querySelector('.multiLinkInput')?.value?.trim();
+        try {
+            for (const row of rows) {
+                let title = row.querySelector('.multiPostTitle')?.value?.trim();
+                let link = row.querySelector('.multiPostLink')?.value?.trim();
+                const inputUrl = row.querySelector('.multiLinkInput')?.value?.trim();
 
-            // If user forgot to click Extract Metadata, try extracting on the fly
-            if ((!title || !link) && inputUrl) {
-                try {
-                    const extRes = await fetch('/api/extract-metadata', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: inputUrl })
-                    });
-                    if (extRes.ok) {
-                        const extData = await extRes.json();
-                        title = extData.title || inputUrl;
-                        link = extData.link || inputUrl;
-                        if (row.querySelector('.multiPostTitle')) row.querySelector('.multiPostTitle').value = title;
-                        if (row.querySelector('.multiPostLink')) row.querySelector('.multiPostLink').value = link;
-                        if (row.querySelector('.multiPostSummary')) row.querySelector('.multiPostSummary').value = extData.summary || '';
-                        if (row.querySelector('.multiPostPlatform')) row.querySelector('.multiPostPlatform').value = extData.platform || 'website';
-                        if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = extData.imageUrl || 'assets/logo.png';
-                    } else {
+                // If user forgot to click Extract Metadata, try extracting on the fly
+                if ((!title || !link) && inputUrl) {
+                    try {
+                        const extRes = await fetch('/api/extract-metadata', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: inputUrl })
+                        });
+                        if (extRes.ok) {
+                            const extData = await extRes.json();
+                            title = extData.title || inputUrl;
+                            link = extData.link || inputUrl;
+                            if (row.querySelector('.multiPostTitle')) row.querySelector('.multiPostTitle').value = title;
+                            if (row.querySelector('.multiPostLink')) row.querySelector('.multiPostLink').value = link;
+                            if (row.querySelector('.multiPostSummary')) row.querySelector('.multiPostSummary').value = extData.summary || '';
+                            if (row.querySelector('.multiPostPlatform')) row.querySelector('.multiPostPlatform').value = extData.platform || 'website';
+                            if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = extData.imageUrl || 'assets/logo.png';
+                        } else {
+                            title = inputUrl;
+                            link = inputUrl;
+                        }
+                    } catch (e) {
                         title = inputUrl;
                         link = inputUrl;
                     }
-                } catch (e) {
-                    title = inputUrl;
-                    link = inputUrl;
                 }
-            }
 
-            if (!title && !link) {
-                if (!lastPublishError) {
-                    lastPublishError = 'Please enter a URL or fill in the Title and Link fields.';
+                if (!title && !link) {
+                    if (!lastPublishError) {
+                        lastPublishError = 'Please enter a URL or fill in the Title and Link fields.';
+                    }
+                    continue;
                 }
-                continue;
-            }
-            
-            let finalImgUrl = row.querySelector('.multiImageUrl')?.value || 'assets/logo.png';
-            // All images uploaded other than posts must be uploaded to ImgBB
-            if (category !== 'articles' && finalImgUrl && finalImgUrl !== 'assets/logo.png' && !finalImgUrl.includes('i.ibb.co')) {
+                
+                let finalImgUrl = row.querySelector('.multiImageUrl')?.value || 'assets/logo.png';
+                // All images uploaded other than posts must be uploaded to ImgBB
+                if (category !== 'articles' && finalImgUrl && finalImgUrl !== 'assets/logo.png' && !finalImgUrl.includes('i.ibb.co')) {
+                    try {
+                        const upRes = await fetch('/api/upload-imgbb', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                imageBase64: finalImgUrl.startsWith('data:') ? finalImgUrl : null,
+                                imageUrl: !finalImgUrl.startsWith('data:') ? finalImgUrl : null
+                            })
+                        });
+                        if (upRes.ok) {
+                            const upData = await upRes.json();
+                            if (upData.success && upData.url) {
+                                finalImgUrl = upData.url;
+                                if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                            }
+                        }
+                    } catch (upErr) {
+                        console.warn('Frontend ImgBB upload fallback:', upErr);
+                    }
+                }
+
+                // Generate a single consistent document ID used across both client and server layers
+                const prefix = category === 'projects' ? 'proj_' : (category === 'tech' ? 'tech_' : (category === 'community' ? 'comm_' : 'post_'));
+                const docId = prefix + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+                const payload = {
+                    id: docId,
+                    title: title || link || 'Untitled',
+                    summary: row.querySelector('.multiPostSummary')?.value || '',
+                    link: link || inputUrl,
+                    imageUrl: finalImgUrl,
+                    platform: row.querySelector('.multiPostPlatform')?.value || 'website',
+                    author: 'Admin',
+                    category: category,
+                    date: new Date().toISOString(),
+                    tag: window.firebaseService?.TRANSACTION_TAG || 'aifoundation'
+                };
+                
                 try {
-                    const upRes = await fetch('/api/upload-imgbb', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            imageBase64: finalImgUrl.startsWith('data:') ? finalImgUrl : null,
-                            imageUrl: !finalImgUrl.startsWith('data:') ? finalImgUrl : null
-                        })
-                    });
-                    if (upRes.ok) {
-                        const upData = await upRes.json();
-                        if (upData.success && upData.url) {
-                            finalImgUrl = upData.url;
-                            if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                    let saved = false;
+
+                    // 1. Direct Firestore write if connected (using idempotent setDoc with consistent docId)
+                    if (window.firebaseService && window.firebaseService.isConnected) {
+                        try {
+                            const { db, collection, doc, setDoc } = window.firebaseService;
+                            const docRef = doc(collection(db, 'content'), docId);
+                            await setDoc(docRef, payload, { merge: true });
+                            saved = true;
+                            payload.firestoreSynced = true;
+                        } catch (fbErr) {
+                            console.warn('Direct Firestore save note:', fbErr);
                         }
                     }
-                } catch (upErr) {
-                    console.warn('Frontend ImgBB upload fallback:', upErr);
-                }
-            }
 
-            const payload = {
-                title: title || link || 'Untitled',
-                summary: row.querySelector('.multiPostSummary')?.value || '',
-                link: link || inputUrl,
-                imageUrl: finalImgUrl,
-                platform: row.querySelector('.multiPostPlatform')?.value || 'website',
-                author: 'Admin'
-            };
-            
-            payload.category = category;
-            payload.date = new Date().toISOString();
-            payload.tag = window.firebaseService?.TRANSACTION_TAG || 'aifoundation';
-            try {
-                let saved = false;
-
-                // 1. Direct Firestore write if connected
-                if (window.firebaseService && window.firebaseService.isConnected) {
+                    // 2. Dual-sync with server backend so local JSON fallback stays updated
+                    const endpoints = {
+                        'articles': '/api/posts', 'projects': '/api/projects',
+                        'tech': '/api/tech', 'community': '/api/community'
+                    };
                     try {
-                        const { db, collection, addDoc } = window.firebaseService;
-                        await addDoc(collection(db, 'content'), payload);
-                        saved = true;
-                    } catch (fbErr) {
-                        console.warn('Direct Firestore save note:', fbErr);
+                        const res = await fetch(endpoints[category] || '/api/posts', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (res.ok) {
+                            saved = true;
+                        } else if (!saved) {
+                            lastPublishError = `Backend returned HTTP ${res.status}. If running on Vercel, please check your network connection.`;
+                        }
+                    } catch (netErr) {
+                        // Endpoint may not exist on static hosting
                     }
-                }
 
-                // 2. Dual-sync with server backend so local JSON fallback stays updated
-                const endpoints = {
-                    'articles': '/api/posts', 'projects': '/api/projects',
-                    'tech': '/api/tech', 'community': '/api/community'
-                };
-                try {
-                    const res = await fetch(endpoints[category] || '/api/posts', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (res.ok) {
-                        saved = true;
-                    } else if (!saved) {
-                        lastPublishError = `Backend returned HTTP ${res.status}. If running on Vercel, please check your network connection.`;
+                    if (saved) {
+                        successCount++;
+                    } else if (!lastPublishError) {
+                        lastPublishError = 'Failed to write to database or server.';
                     }
-                } catch (netErr) {
-                    // Endpoint may not exist on static hosting
-                }
-
-                if (saved) {
-                    successCount++;
-                } else if (!lastPublishError) {
-                    lastPublishError = 'Failed to write to database or server.';
-                }
-            } catch (err) {
-                console.error('Publish error:', err);
-                if (err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) {
-                    lastPublishError = 'Firestore Permission Denied. Your Firebase Console rules need to allow write access for authenticated users or the "content" collection.';
-                } else {
-                    lastPublishError = err.message || 'Database write error';
+                } catch (err) {
+                    console.error('Publish error:', err);
+                    if (err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) {
+                        lastPublishError = 'Firestore Permission Denied. Your Firebase Console rules need to allow write access for authenticated users or the "content" collection.';
+                    } else {
+                        lastPublishError = err.message || 'Database write error';
+                    }
                 }
             }
+        } finally {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.innerHTML = 'Publish All Posts';
         }
-        
-        btn.innerHTML = 'Publish All Posts';
         if (successCount > 0) {
             const catName = category === 'projects' ? 'Projects & Initiatives' : 'Articles / Posts';
             alert(`Successfully published ${successCount} item(s) to ${catName}!`);
@@ -1736,6 +1788,14 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         
         // 1. Instantly record in local blacklist so neither cache nor static fallbacks can resurrect it
+        const currentList = category === 'articles' ? allPosts :
+                           (category === 'projects' ? allProjects :
+                           (category === 'tech' ? allTechPosts : allCommunityPosts));
+        const postToDelete = currentList.find(p => p.id === id);
+        if (postToDelete) {
+            if (postToDelete.link) addDeletedKey(postToDelete.link.trim().toLowerCase().replace(/\/+$/, ''));
+            if (postToDelete.title) addDeletedKey(postToDelete.title.trim().toLowerCase());
+        }
         addDeletedId(id);
 
         // 2. Immediately purge from in-memory arrays for immediate UI response
