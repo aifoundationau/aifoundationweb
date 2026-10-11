@@ -459,7 +459,7 @@ const postObserver = new IntersectionObserver((entries) => {
             if (googleSignInBtn) googleSignInBtn.style.display = 'none';
             if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
             
-            const photo = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_square_grey_120dp.png';
+            const photo = user.photoURL || 'assets/avatar.png';
             const name = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
             const firstName = name.split(' ')[0];
 
