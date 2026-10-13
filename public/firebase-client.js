@@ -82,28 +82,49 @@ try {
 export async function syncUserProfile(user, additionalData = {}) {
   if (!user || !user.uid) return null;
 
+  const email = (user.email || '').toLowerCase().trim();
+  const now = new Date().toISOString();
+
+  // Any email address can register: they immediately become a supporter.
+  // The admin email addresses are listed in and verified against Firebase.
+  let assignedRole = additionalData.role || 'supporter';
+  let assignedStatus = additionalData.status || 'supporter';
+
   const payload = {
     uid: user.uid,
-    email: (user.email || '').toLowerCase().trim(),
+    email: email,
     displayName: user.displayName || '',
     photoURL: user.photoURL || '',
     phoneNumber: user.phoneNumber || '',
+    role: assignedRole,
+    status: assignedStatus, // Status of supporter for anyone registering
     tag: TRANSACTION_TAG, // CRITICAL: 'aifoundation'
     businessId: BUSINESS_ID, // 'aifoundation'
     businessName: 'AI Foundation',
     source: 'aifoundation',
     authProvider: 'google',
-    lastLoginAt: new Date().toISOString(),
+    lastLoginAt: now,
     ...additionalData
   };
 
-  // 1. Dual-layer: Send to Server (authorized with Service Account)
+  if (!payload.registeredAt) {
+    payload.registeredAt = now;
+  }
+
+  // 1. Dual-layer: Send to Server (which checks against admin emails listed in Firebase)
   try {
-    await fetch('/api/auth/sync', {
+    const res = await fetch('/api/auth/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) {
+        payload.role = data.user.role;
+        payload.status = data.user.status;
+      }
+    }
   } catch (err) {
     console.warn("⚠️ [Server Auth Sync] Notice:", err.message);
   }
@@ -113,7 +134,7 @@ export async function syncUserProfile(user, additionalData = {}) {
     try {
       const userRef = doc(collection(db, 'users'), user.uid);
       await setDoc(userRef, payload, { merge: true });
-      console.log(`✅ [Firestore] User profile synchronized: ${user.email} (tag: ${TRANSACTION_TAG})`);
+      console.log(`✅ [Firestore] User profile synchronized: ${user.email} (tag: ${TRANSACTION_TAG}, status: ${payload.status}, role: ${payload.role})`);
     } catch (e) {
       console.info("ℹ️ [Firestore] Client direct user write synced via server endpoint.");
     }
@@ -245,6 +266,50 @@ export async function getUserProfile(uid) {
   return null;
 }
 
+/**
+ * Send a chat message (Supporter to SuperAdmin or SuperAdmin reply)
+ * COMPLIANCE: 7-Year Statutory Record Retention, No Uploads, Links Supported
+ */
+export async function sendChatMessage(messageData) {
+  if (!messageData) throw new Error('Message data is required.');
+  if (messageData.hasUploads || messageData.file || messageData.files) {
+    throw new Error('File uploads are not permitted. Only text and web links are allowed.');
+  }
+
+  const res = await fetch('/api/chat/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(messageData)
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Failed to send chat message.');
+  }
+  return data;
+}
+
+/**
+ * Retrieve messages for a chat conversation
+ */
+export async function getChatMessages(conversationId) {
+  if (!conversationId) return [];
+  const res = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(conversationId)}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.messages || [];
+}
+
+/**
+ * Retrieve chat conversations list (SuperAdmin inbox)
+ */
+export async function getChatConversations() {
+  const res = await fetch('/api/chat/conversations');
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.conversations || [];
+}
+
 // Global Auth State Observer
 if (auth) {
   onAuthStateChanged(auth, async (user) => {
@@ -276,6 +341,9 @@ window.firebaseService = {
   onAuthChange,
   syncUserProfile,
   recordTransaction,
+  sendChatMessage,
+  getChatMessages,
+  getChatConversations,
   collection,
   doc,
   setDoc,
@@ -290,3 +358,4 @@ window.firebaseService = {
 window.dispatchEvent(new CustomEvent('firebaseServiceReady', { 
   detail: { isConnected, tag: TRANSACTION_TAG, authReady: Boolean(auth) } 
 }));
+

@@ -79,14 +79,36 @@ if (!fs.existsSync(PUBLIC_DATA_DIR)) {
     fs.mkdirSync(PUBLIC_DATA_DIR, { recursive: true });
 }
 
+function deduplicateItems(items) {
+    if (!Array.isArray(items)) return [];
+    const seen = new Set();
+    const result = [];
+    for (const item of items) {
+        if (!item) continue;
+        const normLink = (item.link || '').trim().toLowerCase().replace(/\/+$/, '');
+        const normTitle = (item.title || '').trim().toLowerCase();
+        const id = (item.id || '').trim();
+        const key = id || normLink || normTitle;
+        if (key && seen.has(key)) continue;
+        if (normLink && seen.has(normLink)) continue;
+        if (normTitle && seen.has(normTitle)) continue;
+        if (key) seen.add(key);
+        if (normLink) seen.add(normLink);
+        if (normTitle) seen.add(normTitle);
+        result.push(item);
+    }
+    return result;
+}
+
 function savePosts(posts) {
+    const deduped = deduplicateItems(posts);
     try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(posts, null, 2));
+        fs.writeFileSync(DATA_FILE, JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping DATA_FILE write:', e.message);
     }
     try {
-        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'posts.json'), JSON.stringify(posts, null, 2));
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'posts.json'), JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
@@ -101,13 +123,14 @@ function getCommunityPosts() {
 }
 
 function saveCommunityPosts(posts) {
+    const deduped = deduplicateItems(posts);
     try {
-        fs.writeFileSync(COMM_DATA_FILE, JSON.stringify(posts, null, 2));
+        fs.writeFileSync(COMM_DATA_FILE, JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping COMM_DATA_FILE write:', e.message);
     }
     try {
-        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'community.json'), JSON.stringify(posts, null, 2));
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'community.json'), JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
@@ -122,13 +145,14 @@ function getTechPosts() {
 }
 
 function saveTechPosts(posts) {
+    const deduped = deduplicateItems(posts);
     try {
-        fs.writeFileSync(TECH_DATA_FILE, JSON.stringify(posts, null, 2));
+        fs.writeFileSync(TECH_DATA_FILE, JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping TECH_DATA_FILE write:', e.message);
     }
     try {
-        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'tech.json'), JSON.stringify(posts, null, 2));
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'tech.json'), JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
@@ -143,13 +167,14 @@ function getProjects() {
 }
 
 function saveProjects(projects) {
+    const deduped = deduplicateItems(projects);
     try {
-        fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(projects, null, 2));
+        fs.writeFileSync(PROJECTS_DATA_FILE, JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping PROJECTS_DATA_FILE write:', e.message);
     }
     try {
-        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'projects.json'), JSON.stringify(projects, null, 2));
+        fs.writeFileSync(path.join(PUBLIC_DATA_DIR, 'projects.json'), JSON.stringify(deduped, null, 2));
     } catch (e) {
         console.warn('[Sync] Read-only environment, skipping public/data write:', e.message);
     }
@@ -220,7 +245,7 @@ app.get('/api/posts', (req, res) => {
 
 // CREATE new post
 app.post('/api/posts', async (req, res) => {
-    const { title, summary, link, imageUrl, platform, author, id } = req.body;
+    const { title, summary, link, imageUrl, platform, author, id, firestoreSynced } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
     }
@@ -243,15 +268,18 @@ app.post('/api/posts', async (req, res) => {
     }
     savePosts(posts);
 
-    try {
-        await firebaseService.writeDocument('content', newPost.id, {
-            ...newPost,
-            category: 'articles',
-            tag: 'aifoundation',
-            businessId: 'aifoundation'
-        }, true);
-    } catch (e) {
-        console.warn('[Firebase] Warning writing post to firestore:', e.message);
+    // Only write to Firestore if not already synchronized directly by client
+    if (!firestoreSynced) {
+        try {
+            await firebaseService.writeDocument('content', newPost.id, {
+                ...newPost,
+                category: 'articles',
+                tag: 'aifoundation',
+                businessId: 'aifoundation'
+            }, true);
+        } catch (e) {
+            console.warn('[Firebase] Warning writing post to firestore:', e.message);
+        }
     }
 
     res.json({ success: true, post: newPost });
@@ -275,22 +303,42 @@ app.get('/api/community', (req, res) => {
 });
 
 app.post('/api/community', async (req, res) => {
-    let imgUrl = req.body.imageUrl || req.body.imageBase64 || '';
+    const { title, summary, link, imageUrl, imageBase64, platform, id, firestoreSynced } = req.body;
+    let imgUrl = imageUrl || imageBase64 || '';
     if (imgUrl) {
         imgUrl = await uploadToImgBB(imgUrl);
     }
     const posts = getCommunityPosts();
     const newPost = {
-        id: 'comm_' + Date.now(),
-        title: req.body.title || 'Untitled',
-        summary: req.body.summary || '',
-        platform: req.body.platform || 'linkedin',
-        link: req.body.link || '',
+        id: id || ('comm_' + Date.now()),
+        title: title || 'Untitled',
+        summary: summary || '',
+        platform: platform || 'linkedin',
+        link: link || '',
         imageUrl: imgUrl,
-        date: new Date().toISOString()
+        date: req.body.date || new Date().toISOString()
     };
-    posts.unshift(newPost);
+    const idx = posts.findIndex(p => p.id === newPost.id || (p.link && p.link === newPost.link));
+    if (idx >= 0) {
+        posts[idx] = newPost;
+    } else {
+        posts.unshift(newPost);
+    }
     saveCommunityPosts(posts);
+
+    if (!firestoreSynced) {
+        try {
+            await firebaseService.writeDocument('content', newPost.id, {
+                ...newPost,
+                category: 'community',
+                tag: 'aifoundation',
+                businessId: 'aifoundation'
+            }, true);
+        } catch (e) {
+            console.warn('[Firebase] Warning writing community to firestore:', e.message);
+        }
+    }
+
     res.json({ success: true, post: newPost });
 });
 
@@ -311,22 +359,42 @@ app.get('/api/tech', (req, res) => {
 });
 
 app.post('/api/tech', async (req, res) => {
-    let imgUrl = req.body.imageUrl || req.body.imageBase64 || '';
+    const { title, summary, link, imageUrl, imageBase64, platform, id, firestoreSynced } = req.body;
+    let imgUrl = imageUrl || imageBase64 || '';
     if (imgUrl) {
         imgUrl = await uploadToImgBB(imgUrl);
     }
     const posts = getTechPosts();
     const newPost = {
-        id: 'tech_' + Date.now(),
-        title: req.body.title || 'Untitled',
-        summary: req.body.summary || '',
-        platform: req.body.platform || 'linkedin',
-        link: req.body.link || '',
+        id: id || ('tech_' + Date.now()),
+        title: title || 'Untitled',
+        summary: summary || '',
+        platform: platform || 'linkedin',
+        link: link || '',
         imageUrl: imgUrl,
-        date: new Date().toISOString()
+        date: req.body.date || new Date().toISOString()
     };
-    posts.unshift(newPost);
+    const idx = posts.findIndex(p => p.id === newPost.id || (p.link && p.link === newPost.link));
+    if (idx >= 0) {
+        posts[idx] = newPost;
+    } else {
+        posts.unshift(newPost);
+    }
     saveTechPosts(posts);
+
+    if (!firestoreSynced) {
+        try {
+            await firebaseService.writeDocument('content', newPost.id, {
+                ...newPost,
+                category: 'tech',
+                tag: 'aifoundation',
+                businessId: 'aifoundation'
+            }, true);
+        } catch (e) {
+            console.warn('[Firebase] Warning writing tech to firestore:', e.message);
+        }
+    }
+
     res.json({ success: true, post: newPost });
 });
 
@@ -347,7 +415,7 @@ app.get('/api/projects', (req, res) => {
 });
 
 app.post('/api/projects', async (req, res) => {
-    const { title, summary, link, imageUrl, imageBase64, platform, author, id } = req.body;
+    const { title, summary, link, imageUrl, imageBase64, platform, author, id, firestoreSynced } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
     }
@@ -374,15 +442,18 @@ app.post('/api/projects', async (req, res) => {
     }
     saveProjects(projects);
 
-    try {
-        await firebaseService.writeDocument('content', newProject.id, {
-            ...newProject,
-            category: 'projects',
-            tag: 'aifoundation',
-            businessId: 'aifoundation'
-        }, true);
-    } catch (e) {
-        console.warn('[Firebase] Warning writing project to firestore:', e.message);
+    // Only write to Firestore if not already synchronized directly by client
+    if (!firestoreSynced) {
+        try {
+            await firebaseService.writeDocument('content', newProject.id, {
+                ...newProject,
+                category: 'projects',
+                tag: 'aifoundation',
+                businessId: 'aifoundation'
+            }, true);
+        } catch (e) {
+            console.warn('[Firebase] Warning writing project to firestore:', e.message);
+        }
     }
 
     res.json({ success: true, project: newProject });
@@ -819,20 +890,34 @@ app.get('/api/firebase/config', (req, res) => {
 // Synchronize Firebase Google Auth user profile with tag 'aifoundation'
 app.post('/api/auth/sync', async (req, res) => {
     try {
-        const { uid, email, displayName, photoURL, phoneNumber, address, role } = req.body;
+        const { uid, email, displayName, photoURL, phoneNumber, address, role, status, detailsRegistered, registeredAt } = req.body;
         if (!uid) {
             return res.status(400).json({ error: 'UID is required' });
         }
+
+        const normalizedEmail = (email || '').toLowerCase().trim();
+        const normUid = (uid || '').trim();
+        
+        // Verify superadmin status strictly: ONLY ZK79FRQoVlYhsgvMibhi81dRUWj2 and L5euSJAfNKdDOX6mT0qmrCGjUA53
+        const isSuperAdmin = firebaseService.isSuperAdminUser(normUid, normalizedEmail);
+
+        // These two are the ONLY superadmin allowed; everyone else is supporter
+        const assignedRole = isSuperAdmin ? 'superadmin' : 'supporter';
+        const assignedStatus = isSuperAdmin ? 'superadmin' : 'supporter';
+
         const result = await firebaseService.syncUser({
-            uid,
-            email,
+            uid: normUid,
+            email: normalizedEmail,
             displayName,
             photoURL,
             phoneNumber,
             address,
-            role: role || 'supporter'
+            role: assignedRole,
+            status: assignedStatus,
+            detailsRegistered,
+            registeredAt
         });
-        res.json({ success: true, user: result.user });
+        res.json({ success: true, user: result.user, isAdmin: isSuperAdmin, isSuperAdmin });
     } catch (e) {
         console.error('[Auth Sync] Error:', e);
         res.status(500).json({ error: e.message });
@@ -853,32 +938,37 @@ app.get('/api/users/:uid', async (req, res) => {
     }
 });
 
-// Verify if a Google Auth user is authorized as an administrator
+// Verify if a Google Auth user is authorized as a SuperAdmin in Firebase
 app.post('/api/auth/admin-verify', async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, uid } = req.body;
         const normalizedEmail = (email || '').toLowerCase().trim();
+        const normUid = (uid || '').trim();
         
-        // Allowed admin domains or email patterns
-        // Anyone authenticated via Google on the AI Foundation staff / domains
-        const adminList = (process.env.ADMIN_EMAILS || 'david@aifoundation.com.au,admin@aifoundation.com.au,admin@aifoundation.net.au,support@aifoundation.net.au,davidrobertson.info@gmail.com')
-            .toLowerCase()
-            .split(',')
-            .map(e => e.trim());
-        
-        const isDomainAdmin = normalizedEmail.endsWith('@aifoundation.com.au') || normalizedEmail.endsWith('@aifoundation.net.au');
-        const isExplicitAdmin = adminList.includes(normalizedEmail);
-
-        // Strict authorization: Domain matches or explicitly whitelisted admin
-        const isAuthorized = Boolean(normalizedEmail && (isExplicitAdmin || isDomainAdmin || process.env.ALLOW_ANY_GOOGLE_ADMIN === 'true'));
+        // SuperAdmin authorization strictly verified: only the two authorized users
+        const isAuthorized = firebaseService.isSuperAdminUser(normUid, normalizedEmail) || await firebaseService.isEmailAdminInFirebase(normalizedEmail, normUid);
 
         res.json({
             authorized: isAuthorized,
             email: normalizedEmail,
-            role: isAuthorized ? 'admin' : 'supporter'
+            role: isAuthorized ? 'superadmin' : 'supporter',
+            status: isAuthorized ? 'superadmin' : 'supporter',
+            isSuperAdmin: isAuthorized
         });
     } catch (e) {
         console.error('[Admin Verify] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Fast check if a user is listed as a SuperAdmin in Firebase
+app.get('/api/auth/admin-check', async (req, res) => {
+    try {
+        const email = (req.query.email || '').toLowerCase().trim();
+        const uid = (req.query.uid || '').trim();
+        const isAdmin = firebaseService.isSuperAdminUser(uid, email) || await firebaseService.isEmailAdminInFirebase(email, uid);
+        res.json({ email, isAdmin, isSuperAdmin: isAdmin });
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
@@ -895,6 +985,111 @@ app.get('/api/admin/database-inputs', async (req, res) => {
         res.json(result);
     } catch (e) {
         console.error('[Admin DB Inputs] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==========================================
+// SUPPORTER CHAT (Behind Login Panel)
+// Compliance: 7-Year Retention, No Uploads, Links Supported
+// ==========================================
+
+// Send a chat message (Supporter to SuperAdmin, or SuperAdmin reply)
+app.post('/api/chat/send', async (req, res) => {
+    try {
+        const {
+            senderUid,
+            senderEmail,
+            senderName,
+            senderPhoto,
+            senderRole,
+            recipientUid,
+            recipientEmail,
+            recipientName,
+            conversationId,
+            userMessage,
+            message,
+            hasUploads
+        } = req.body;
+
+        // Strict rejection: uploads are not allowed
+        if (hasUploads || req.body.file || req.body.attachment || req.body.files) {
+            return res.status(400).json({ error: 'File uploads are not permitted. Only text and web links are allowed.' });
+        }
+
+        const msgText = (userMessage || message || '').trim();
+        if (!msgText) {
+            return res.status(400).json({ error: 'Message cannot be empty.' });
+        }
+
+        if (!senderUid || !senderEmail) {
+            return res.status(400).json({ error: 'Authenticated sender UID and email are required.' });
+        }
+
+        const result = await firebaseService.sendChatMessage({
+            senderUid,
+            senderEmail,
+            senderName,
+            senderPhoto,
+            senderRole: senderRole || 'supporter',
+            recipientUid: recipientUid || 'superadmin',
+            recipientEmail: recipientEmail || 'support@aifoundation.net.au',
+            recipientName: recipientName || 'SuperAdmin',
+            conversationId: conversationId || `conv_${senderUid}`,
+            userMessage: msgText
+        });
+
+        if (!result.success) {
+            return res.status(500).json({ error: result.error || 'Failed to record chat message in Firebase.' });
+        }
+
+        res.json({
+            success: true,
+            message: result.message,
+            retentionYears: 7,
+            retainedUntil: result.message.retainedUntil
+        });
+    } catch (e) {
+        console.error('[Chat Send] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Retrieve message history for a conversation
+app.get('/api/chat/messages', async (req, res) => {
+    try {
+        const { conversationId, uid, limit = 100 } = req.query;
+        const convId = conversationId || (uid ? `conv_${uid}` : null);
+
+        if (!convId) {
+            return res.status(400).json({ error: 'conversationId or uid is required.' });
+        }
+
+        const messages = await firebaseService.getChatMessages(convId, { limit: Number(limit) || 100 });
+        res.json({
+            success: true,
+            conversationId: convId,
+            count: messages.length,
+            messages: messages,
+            retentionPolicy: '7-Year Statutory Record Retention (Corporations Act 2001 & APP 11)'
+        });
+    } catch (e) {
+        console.error('[Chat Messages Fetch] Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Retrieve list of supporter conversations (Admin / SuperAdmin inbox)
+app.get('/api/chat/conversations', async (req, res) => {
+    try {
+        const conversations = await firebaseService.getChatConversations();
+        res.json({
+            success: true,
+            count: conversations.length,
+            conversations: conversations
+        });
+    } catch (e) {
+        console.error('[Chat Conversations Fetch] Error:', e);
         res.status(500).json({ error: e.message });
     }
 });

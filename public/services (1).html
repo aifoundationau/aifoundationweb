@@ -37,7 +37,7 @@
                     <!-- Logged In State: User Profile Trigger with Dropdown -->
                     <div class="user-menu-wrapper" id="userMenuWrapper" style="display: none;">
                         <button type="button" class="user-profile-badge" id="userProfileBadge" aria-haspopup="true" aria-expanded="false" title="Account &amp; Settings">
-                            <img id="userAvatarImg" src="assets/logo.png" alt="User Avatar" class="user-avatar-small" />
+                            <img id="userAvatarImg" src="assets/avatar.png" alt="User Avatar" class="user-avatar-small" />
                             <span id="userDisplayName" class="user-display-name">AI Foundation</span>
                             <i class="fa-solid fa-chevron-down user-dropdown-caret" id="userDropdownCaret"></i>
                         </button>
@@ -46,7 +46,7 @@
                         <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;">
                             <!-- Profile Header -->
                             <div class="user-dropdown-header">
-                                <img id="menuUserAvatar" src="assets/logo.png" alt="Avatar" class="dropdown-avatar-img" />
+                                <img id="menuUserAvatar" src="assets/avatar.png" alt="Avatar" class="dropdown-avatar-img" />
                                 <div class="dropdown-user-details">
                                     <div id="menuUserName" class="dropdown-user-name">Account</div>
                                     <div id="menuUserEmail" class="dropdown-user-email"></div>
@@ -63,6 +63,15 @@
                                     <i class="fa-solid fa-user"></i> Supporter Portal
                                 </div>
                                 <ul class="dropdown-items-list">
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuSupporterChatBtn">
+                                            <span class="item-icon-wrap" style="background: rgba(0, 78, 204, 0.1); color: var(--primary);"><i class="fa-solid fa-comments"></i></span>
+                                            <div class="item-text">
+                                                <strong>Message SuperAdmin</strong>
+                                                <small>Direct chat with administrative team</small>
+                                            </div>
+                                        </button>
+                                    </li>
                                     <li>
                                         <button type="button" class="dropdown-item" id="menuRegisterDetailsBtn">
                                             <span class="item-icon-wrap primary"><i class="fa-solid fa-id-card"></i></span>
@@ -89,6 +98,15 @@
                                             <div class="item-text">
                                                 <strong>Settings &amp; Admin Panel</strong>
                                                 <small>Full administrative controls</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuAdminChatInboxBtn">
+                                            <span class="item-icon-wrap" style="background: rgba(16, 185, 129, 0.1); color: #10b981;"><i class="fa-solid fa-inbox"></i></span>
+                                            <div class="item-text">
+                                                <strong>Supporter Messages</strong>
+                                                <small>Inbox &amp; conversation threads</small>
                                             </div>
                                         </button>
                                     </li>
@@ -125,15 +143,6 @@
                                             <div class="item-text">
                                                 <strong>Database Activity</strong>
                                                 <small>Multi-tenant recent inputs</small>
-                                            </div>
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" class="dropdown-item" id="menuDataContractsBtn">
-                                            <span class="item-icon-wrap" style="background: rgba(0, 102, 255, 0.1); color: var(--primary);"><i class="fa-solid fa-file-contract"></i></span>
-                                            <div class="item-text">
-                                                <strong>Data Contracts</strong>
-                                                <small>System Integrity</small>
                                             </div>
                                         </button>
                                     </li>
@@ -177,10 +186,10 @@
                         <i class="fa-solid fa-briefcase"></i>
                         <span>Services</span>
                     </li>
-                    <li class="sidebar-item" onclick="window.location.href='index.html#education'">
+                    <!-- <li class="sidebar-item" onclick="window.location.href='index.html#education'">
                         <i class="fa-solid fa-graduation-cap"></i>
                         <span>Classroom</span>
-                    </li>
+                    </li> -->
                     <li class="sidebar-item" onclick="window.location.href='index.html#david'">
                         <i class="fa-solid fa-address-card"></i>
                         <span>Contact</span>
@@ -467,153 +476,46 @@
                 </div>
             </footer>
         </div>
-    <!-- Supporter Profile / Register Details Modal -->
-    <div class="modal" id="userDetailsModal" style="display: none;">
-        <div class="modal-content supporter-modal-content">
-            <span class="close" id="closeUserDetailsBtn">&times;</span>
-            <div style="text-align: center; margin-bottom: 24px;">
-                <div style="width: 56px; height: 56px; background: rgba(0, 102, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: var(--primary); font-size: 24px;">
-                    <i class="fa-solid fa-id-card"></i>
-                </div>
-                <h2 style="font-size: 1.35rem; color: #0f172a; margin-bottom: 6px;">Register Your Details</h2>
-                <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.4; margin: 0 auto;">
-                    Keep your contact information up to date to receive AI literacy updates, research briefings, and event invitations.
-                </p>
-            </div>
-
-            <form id="userDetailsForm">
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                        Full Name <span style="color: #ef4444;">*</span>
-                    </label>
-                    <div style="position: relative;">
-                        <input type="text" id="userFormDisplayName" required placeholder="e.g. Jane Doe" style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                        <i class="fa-solid fa-user" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                        Email Address
-                    </label>
-                    <div style="position: relative;">
-                        <input type="email" id="userFormEmail" readonly style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #f8fafc; color: #64748b; cursor: not-allowed;" />
-                        <i class="fa-solid fa-envelope" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
-                    </div>
-                    <small style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: block;">Linked with your verified Google Account</small>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                        Phone Number <span style="color: #ef4444;">*</span>
-                    </label>
-                    <div style="position: relative;">
-                        <input type="tel" id="userFormPhone" required placeholder="e.g. 0412 345 678 or +61 412 345 678" style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                        <i class="fa-solid fa-phone" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
-                    </div>
-                </div>
-
-                <!-- Address Box -->
-                <div class="supporter-address-box">
-                    <div class="supporter-address-header">
-                        <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i>
-                        <span>Address</span>
-                    </div>
-
-                    <!-- Apartment Line -->
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                            Apartment Line
-                        </label>
-                        <div style="position: relative;">
-                            <input type="text" id="userFormAddressApartment" placeholder="e.g. Apt 4B, Unit 12, Suite 300 (optional)" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                            <i class="fa-solid fa-building" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
-                        </div>
-                    </div>
-
-                    <!-- Street Line -->
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                            Street Line
-                        </label>
-                        <div style="position: relative;">
-                            <input type="text" id="userFormAddressStreet" placeholder="e.g. 123 Collins Street" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                            <i class="fa-solid fa-road" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
-                        </div>
-                    </div>
-
-                    <!-- Suburb Line & State Line -->
-                    <div class="supporter-address-grid" style="margin-bottom: 12px;">
-                        <div>
-                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                                Suburb Line
-                            </label>
-                            <div style="position: relative;">
-                                <input type="text" id="userFormAddressSuburb" placeholder="e.g. Melbourne" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                                <i class="fa-solid fa-city" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                                State Line
-                            </label>
-                            <div style="position: relative;">
-                                <input type="text" id="userFormAddressState" placeholder="e.g. VIC or NSW" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                                <i class="fa-solid fa-map" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Country Line & Postcode Line -->
-                    <div class="supporter-address-grid">
-                        <div>
-                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                                Country Line
-                            </label>
-                            <div style="position: relative;">
-                                <input type="text" id="userFormAddressCountry" placeholder="e.g. Australia" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                                <i class="fa-solid fa-globe" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                                Postcode Line
-                            </label>
-                            <div style="position: relative;">
-                                <input type="text" id="userFormAddressPostcode" placeholder="e.g. 3000" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
-                                <i class="fa-solid fa-signs-post" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="userFormStatusMsg" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; margin-bottom: 16px;"></div>
-
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button type="button" id="cancelUserDetailsBtn" class="supporter-cancel-btn">
-                        Cancel
-                    </button>
-                    <button type="submit" id="saveUserDetailsBtn" class="supporter-save-btn">
-                        <i class="fa-solid fa-check"></i> Save Details
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Admin Panel Modal -->
+    <!-- Admin Modal -->
     <div class="modal" id="adminModal">
         <div class="modal-content">
-            <span class="close" id="closeAdminBtn">&times;</span>
+            <!-- Topbar (Fixed Header for Authenticated Panel) -->
+            <div class="admin-panel-topbar">
+                <!-- SuperAdmin View Header -->
+                <div class="admin-user-info" id="adminTopBarSuperWrap" style="display: flex;">
+                    <i class="fa-solid fa-crown" style="color: #0066ff; font-size: 1.25rem;"></i>
+                    <div style="display: flex; flex-direction: column; min-width: 0;">
+                        <span style="font-weight: 700; font-size: 1.05rem; color: #0f172a; line-height: 1.2;">Administration &amp; Settings</span>
+                        <span style="font-size: 0.8rem; color: #64748b; line-height: 1.2;">SuperAdmin Verified &bull; <strong id="adminPanelUserEmail">support@aifoundation.net.au</strong></span>
+                    </div>
+                </div>
+
+                <!-- Supporter View Header -->
+                <div class="admin-user-info" id="adminTopBarSupporterWrap" style="display: none;">
+                    <i class="fa-solid fa-user-check" style="color: #10b981; font-size: 1.25rem;"></i>
+                    <div style="display: flex; flex-direction: column; min-width: 0;">
+                        <span style="font-weight: 700; font-size: 1.05rem; color: #0f172a; line-height: 1.2;">Supporter Portal</span>
+                        <span style="font-size: 0.8rem; color: #64748b; line-height: 1.2;">Supporter Verified &bull; <strong id="supporterPanelUserEmail">supporter@example.com</strong></span>
+                    </div>
+                </div>
+
+                <!-- Header Actions: Close Panel Button and Close 'X' -->
+                <div class="admin-panel-topbar-actions">
+                    <button type="button" class="admin-panel-close-btn" id="closeAdminPanelBtn" title="Close Panel">
+                        <i class="fa-solid fa-xmark"></i> Close Panel
+                    </button>
+                    <button type="button" class="close" id="closeAdminBtn" aria-label="Close modal">&times;</button>
+                </div>
+            </div>
 
             <!-- Login View -->
-            <div id="adminLoginView" style="display: block; padding: 24px 12px; text-align: center;">
+            <div id="adminLoginView" style="display: none; padding: 24px 12px; text-align: center;">
                 <div style="width: 64px; height: 64px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #0066ff; font-size: 26px; box-shadow: 0 4px 14px rgba(0, 102, 255, 0.15);">
                     <i class="fa-solid fa-shield-halved"></i>
                 </div>
                 <h2 style="margin-bottom: 8px; font-size: 1.4rem; color: #0f172a;">Admin Authentication</h2>
                 <p style="margin-bottom: 24px; color: var(--text-muted); font-size: 0.95rem; max-width: 380px; margin-left: auto; margin-right: auto; line-height: 1.5;">
-                    Sign in with your authorized Google administrator account to access service administration and controls.
+                    Sign in with your authorized Google administrator account to manage articles, projects, and site settings.
                 </p>
 
                 <div style="max-width: 320px; margin: 0 auto;">
@@ -627,72 +529,412 @@
                         <span>Sign In with Google</span>
                     </button>
 
-                    <div id="adminLoginError"
-                        style="display: none; color: #ef4444; font-size: 0.88rem; margin-top: 14px; font-weight: 500;">
-                    </div>
+                    <p id="adminLoginError"
+                        style="color: #ef4444; font-size: 0.88rem; margin-top: 14px; display: none; font-weight: 500;"></p>
                 </div>
             </div>
 
             <!-- Panel View -->
             <div id="adminPanelView" style="display: none;">
-                <!-- Admin Panel Header Bar -->
-                <div class="admin-panel-topbar">
-                    <div class="admin-user-info">
-                        <i class="fa-solid fa-shield-halved" style="color: #0066ff;"></i>
-                        <span>Admin Verified: <strong id="adminPanelUserEmail">support@aifoundation.net.au</strong></span>
-                    </div>
-                    <button type="button" id="adminPanelLogoutBtn" class="admin-logout-action-btn" title="Sign out of Admin Session">
-                        <i class="fa-solid fa-right-from-bracket"></i> Exit Admin
-                    </button>
-                </div>
-
                 <!-- Mobile Dropdown Navigation Menu -->
                 <div class="admin-mobile-nav-bar">
                     <label for="adminMobileTabSelect" class="admin-mobile-nav-label">
                         <i class="fa-solid fa-bars-staggered"></i> Menu:
                     </label>
                     <select id="adminMobileTabSelect" class="admin-mobile-nav-select" aria-label="Select Admin Section">
+                        <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
+                        <option value="admin-settings-overview" selected>Settings &amp; Admin Panel</option>
+                        <option value="admin-supporter-chat">Supporter Messages</option>
                         <option value="admin-upload-post">Upload Content</option>
                         <option value="admin-upload-image">Upload Image</option>
                         <option value="admin-manage-posts">Manage Posts</option>
                         <option value="admin-database-activity">Database Activity</option>
-                        <option value="admin-data-contracts">Data Contracts (System Specs)</option>
                     </select>
                 </div>
 
                 <div class="admin-panel-layout">
-                    <!-- Admin Sidebar -->
+                    <!-- Admin Sidebar Navigation (Desktop) -->
                     <div class="admin-panel-sidebar">
-                        <h2 style="margin-bottom: 24px; font-size: 1.25rem;">Admin Panel</h2>
-                        <ul class="sidebar-list" id="adminTabs">
-                            <li class="sidebar-item active" data-target="admin-upload-post">
-                                <i class="fa-solid fa-upload"></i>
-                                <span>Upload Content</span>
-                            </li>
-                            <li class="sidebar-item" data-target="admin-upload-image">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span>Upload Image</span>
-                            </li>
-                            <li class="sidebar-item" data-target="admin-manage-posts">
-                                <i class="fa-solid fa-list"></i>
-                                <span>Manage Posts</span>
-                            </li>
-                            <li class="sidebar-item" data-target="admin-database-activity">
-                                <i class="fa-solid fa-database"></i>
-                                <span>Database Activity</span>
-                            </li>
-                            <li class="sidebar-item" data-target="admin-data-contracts" title="View Data Contracts &amp; Specifications">
-                                <i class="fa-solid fa-file-contract"></i>
-                                <span>Data Contracts</span>
-                            </li>
-                        </ul>
+                        <!-- SuperAdmin Sidebar -->
+                        <div id="adminSuperSidebar" style="display: block;">
+                            <div class="admin-sidebar-section-title">
+                                <i class="fa-solid fa-sliders"></i> Administration &amp; Settings
+                            </div>
+                            <ul class="sidebar-list" id="adminSuperTabs">
+                                <li class="sidebar-item" data-target="admin-register-details" title="Register Your Details / Update name, email & phone">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    <span>Register Your Details</span>
+                                </li>
+                                <li class="sidebar-item active" data-target="admin-settings-overview" title="Settings & Admin Panel Overview">
+                                    <i class="fa-solid fa-sliders"></i>
+                                    <span>Settings &amp; Admin Panel</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-supporter-chat" title="Supporter Messages & Chat Threads">
+                                    <i class="fa-solid fa-comments"></i>
+                                    <span>Supporter Messages</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-upload-post" title="Publish new articles & projects">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <span>Upload Content</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-upload-image" title="Direct ImgBB storage">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Upload Image</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-manage-posts" title="Review & delete published entries">
+                                    <i class="fa-solid fa-list-check"></i>
+                                    <span>Manage Posts</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-database-activity" title="Multi-tenant recent inputs">
+                                    <i class="fa-solid fa-database"></i>
+                                    <span>Database Activity</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Supporter Sidebar (Supporter strictly gets ONLY these 3 options) -->
+                        <div id="adminSupporterSidebar" style="display: none;">
+                            <div class="admin-sidebar-section-title">
+                                <i class="fa-solid fa-user"></i> Supporter Portal
+                            </div>
+                            <ul class="sidebar-list" id="adminSupporterTabs">
+                                <li class="sidebar-item active" data-target="supporter-tab-chat" title="Direct chat with administrative team">
+                                    <i class="fa-solid fa-comments"></i>
+                                    <span>Direct Chat with Administrative Team</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-register-details" title="Register Your Details / Update name, email & phone">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    <span>Register Your Details</span>
+                                </li>
+                                <li class="sidebar-item" data-target="supporter-tab-donate" title="Donation option (same as website front page)">
+                                    <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
+                                    <span>Donation Option</span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
 
                     <!-- Admin Content -->
                     <div class="admin-panel-content-pane">
 
+                        <!-- Tab: Settings & Admin Panel (SuperAdmin Overview) -->
+                        <div id="admin-settings-overview" class="admin-tab-content" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                                <div>
+                                    <h2 style="font-size: 1.35rem; color: #0f172a; margin: 0 0 4px; display: flex; align-items: center; gap: 10px;">
+                                        <i class="fa-solid fa-sliders" style="color: #0066ff;"></i>
+                                        Settings &amp; Admin Panel
+                                    </h2>
+                                    <p style="font-size: 0.9rem; color: #64748b; margin: 0;">
+                                        Full administrative controls, multi-tenant database explorer, and supporter communications.
+                                    </p>
+                                </div>
+                                <span class="db-live-badge"><i class="fa-solid fa-circle"></i> SuperAdmin Active</span>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                                <div class="admin-overview-card" data-jump="admin-upload-post" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(0, 102, 255, 0.1); color: #0066ff; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
+                                        <i class="fa-solid fa-upload"></i>
+                                    </div>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Upload Content</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Publish articles, news posts, or projects</small>
+                                </div>
+
+                                <div class="admin-overview-card" data-jump="admin-supporter-chat" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
+                                        <i class="fa-solid fa-comments"></i>
+                                    </div>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Supporter Messages</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Inbox &amp; conversation threads</small>
+                                </div>
+
+                                <div class="admin-overview-card" data-jump="admin-upload-image" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </div>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Upload Image</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Direct ImgBB cloud storage</small>
+                                </div>
+
+                                <div class="admin-overview-card" data-jump="admin-manage-posts" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
+                                        <i class="fa-solid fa-list-check"></i>
+                                    </div>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Manage Posts</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Review &amp; delete published entries</small>
+                                </div>
+
+                                <div class="admin-overview-card" data-jump="admin-database-activity" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(14, 165, 233, 0.1); color: #0ea5e9; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
+                                        <i class="fa-solid fa-database"></i>
+                                    </div>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Database Activity</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Multi-tenant recent inputs</small>
+                                </div>
+
+                                <div class="admin-overview-card" data-jump="admin-register-details" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </div>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Register Your Details</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Update name, email &amp; phone</small>
+                                </div>
+                            </div>
+
+                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px 22px;">
+                                <div style="display: flex; align-items: center; gap: 8px; color: #1e40af; font-weight: 700; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-shield-halved"></i> Statutory Compliance &amp; Security Status
+                                </div>
+                                <p style="font-size: 0.88rem; color: #1e3a8a; margin: 0; line-height: 1.5;">
+                                    SuperAdmin rights are strictly verified against authorized accounts in Firebase. Supporter messages and audit entries are immutably archived with 7-year statutory retention.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Register Your Details / Update name, email & phone (For Both SuperAdmin & Supporter) -->
+                        <div id="admin-register-details" class="admin-tab-content" style="display: none;">
+                            <div style="margin-bottom: 24px;">
+                                <h2 style="font-size: 1.35rem; color: #0f172a; margin: 0 0 6px; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-id-card" style="color: #0066ff;"></i>
+                                    Register Your Details
+                                </h2>
+                                <p style="font-size: 0.9rem; color: #64748b; margin: 0; line-height: 1.4;">
+                                    Keep your contact information up to date to receive AI literacy updates, research briefings, and event invitations.
+                                </p>
+                            </div>
+
+                            <form id="userDetailsForm">
+                                <div style="margin-bottom: 16px;">
+                                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                                        Full Name <span style="color: #ef4444;">*</span>
+                                    </label>
+                                    <div style="position: relative;">
+                                        <input type="text" id="userFormDisplayName" required placeholder="e.g. Jane Doe" style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                        <i class="fa-solid fa-user" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                                    </div>
+                                </div>
+
+                                <div style="margin-bottom: 16px;">
+                                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                                        Email Address
+                                    </label>
+                                    <div style="position: relative;">
+                                        <input type="email" id="userFormEmail" readonly style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #f8fafc; color: #64748b; cursor: not-allowed;" />
+                                        <i class="fa-solid fa-envelope" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                                    </div>
+                                    <small style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px; display: block;">Linked with your verified Google Account</small>
+                                </div>
+
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                                        Phone Number <span style="color: #ef4444;">*</span>
+                                    </label>
+                                    <div style="position: relative;">
+                                        <input type="tel" id="userFormPhone" required placeholder="e.g. 0412 345 678 or +61 412 345 678" style="width: 100%; padding: 11px 14px 11px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                        <i class="fa-solid fa-phone" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Address Box -->
+                                <div class="supporter-address-box">
+                                    <div class="supporter-address-header">
+                                        <i class="fa-solid fa-location-dot" style="color: var(--primary);"></i>
+                                        <span>Address</span>
+                                    </div>
+
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                            Apartment Line
+                                        </label>
+                                        <div style="position: relative;">
+                                            <input type="text" id="userFormAddressApartment" placeholder="e.g. Apt 4B, Unit 12, Suite 300 (optional)" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                            <i class="fa-solid fa-building" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-bottom: 12px;">
+                                        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                            Street Line
+                                        </label>
+                                        <div style="position: relative;">
+                                            <input type="text" id="userFormAddressStreet" placeholder="e.g. 123 Collins Street" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                            <i class="fa-solid fa-road" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="supporter-address-grid" style="margin-bottom: 12px;">
+                                        <div>
+                                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                                Suburb Line
+                                            </label>
+                                            <div style="position: relative;">
+                                                <input type="text" id="userFormAddressSuburb" placeholder="e.g. Melbourne" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                                <i class="fa-solid fa-city" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                                State Line
+                                            </label>
+                                            <div style="position: relative;">
+                                                <input type="text" id="userFormAddressState" placeholder="e.g. VIC or NSW" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                                <i class="fa-solid fa-map" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="supporter-address-grid">
+                                        <div>
+                                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                                Country Line
+                                            </label>
+                                            <div style="position: relative;">
+                                                <input type="text" id="userFormAddressCountry" placeholder="e.g. Australia" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                                <i class="fa-solid fa-globe" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                                                Postcode Line
+                                            </label>
+                                            <div style="position: relative;">
+                                                <input type="text" id="userFormAddressPostcode" placeholder="e.g. 3000" style="width: 100%; padding: 9px 12px 9px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; background: #fff;" />
+                                                <i class="fa-solid fa-signs-post" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="userFormStatusMsg" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; margin-bottom: 16px;"></div>
+
+                                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                                    <button type="submit" id="saveUserDetailsBtn" class="supporter-save-btn">
+                                        <i class="fa-solid fa-check"></i> Save Details
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tab: Direct Chat with Administrative Team (Supporter Only) -->
+                        <div id="supporter-tab-chat" class="admin-tab-content" style="display: block;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                                <div>
+                                    <h2 style="font-size: 1.35rem; color: #0f172a; margin: 0 0 6px; display: flex; align-items: center; gap: 10px;">
+                                        <i class="fa-solid fa-headset" style="color: #0066ff;"></i>
+                                        Direct Chat with Administrative Team
+                                    </h2>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                        <span class="chat-recipient-badge"><i class="fa-solid fa-shield-halved"></i> SuperAdmin Team</span>
+                                        <span class="retention-pill" title="Corporations Act 2001 &amp; APP 11 statutory retention">
+                                            <i class="fa-solid fa-clock-rotate-left"></i> 7-Year Statutory Record Retention
+                                        </span>
+                                        <span class="partition-pill" title="Multi-tenant tag: aifoundation">
+                                            <i class="fa-solid fa-tag"></i> tag: aifoundation
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chat-constraints-banner" style="margin-bottom: 16px;">
+                                <div class="constraint-item allowed">
+                                    <i class="fa-solid fa-link"></i> Web links supported &amp; clickable
+                                </div>
+                                <div class="constraint-item prohibited">
+                                    <i class="fa-solid fa-ban"></i> File uploads prohibited (disabled)
+                                </div>
+                            </div>
+
+                            <div class="chat-messages-container" id="chatMessagesContainer" style="max-height: 380px;">
+                                <div class="chat-loading-state" id="chatLoadingState">
+                                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                                    <span>Loading conversation history...</span>
+                                </div>
+                                <div class="chat-empty-state" id="chatEmptyState" style="display: none;">
+                                    <div class="empty-icon-wrap">
+                                        <i class="fa-solid fa-comments"></i>
+                                    </div>
+                                    <h4>Direct Supporter Channel</h4>
+                                    <p>Send a message directly to the SuperAdmin team. Share inquiries, suggestions, or links to relevant materials.</p>
+                                    <small><i class="fa-solid fa-shield-halved"></i> All records are securely maintained in Cloud Firestore with 7-year audit retention.</small>
+                                </div>
+                                <div class="chat-feed-list" id="chatFeedList">
+                                    <!-- Dynamic chat bubbles rendered by JavaScript -->
+                                </div>
+                            </div>
+
+                            <div class="chat-composer-wrap" style="margin-top: 14px;">
+                                <div id="chatDropzoneNotice" class="chat-dropzone-notice" style="display: none;">
+                                    <i class="fa-solid fa-circle-exclamation"></i> File uploads are not permitted. Please paste web links instead.
+                                </div>
+                                <form id="supporterChatForm" class="chat-composer-form">
+                                    <div class="chat-input-row">
+                                        <textarea 
+                                            id="chatMessageInput" 
+                                            class="chat-textarea" 
+                                            rows="2" 
+                                            placeholder="Type your message to SuperAdmin... Paste web links (https://...) freely"
+                                            maxlength="4000"
+                                            required></textarea>
+                                        <button type="submit" id="sendChatBtn" class="chat-send-btn" title="Send message">
+                                            <i class="fa-solid fa-paper-plane"></i>
+                                            <span class="send-btn-label">Send</span>
+                                        </button>
+                                    </div>
+                                    <div class="chat-composer-footer">
+                                        <span class="chat-composer-hint">
+                                            <i class="fa-solid fa-circle-info"></i> Press <kbd>Enter</kbd> to send, <kbd>Shift + Enter</kbd> for new line
+                                        </span>
+                                        <span id="chatCharCounter" class="chat-char-counter">0 / 4,000</span>
+                                    </div>
+                                </form>
+                                <div id="chatStatusAlert" class="chat-status-alert" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Donation Option (Supporter Only, same as website front page) -->
+                        <div id="supporter-tab-donate" class="admin-tab-content" style="display: none;">
+                            <div style="margin-bottom: 24px;">
+                                <h2 style="font-size: 1.35rem; color: #0f172a; margin: 0 0 6px; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
+                                    Support the AI Foundation
+                                </h2>
+                                <p style="font-size: 0.92rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                    Every contribution directly powers AI literacy, community platforms, and education equity across Australia.
+                                </p>
+                            </div>
+
+                            <div class="donation-bar-card" style="box-shadow: none; border: 1px solid #e2e8f0; background: #f8fafc; padding: 24px;">
+                                <div class="donation-bar-controls">
+                                    <div class="donation-presets" id="panelDonationPresets">
+                                        <button type="button" class="donation-preset-btn active" data-amount="24">AUD $24</button>
+                                        <button type="button" class="donation-preset-btn" data-amount="48">AUD $48</button>
+                                        <button type="button" class="donation-preset-btn" data-amount="96">AUD $96</button>
+                                        <button type="button" class="donation-preset-btn" data-amount="120">AUD $120</button>
+                                    </div>
+
+                                    <div class="donation-custom-wrap" title="Enter custom whole dollar amount">
+                                        <span class="donation-custom-currency">AUD $</span>
+                                        <input type="text" id="panelDonationCustomAmount" class="donation-custom-input" placeholder="Custom" inputmode="numeric">
+                                    </div>
+
+                                    <div class="donation-actions">
+                                        <button type="button" id="panelPayWithStripeBtn" class="donation-pay-btn pay-stripe">
+                                            <i class="fa-solid fa-credit-card"></i> Pay with Card
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="panelDonationStatusMsg" style="display: none; font-size: 0.9rem; font-weight: 600; padding-top: 4px;"></div>
+                                
+                                <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: #94a3b8;">
+                                    <span><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe</span>
+                                    <span>Tax-deductible receipts issued instantly</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Upload Post Section -->
-                        <div id="admin-upload-post" class="admin-tab-content" style="display: block;">
+                        <div id="admin-upload-post" class="admin-tab-content" style="display: none;">
                             <h2 style="margin-bottom: 24px; font-size: 1.25rem;">Upload Content</h2>
                             <div class="admin-form">
                                 <select id="postCategory" required style="margin-bottom: 12px; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; width: 100%; font-family: inherit; font-weight: 500;">
@@ -723,6 +965,7 @@
                             </div>
 
                             <div class="admin-form" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px;">
+                                <!-- Dropzone / File Picker -->
                                 <div id="directImgbbDropzone" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 32px 20px; text-align: center; background: white; cursor: pointer; transition: all 0.2s;">
                                     <input type="file" id="directImgbbFileInput" accept="image/*" style="display: none;" />
                                     <div id="directImgbbPrompt">
@@ -746,8 +989,10 @@
                                     <i class="fa-solid fa-cloud-arrow-up"></i> Upload to ImgBB
                                 </button>
 
+                                <!-- Status / Progress -->
                                 <div id="directImgbbStatus" style="margin-top: 14px; font-size: 0.88rem; text-align: center; display: none;"></div>
 
+                                <!-- Upload Success Result Card -->
                                 <div id="directImgbbResultCard" style="display: none; margin-top: 20px; background: white; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px;">
                                     <div style="display: flex; align-items: center; gap: 8px; color: #16a34a; font-weight: 700; font-size: 0.95rem; margin-bottom: 12px;">
                                         <i class="fa-solid fa-circle-check"></i> Upload Successful!
@@ -895,470 +1140,101 @@
                             </div>
                         </div>
 
-                        <!-- Data Contracts Section -->
-                        <div id="admin-data-contracts" class="admin-tab-content" style="display: none;">
-                            <div class="contracts-hero">
-                                <div class="hero-badge-row">
-                                    <span class="hero-badge highlight"><i class="fa-solid fa-database"></i> Multi-Tenant Partition: tag: aifoundation</span>
-                                    <span class="hero-badge retention"><i class="fa-solid fa-clock-rotate-left"></i> Statutory Retention: 7 Years (ATO &amp; Corporations Act)</span>
-                                    <span class="hero-badge"><i class="fa-solid fa-shield-halved"></i> PCI DSS SAQ A Isolated</span>
-                                    <span class="hero-badge"><i class="fa-solid fa-lock"></i> Australian Privacy Act (APP)</span>
+                        <!-- Supporter Chat Section (SuperAdmin Inbox) -->
+                        <div id="admin-supporter-chat" class="admin-tab-content" style="display: none;">
+                            <div class="admin-chat-header-bar">
+                                <div>
+                                    <h2 style="font-size: 1.25rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fa-solid fa-comments" style="color: #004ecc;"></i> Supporter Chat Inbox
+                                    </h2>
+                                    <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
+                                        Review supporter messages &amp; reply directly. Tag: <code>aifoundation</code> &bull; 7-Year Statutory Retention Enforced.
+                                    </p>
                                 </div>
-                                <h2 class="contracts-title">Data Contracts &amp; System Integrity Specification</h2>
-                                <p class="contracts-subtitle">
-                                    The authoritative, immutable Single Source of Truth (SSOT) governing all data ingestion channels across UI forms, REST endpoints, Cloud Firestore transactions, and AI agent tool invocations for AI Foundation Australia.
-                                </p>
-                                <div class="hero-actions">
-                                    <a href="/data-contracts.md" target="_blank" class="hero-btn primary">
-                                        <i class="fa-solid fa-file-code"></i> View Raw Markdown Specification
-                                    </a>
-                                </div>
+                                <button type="button" id="adminRefreshChatBtn" class="admin-refresh-chat-btn">
+                                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                                </button>
                             </div>
 
-                            <!-- Domain 1: Billing & Financial Contributions -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-solid fa-credit-card" style="color: #2563eb;"></i> Domain 1: Billing &amp; Financial Contributions
-                                    </h3>
-                                    <span class="section-tag tag-financial">Financial / PCI</span>
+                            <div class="admin-chat-layout">
+                                <!-- Conversations List -->
+                                <div class="admin-chat-threads-sidebar">
+                                    <div class="admin-threads-header">
+                                        <span>Active Conversations</span>
+                                        <span id="adminThreadCount" class="admin-threads-badge">0</span>
+                                    </div>
+                                    <div class="admin-threads-list" id="adminThreadsList">
+                                        <!-- Dynamic conversation items -->
+                                    </div>
                                 </div>
-                                <div class="contract-table-wrap">
-                                    <table class="contract-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Field Name</th>
-                                                <th>Type</th>
-                                                <th>Ingestion Channel</th>
-                                                <th>Validation &amp; Constraints</th>
-                                                <th>Target Storage &amp; Retention</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span class="code-tag">transactionId</span></td>
-                                                <td>String</td>
-                                                <td>API Route (/api/transactions/*)</td>
-                                                <td>Required. Stripe (<span class="code-tag">pi_*</span>, <span class="code-tag">cs_*</span>) or PayPal 17-char ID.</td>
-                                                <td>Firestore <span class="code-tag">transactions/{id}</span> (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">tag</span></td>
-                                                <td>Enum String</td>
-                                                <td>Server Injection</td>
-                                                <td><strong>Immutable Constant:</strong> <span class="code-tag">'aifoundation'</span>. Partition key.</td>
-                                                <td>Firestore Root Field (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">amount</span></td>
-                                                <td>Integer</td>
-                                                <td>UI Form / API Route</td>
-                                                <td>Positive integer <span class="code-tag">1 &lt;= amount &lt;= 1,000,000</span>. Whole AUD only.</td>
-                                                <td>Firestore + Gateway (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">currency</span></td>
-                                                <td>Enum String</td>
-                                                <td>Server Default</td>
-                                                <td>Constant: <span class="code-tag">'aud'</span> (normalized lowercase).</td>
-                                                <td>Firestore Root Field (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">paymentMethod</span></td>
-                                                <td>Enum String</td>
-                                                <td>UI Tab / API Route</td>
-                                                <td>Strict Enum: <span class="code-tag">'stripe'</span> | <span class="code-tag">'paypal'</span>.</td>
-                                                <td>Firestore Root Field (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">status</span></td>
-                                                <td>Enum String</td>
-                                                <td>API / Webhook</td>
-                                                <td>State Machine: <span class="code-tag">initiated</span> &rarr; <span class="code-tag">succeeded</span> | <span class="code-tag">failed</span>.</td>
-                                                <td>Firestore Root Field (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">Card PAN / CVC</span></td>
-                                                <td>PCI Object</td>
-                                                <td>Stripe Elements iframe</td>
-                                                <td>Direct browser tokenization. Zero server transmission.</td>
-                                                <td>Stripe Vault Only (PCI DSS SAQ A)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="rule-callout">
-                                    <strong>Statutory Retention Rule:</strong> Under the Australian Corporations Act 2001 (s 286) and ATO regulations, all transaction records must be retained with complete audit integrity for a minimum of 7 years.
-                                </div>
-                            </section>
 
-                            <!-- Domain 2: Content Publishing -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-solid fa-newspaper" style="color: #d97706;"></i> Domain 2: Content Publishing &amp; Syndication
-                                    </h3>
-                                    <span class="section-tag tag-publishing">Public Content</span>
-                                </div>
-                                <div class="contract-table-wrap">
-                                    <table class="contract-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Field Name</th>
-                                                <th>Type</th>
-                                                <th>Ingestion Channel</th>
-                                                <th>Validation &amp; Constraints</th>
-                                                <th>Target Storage &amp; Retention</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span class="code-tag">title</span></td>
-                                                <td>String</td>
-                                                <td>UI Admin / API</td>
-                                                <td>Required. Length 1–250 chars. Trimmed. HTML entities encoded.</td>
-                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">summary</span></td>
-                                                <td>String</td>
-                                                <td>UI Admin / API</td>
-                                                <td>Optional. Length 0–3,000 chars. Auto-truncated to 30 words on cards.</td>
-                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">link</span></td>
-                                                <td>String (URI)</td>
-                                                <td>UI Admin / API</td>
-                                                <td>Required. Valid HTTP/HTTPS URI. Max length 2,048 chars.</td>
-                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">imageUrl</span></td>
-                                                <td>String (URI)</td>
-                                                <td>UI Admin / ImgBB</td>
-                                                <td>Required. Valid URI. Non-post images enforced on <span class="code-tag">i.ibb.co</span>.</td>
-                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">platform</span></td>
-                                                <td>Enum String</td>
-                                                <td>UI / Auto-Detect</td>
-                                                <td>Enum: <span class="code-tag">linkedin</span>, <span class="code-tag">youtube</span>, <span class="code-tag">google</span>, <span class="code-tag">twitter</span>, etc.</td>
-                                                <td>Local JSON (<span class="code-tag">data/*.json</span>)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                                <!-- Thread Conversation View -->
+                                <div class="admin-chat-active-thread" id="adminActiveThreadPane">
+                                    <div id="adminNoThreadSelected" class="admin-no-thread-selected">
+                                        <i class="fa-solid fa-envelope-open-text"></i>
+                                        <h4>Select a conversation</h4>
+                                        <p>Choose a supporter thread on the left to read messages and send replies.</p>
+                                    </div>
 
-                            <!-- Domain 3: Media Hosting & Asset Ingestion -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-solid fa-cloud-arrow-up" style="color: #4f46e5;"></i> Domain 3: Media Hosting &amp; Asset Ingestion
-                                    </h3>
-                                    <span class="section-tag tag-media">Media Asset</span>
-                                </div>
-                                <div class="contract-table-wrap">
-                                    <table class="contract-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Field Name</th>
-                                                <th>Type</th>
-                                                <th>Ingestion Channel</th>
-                                                <th>Validation &amp; Constraints</th>
-                                                <th>Target Storage &amp; Lifecycle</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span class="code-tag">imageBase64</span></td>
-                                                <td>String (Base64)</td>
-                                                <td>UI Dropzone / API</td>
-                                                <td>MIME <span class="code-tag">image/*</span>. Max payload 10MB.</td>
-                                                <td>Ephemeral Memory Transit Buffer</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">name</span></td>
-                                                <td>String</td>
-                                                <td>UI Input / API</td>
-                                                <td>Optional. 1–128 chars. Path traversal characters stripped.</td>
-                                                <td>ImgBB Album <span class="code-tag">1MZdyd</span></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                                    <div id="adminThreadConversationView" style="display: none; height: 100%; flex-direction: column;">
+                                        <div class="admin-thread-meta-bar">
+                                            <div class="admin-thread-user-info">
+                                                <img id="adminThreadAvatar" src="assets/avatar.png" alt="Avatar" class="user-avatar-small" />
+                                                <div>
+                                                    <strong id="adminThreadUserName">Supporter Name</strong>
+                                                    <div id="adminThreadUserEmail" style="font-size: 0.8rem; color: #64748b;">supporter@example.com</div>
+                                                </div>
+                                            </div>
+                                            <div class="admin-thread-retention-tag">
+                                                <i class="fa-solid fa-clock-rotate-left"></i> 7-Yr Retention
+                                            </div>
+                                        </div>
 
-                            <!-- Domain 4: Web Scraping & Metadata Extraction -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-solid fa-globe" style="color: #ea580c;"></i> Domain 4: Web Scraping &amp; Metadata Extraction
-                                    </h3>
-                                    <span class="section-tag tag-ssrf">SSRF Guard</span>
-                                </div>
-                                <div class="rule-callout" style="border-left-color: #ea580c; margin-top: 0;">
-                                    <strong>OWASP SSRF Boundary:</strong> All incoming URLs to <span class="code-tag">/api/extract-metadata</span> must be publicly routable. Connections to private RFC 1918 subnets (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), loopback (127.0.0.1), and cloud instance metadata (169.254.169.254) are strictly blocked.
-                                </div>
-                            </section>
+                                        <div class="admin-thread-feed" id="adminThreadFeed">
+                                            <!-- Chronological messages -->
+                                        </div>
 
-                            <!-- Domain 5: Administrative Access & Security Credentials -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-solid fa-shield" style="color: #dc2626;"></i> Domain 5: Administrative Access &amp; Security Credentials
-                                    </h3>
-                                    <span class="section-tag tag-security">High Security</span>
+                                        <!-- SuperAdmin Reply Composer -->
+                                        <div class="admin-thread-reply-wrap">
+                                            <div class="chat-constraints-banner mini">
+                                                <span><i class="fa-solid fa-link"></i> Web links permitted</span>
+                                                <span><i class="fa-solid fa-ban"></i> File uploads disabled</span>
+                                            </div>
+                                            <form id="adminReplyForm" class="admin-reply-form">
+                                                <textarea 
+                                                    id="adminReplyInput" 
+                                                    class="chat-textarea" 
+                                                    rows="2" 
+                                                    placeholder="Reply to supporter as SuperAdmin... (Links supported, uploads disabled)"
+                                                    maxlength="4000"
+                                                    required></textarea>
+                                                <button type="submit" id="adminSendReplyBtn" class="chat-send-btn" title="Send Reply">
+                                                    <i class="fa-solid fa-paper-plane"></i>
+                                                    <span>Reply</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="contract-table-wrap">
-                                    <table class="contract-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Credential</th>
-                                                <th>Format</th>
-                                                <th>Ingestion Channel</th>
-                                                <th>Validation Standard</th>
-                                                <th>Storage &amp; Evaluation</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span class="code-tag">email</span></td>
-                                                <td>Email String</td>
-                                                <td>Google OAuth 2.0</td>
-                                                <td>Authorized AI Foundation Domain or Admin Email</td>
-                                                <td>Verified via <span class="code-tag">/api/auth/admin-verify</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">uid</span></td>
-                                                <td>String (UID)</td>
-                                                <td>Firebase Auth</td>
-                                                <td>Unique Firebase UID</td>
-                                                <td>Firestore <span class="code-tag">users/{uid}</span> with role: admin</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">adminAuth</span></td>
-                                                <td>Cookie String</td>
-                                                <td>Browser Cookie</td>
-                                                <td><span class="code-tag">adminAuth=true</span>; Path: <span class="code-tag">/</span></td>
-                                                <td>Max-Age 31,536,000s (1 Year)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-
-                            <!-- Domain 6: Public Inquiries & Community Communication -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-solid fa-envelope-open-text" style="color: #059669;"></i> Domain 6: Public Inquiries &amp; Community Communication
-                                    </h3>
-                                    <span class="section-tag tag-privacy">PII / APP</span>
-                                </div>
-                                <div class="contract-table-wrap">
-                                    <table class="contract-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Field Name</th>
-                                                <th>Type</th>
-                                                <th>Ingestion Channel</th>
-                                                <th>Constraints</th>
-                                                <th>Storage &amp; Retention</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span class="code-tag">contactFirstName</span></td>
-                                                <td>String</td>
-                                                <td>UI Contact Form</td>
-                                                <td>1–50 chars. Required. Letters and hyphens only.</td>
-                                                <td>Corporate Mailbox (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">contactLastName</span></td>
-                                                <td>String</td>
-                                                <td>UI Contact Form</td>
-                                                <td>1–50 chars. Required. Letters and hyphens only.</td>
-                                                <td>Corporate Mailbox (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">contactSubject</span></td>
-                                                <td>String</td>
-                                                <td>UI Contact Form</td>
-                                                <td>1–150 chars. Newlines stripped to block header injection.</td>
-                                                <td>Corporate Mailbox (7 Years)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">contactMessage</span></td>
-                                                <td>String</td>
-                                                <td>UI Contact Form</td>
-                                                <td>1–5,000 chars. Script and HTML tags stripped.</td>
-                                                <td>Corporate Mailbox (7 Years)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-
-                            <!-- Domain 7: AI Agent Tool Calls & Extraction Slots -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-solid fa-robot" style="color: #7c3aed;"></i> Domain 7: AI Agent Tool Calls &amp; Extraction Slots
-                                    </h3>
-                                    <span class="section-tag tag-ai">AI Platform</span>
-                                </div>
-                                <div class="contract-table-wrap">
-                                    <table class="contract-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Slot / Tool Name</th>
-                                                <th>Type</th>
-                                                <th>Validation Rule</th>
-                                                <th>Fail-Safe Rejection Behavior</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span class="code-tag">amount_slot</span></td>
-                                                <td>Integer</td>
-                                                <td>Clamped to <span class="code-tag">1 &lt;= value &lt;= 10,000</span></td>
-                                                <td>Reject vague strings ("a lot"). Reprompt for whole AUD dollar amount.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">category_slot</span></td>
-                                                <td>Enum String</td>
-                                                <td>Must match: <span class="code-tag">['articles', 'projects', 'tech', 'community']</span></td>
-                                                <td>Reject hallucinated categories. Return allowable enum list.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">tag_enforcement</span></td>
-                                                <td>Enum String</td>
-                                                <td>Always forced to <span class="code-tag">'aifoundation'</span></td>
-                                                <td>Server overrides any conflicting tool argument.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-
-                            <!-- Domain 8: User Identity & Firebase Google Authentication -->
-                            <section class="contract-section">
-                                <div class="section-header">
-                                    <h3 class="section-title">
-                                        <i class="fa-brands fa-google" style="color: #4285F4;"></i> Domain 8: User Identity &amp; Firebase Google Authentication
-                                    </h3>
-                                    <span class="section-tag" style="background: #e0f2fe; color: #0369a1;">Identity &amp; Auth</span>
-                                </div>
-                                <p style="color: #64748b; font-size: 0.88rem; margin: 0 0 16px;">
-                                    Governs Firebase Client SDK Google Authentication, multi-tenant user profile synchronization, and session management. Enforces mandatory partition keys (<span class="code-tag">tag: 'aifoundation'</span>) and 7-year audit retention.
-                                </p>
-                                <div class="contract-table-wrap">
-                                    <table class="contract-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Field Name</th>
-                                                <th>Data Type</th>
-                                                <th>Ingestion Channel</th>
-                                                <th>Classification</th>
-                                                <th>Invariants &amp; Constraints</th>
-                                                <th>Storage &amp; Retention</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><span class="code-tag">uid</span></td>
-                                                <td>String</td>
-                                                <td>Google OAuth / Firebase SDK</td>
-                                                <td>Unique User ID</td>
-                                                <td>Required. Firebase UID format.</td>
-                                                <td>Firestore Document ID. Indexed.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">email</span></td>
-                                                <td>String (Email)</td>
-                                                <td>Google Account Profile</td>
-                                                <td>PII</td>
-                                                <td>Required. Valid RFC 5322 email. Lowercased, trimmed.</td>
-                                                <td>Stored in <span class="code-tag">users/{uid}</span>. AES-256. 7-Year retention.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">displayName</span></td>
-                                                <td>String</td>
-                                                <td>Google Account Profile</td>
-                                                <td>Public Identity</td>
-                                                <td>Optional. Max 120 chars. HTML entities escaped.</td>
-                                                <td>Firestore root field.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">photoURL</span></td>
-                                                <td>String (URI)</td>
-                                                <td>Google Account Profile</td>
-                                                <td>Public Identity</td>
-                                                <td>Optional. Valid HTTPS avatar URI (Google CDN).</td>
-                                                <td>Firestore root field.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">tag</span></td>
-                                                <td>Enum String</td>
-                                                <td>System Enforcement</td>
-                                                <td>Partition Key</td>
-                                                <td><strong>Constant:</strong> <span class="code-tag">'aifoundation'</span></td>
-                                                <td>Firestore root field. Indexed.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">businessId</span></td>
-                                                <td>Enum String</td>
-                                                <td>System Enforcement</td>
-                                                <td>Partition Key</td>
-                                                <td><strong>Constant:</strong> <span class="code-tag">'aifoundation'</span></td>
-                                                <td>Firestore root field.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">authProvider</span></td>
-                                                <td>Enum String</td>
-                                                <td>System Enforcement</td>
-                                                <td>Auth Metadata</td>
-                                                <td><strong>Constant:</strong> <span class="code-tag">'google'</span></td>
-                                                <td>Firestore root field.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">role</span></td>
-                                                <td>Enum String</td>
-                                                <td>Server Verification</td>
-                                                <td>Access Control</td>
-                                                <td>Value: <span class="code-tag">'supporter'</span> | <span class="code-tag">'admin'</span></td>
-                                                <td>Firestore root field.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><span class="code-tag">lastLoginAt</span></td>
-                                                <td>ISO 8601 Timestamp</td>
-                                                <td>Client / Server Sync</td>
-                                                <td>Audit</td>
-                                                <td>UTC timestamp of most recent authentication.</td>
-                                                <td>Firestore root field. 7-Year statutory retention.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="rule-callout">
-                                    <i class="fa-solid fa-circle-info" style="color: #0066ff; margin-right: 6px;"></i>
-                                    <strong>Multi-Tenant User Isolation:</strong> Even though the underlying Cloud Firestore database is shared among multiple businesses, every user record written by this application is tagged with <code>tag: 'aifoundation'</code>, and user-associated donation transactions automatically tie into their verified Google identity.
-                                </div>
-                            </section>
-
-                            <!-- Compliance Footer -->
-                            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; color: #64748b; font-size: 0.85rem;">
-                                <div><strong>AI Foundation Australia</strong> &bull; ABN 36 339 516 584</div>
-                                <div><span><i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 7-Year Statutory Data Retention Policy Enforced</span></div>
                             </div>
                         </div>
 
                     </div>
                 </div>
+            </div>
+
+            <!-- Panel Bottom Footer Bar (Fixed Bottom with Sign Out) -->
+            <div class="admin-panel-footer">
+                <div class="panel-footer-user-info">
+                    <span style="color: #64748b; font-size: 0.86rem;">Signed in as:</span>
+                    <strong id="panelFooterUserEmail" style="color: #0f172a; font-size: 0.88rem;">user@example.com</strong>
+                    <span id="panelFooterRoleBadge" class="user-role-badge role-supporter" style="font-size: 0.72rem; padding: 2px 8px;">
+                        Supporter
+                    </span>
+                </div>
+                <button type="button" id="panelSignOutBtn" class="panel-signout-btn" title="Sign out of Google session">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                </button>
             </div>
         </div>
     </div>
@@ -1432,6 +1308,6 @@
 
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="app.js?v=39"></script>
+    <script src="app.js?v=40"></script>
 </body>
 </html>

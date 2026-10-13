@@ -104,7 +104,6 @@ const postObserver = new IntersectionObserver((entries) => {
     const menuUploadImageBtn = document.getElementById('menuUploadImageBtn');
     const menuManagePostsBtn = document.getElementById('menuManagePostsBtn');
     const menuDatabaseActivityBtn = document.getElementById('menuDatabaseActivityBtn');
-    const menuDataContractsBtn = document.getElementById('menuDataContractsBtn');
     
     // Supporter Register Details Modal Elements
     const userDetailsModal = document.getElementById('userDetailsModal');
@@ -126,27 +125,22 @@ const postObserver = new IntersectionObserver((entries) => {
     
     const adminGoogleLoginBtn = document.getElementById('adminGoogleLoginBtn');
 
-    // Robust Administrator Role Checker
+    // Administrator Role Checker strictly checked against Firebase
     function checkIsAdmin(user) {
         if (!user) return false;
-        const email = (user.email || '').toLowerCase().trim();
-        return email.endsWith('@aifoundation.com.au') || 
-               email.endsWith('@aifoundation.net.au') || 
-               email === 'davidrobertson.info@gmail.com' ||
-               email === 'support@aifoundation.net.au' ||
-               user.role === 'admin' || 
-               user.role === 'super_admin';
+        if (user.isAdmin === true || user.verifiedAdmin === true) return true;
+        const role = (user.role || '').toLowerCase();
+        const status = (user.status || '').toLowerCase();
+        return role === 'admin' || role === 'super_admin' || role === 'superadmin' || status === 'admin';
     }
 
     // Admin Tab Switching (Synchronized between desktop sidebar and mobile dropdown)
     function switchAdminTab(targetId) {
         if (!targetId) return;
-        const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
-        const adminTabContents = document.querySelectorAll('.admin-tab-content');
-        const mobileSelect = document.getElementById('adminMobileTabSelect');
 
-        // Update desktop sidebar items
-        adminTabs.forEach(t => {
+        // Update all desktop sidebar items across both superadmin and supporter sidebars
+        const allSidebarItems = document.querySelectorAll('.admin-panel-sidebar .sidebar-item');
+        allSidebarItems.forEach(t => {
             if (t.getAttribute('data-target') === targetId) {
                 t.classList.add('active');
             } else {
@@ -155,110 +149,68 @@ const postObserver = new IntersectionObserver((entries) => {
         });
 
         // Update mobile dropdown select
+        const mobileSelect = document.getElementById('adminMobileTabSelect');
         if (mobileSelect && mobileSelect.value !== targetId) {
             mobileSelect.value = targetId;
         }
 
         // Show matching content pane
+        const adminTabContents = document.querySelectorAll('.admin-tab-content');
         adminTabContents.forEach(content => {
             content.style.display = content.id === targetId ? 'block' : 'none';
         });
+
+        const currentUser = window.firebaseService?.getCurrentUser?.();
 
         // Trigger dynamic tab loaders
         if (targetId === 'admin-manage-posts') {
             if (typeof renderAdminAllPosts === 'function') renderAdminAllPosts();
         } else if (targetId === 'admin-database-activity') {
             if (typeof loadDatabaseRecentInputs === 'function') loadDatabaseRecentInputs();
+        } else if (targetId === 'admin-supporter-chat') {
+            if (typeof loadAdminChatConversations === 'function') loadAdminChatConversations();
+        } else if (targetId === 'supporter-tab-chat') {
+            if (currentUser && typeof loadSupporterChatMessages === 'function') {
+                loadSupporterChatMessages(currentUser.uid);
+                if (supporterChatPollTimer) clearInterval(supporterChatPollTimer);
+                supporterChatPollTimer = setInterval(() => {
+                    if (adminModal && adminModal.style.display === 'flex') {
+                        const chatPane = document.getElementById('supporter-tab-chat');
+                        if (chatPane && chatPane.style.display === 'block') {
+                            loadSupporterChatMessages(currentUser.uid, true);
+                        }
+                    }
+                }, 5000);
+            }
+        } else if (targetId === 'admin-register-details') {
+            if (currentUser) populateUserDetailsForm(currentUser);
         }
     }
 
-    // Helper to open Admin / Settings Modal directly to any tab
-    function openAdminSettings(targetTab = null) {
-        if (!adminModal) return;
+    // Populate user profile details into the details form
+    async function populateUserDetailsForm(currentUser) {
+        if (!currentUser) return;
+        const userFormDisplayName = document.getElementById('userFormDisplayName');
+        const userFormEmail = document.getElementById('userFormEmail');
+        const userFormPhone = document.getElementById('userFormPhone');
+        const userFormAddressApartment = document.getElementById('userFormAddressApartment');
+        const userFormAddressStreet = document.getElementById('userFormAddressStreet');
+        const userFormAddressSuburb = document.getElementById('userFormAddressSuburb');
+        const userFormAddressState = document.getElementById('userFormAddressState');
+        const userFormAddressCountry = document.getElementById('userFormAddressCountry');
+        const userFormAddressPostcode = document.getElementById('userFormAddressPostcode');
+        const userFormStatusMsg = document.getElementById('userFormStatusMsg');
 
-        // Close dropdown menu
-        if (userDropdownMenu) userDropdownMenu.style.display = 'none';
-        if (userProfileBadge) {
-            userProfileBadge.classList.remove('active');
-            userProfileBadge.setAttribute('aria-expanded', 'false');
-        }
-
-        const currentUser = window.firebaseService?.getCurrentUser?.();
-        const isAdmin = checkIsAdmin(currentUser);
-
-        // Security gate: supporters cannot view or open the admin panel
-        if (!isAdmin) {
-            alert('Access restricted: The Administration Panel is reserved exclusively for AI Foundation administrators.');
-            return;
-        }
-
-        adminModal.style.display = 'flex';
-        
-        const emailEl = document.getElementById('adminPanelUserEmail');
-        if (emailEl) {
-            emailEl.textContent = currentUser?.email || 'support@aifoundation.net.au';
-        }
-
-        // Show Admin Panel directly since user is verified admin
-        const loginView = document.getElementById('adminLoginView');
-        const panelView = document.getElementById('adminPanelView');
-        if (loginView) loginView.style.display = 'none';
-        if (panelView) panelView.style.display = 'flex';
-
-        // Keep admin auth cookie active for verified admins
-        document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
-
-        if (targetTab) {
-            switchAdminTab(targetTab);
-        } else {
-            const activeTab = document.querySelector('#adminTabs .sidebar-item.active');
-            const currentTabId = activeTab ? activeTab.getAttribute('data-target') : 'admin-upload-post';
-            switchAdminTab(currentTabId);
-        }
-    }
-
-    // Helper to open Register Your Details modal
-    async function openUserDetailsModal() {
-        if (!userDetailsModal) return;
-
-        // Close dropdown
-        if (userDropdownMenu) userDropdownMenu.style.display = 'none';
-        if (userProfileBadge) {
-            userProfileBadge.classList.remove('active');
-            userProfileBadge.setAttribute('aria-expanded', 'false');
-        }
-
-        const currentUser = window.firebaseService?.getCurrentUser?.();
-        if (!currentUser) {
-            alert('Please sign in with Google first to register your details.');
-            return;
-        }
-
-        if (userFormDisplayName) {
+        if (userFormDisplayName && !userFormDisplayName.value) {
             userFormDisplayName.value = currentUser.displayName || '';
         }
         if (userFormEmail) {
             userFormEmail.value = currentUser.email || '';
         }
-        if (userFormPhone) {
-            userFormPhone.value = currentUser.phoneNumber || '';
-        }
-
-        // Initialize address fields
-        if (userFormAddressApartment) userFormAddressApartment.value = '';
-        if (userFormAddressStreet) userFormAddressStreet.value = '';
-        if (userFormAddressSuburb) userFormAddressSuburb.value = '';
-        if (userFormAddressState) userFormAddressState.value = '';
-        if (userFormAddressCountry) userFormAddressCountry.value = 'Australia';
-        if (userFormAddressPostcode) userFormAddressPostcode.value = '';
-
         if (userFormStatusMsg) {
             userFormStatusMsg.style.display = 'none';
         }
 
-        userDetailsModal.style.display = 'flex';
-
-        // Fetch existing database record to retrieve previously saved phone number & address
         try {
             const profile = await window.firebaseService?.getUserProfile?.(currentUser.uid);
             if (profile) {
@@ -281,22 +233,262 @@ const postObserver = new IntersectionObserver((entries) => {
         }
     }
 
-    // Toggle dropdown menu on clicking user profile badge
-    if (userProfileBadge && userDropdownMenu) {
+    // Close authenticated admin / supporter panel
+    function closeAdminPanel() {
+        if (adminModal) {
+            adminModal.style.display = 'none';
+        }
+        if (supporterChatPollTimer) {
+            clearInterval(supporterChatPollTimer);
+            supporterChatPollTimer = null;
+        }
+        if (userProfileBadge) {
+            userProfileBadge.classList.remove('active');
+            userProfileBadge.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    // Unified Authenticated Panel Opener (Directly opened when clicking avatar icon on top right)
+    async function openAuthenticatedPanel(targetTab = null) {
+        if (!adminModal) return;
+
+        // Close any dropdown menu
+        if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+        if (userProfileBadge) {
+            userProfileBadge.classList.remove('active');
+            userProfileBadge.setAttribute('aria-expanded', 'false');
+        }
+
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) {
+            // Not signed in: trigger Google Sign In
+            if (window.firebaseService?.signInWithGoogle) {
+                window.firebaseService.signInWithGoogle();
+            }
+            return;
+        }
+
+        let isSuper = Boolean(currentUser.role === 'superadmin' || currentUser.status === 'superadmin' || currentUser.classification === 'Superadmin' || currentUser.isSuperAdmin);
+        let isAdmin = isSuper || checkIsAdmin(currentUser);
+
+        // Verify with backend if not already verified
+        if (!isSuper && !isAdmin && currentUser.email) {
+            try {
+                const verifyRes = await fetch('/api/auth/admin-verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentUser.email, uid: currentUser.uid })
+                });
+                const verifyData = await verifyRes.json();
+                if (verifyData.authorized) {
+                    isAdmin = true;
+                    if (verifyData.isSuperAdmin || verifyData.role === 'superadmin') isSuper = true;
+                }
+            } catch (e) {
+                console.warn('[Admin Verify] Notice:', e.message);
+            }
+        }
+
+        adminModal.style.display = 'flex';
+
+        // Views
+        const loginView = document.getElementById('adminLoginView');
+        const panelView = document.getElementById('adminPanelView');
+        if (loginView) loginView.style.display = 'none';
+        if (panelView) panelView.style.display = 'flex';
+
+        const superTopWrap = document.getElementById('adminTopBarSuperWrap');
+        const supporterTopWrap = document.getElementById('adminTopBarSupporterWrap');
+        const superSidebar = document.getElementById('adminSuperSidebar');
+        const supporterSidebar = document.getElementById('adminSupporterSidebar');
+        const mobileSelect = document.getElementById('adminMobileTabSelect');
+        const adminPanelUserEmail = document.getElementById('adminPanelUserEmail');
+        const supporterPanelUserEmail = document.getElementById('supporterPanelUserEmail');
+        const panelFooterUserEmail = document.getElementById('panelFooterUserEmail');
+        const panelFooterRoleBadge = document.getElementById('panelFooterRoleBadge');
+
+        if (panelFooterUserEmail) {
+            panelFooterUserEmail.textContent = currentUser.email || 'user@example.com';
+        }
+
+        if (isSuper) {
+            // ==========================================
+            // SUPERADMIN INTERFACE
+            // ==========================================
+            if (superTopWrap) superTopWrap.style.display = 'flex';
+            if (supporterTopWrap) supporterTopWrap.style.display = 'none';
+            if (superSidebar) superSidebar.style.display = 'block';
+            if (supporterSidebar) supporterSidebar.style.display = 'none';
+            if (adminPanelUserEmail) adminPanelUserEmail.textContent = currentUser.email || 'support@aifoundation.net.au';
+
+            if (panelFooterRoleBadge) {
+                panelFooterRoleBadge.className = 'user-role-badge role-admin';
+                panelFooterRoleBadge.innerHTML = '<i class="fa-solid fa-crown"></i> SuperAdmin';
+            }
+
+            if (mobileSelect) {
+                mobileSelect.innerHTML = `
+                    <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
+                    <option value="admin-settings-overview">Settings &amp; Admin Panel</option>
+                    <option value="admin-supporter-chat">Supporter Messages</option>
+                    <option value="admin-upload-post">Upload Content</option>
+                    <option value="admin-upload-image">Upload Image</option>
+                    <option value="admin-manage-posts">Manage Posts</option>
+                    <option value="admin-database-activity">Database Activity</option>
+                `;
+            }
+
+            document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+
+            const defaultTab = targetTab || 'admin-settings-overview';
+            switchAdminTab(defaultTab);
+        } else {
+            // ==========================================
+            // SUPPORTER INTERFACE (STRICTLY SUPPORTER ONLY)
+            // ==========================================
+            if (superTopWrap) superTopWrap.style.display = 'none';
+            if (supporterTopWrap) supporterTopWrap.style.display = 'flex';
+            if (superSidebar) superSidebar.style.display = 'none';
+            if (supporterSidebar) supporterSidebar.style.display = 'block';
+            if (supporterPanelUserEmail) supporterPanelUserEmail.textContent = currentUser.email || 'supporter@example.com';
+
+            if (panelFooterRoleBadge) {
+                panelFooterRoleBadge.className = 'user-role-badge role-supporter';
+                panelFooterRoleBadge.innerHTML = '<i class="fa-solid fa-user-check"></i> Supporter';
+            }
+
+            if (mobileSelect) {
+                mobileSelect.innerHTML = `
+                    <option value="supporter-tab-chat">Direct chat with administrative team</option>
+                    <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
+                    <option value="supporter-tab-donate">Donation option (same as website front page)</option>
+                `;
+            }
+
+            const defaultTab = targetTab || 'supporter-tab-chat';
+            switchAdminTab(defaultTab);
+        }
+
+        populateUserDetailsForm(currentUser);
+    }
+
+    // Aliases for legacy hooks
+    async function openAdminSettings(targetTab = null) {
+        return openAuthenticatedPanel(targetTab);
+    }
+
+    async function openUserDetailsModal() {
+        return openAuthenticatedPanel('admin-register-details');
+    }
+
+    // Direct Avatar Click -> Opens Admin/Supporter Panel Directly
+    if (userProfileBadge) {
         userProfileBadge.addEventListener('click', (e) => {
             e.stopPropagation();
-            const isOpen = userDropdownMenu.style.display === 'block';
-            userDropdownMenu.style.display = isOpen ? 'none' : 'block';
-            userProfileBadge.classList.toggle('active', !isOpen);
-            userProfileBadge.setAttribute('aria-expanded', !isOpen);
+            openAuthenticatedPanel();
         });
+    }
 
-        // Close dropdown when clicking anywhere outside
-        document.addEventListener('click', (e) => {
-            if (userMenuWrapper && !userMenuWrapper.contains(e.target)) {
-                userDropdownMenu.style.display = 'none';
-                userProfileBadge.classList.remove('active');
-                userProfileBadge.setAttribute('aria-expanded', 'false');
+    // Mobile Select Event
+    const adminMobileTabSelectEl = document.getElementById('adminMobileTabSelect');
+    if (adminMobileTabSelectEl) {
+        adminMobileTabSelectEl.addEventListener('change', (e) => {
+            switchAdminTab(e.target.value);
+        });
+    }
+
+    // Desktop Sidebar Tabs Event Delegation
+    document.querySelectorAll('.admin-panel-sidebar').forEach(sidebar => {
+        sidebar.addEventListener('click', (e) => {
+            const item = e.target.closest('.sidebar-item');
+            if (item) {
+                const targetId = item.getAttribute('data-target');
+                if (targetId) switchAdminTab(targetId);
+            }
+        });
+    });
+
+    // Close Panel Buttons
+    const closeAdminPanelBtn = document.getElementById('closeAdminPanelBtn');
+    if (closeAdminPanelBtn) {
+        closeAdminPanelBtn.addEventListener('click', closeAdminPanel);
+    }
+    if (closeAdminBtn) {
+        closeAdminBtn.addEventListener('click', closeAdminPanel);
+    }
+
+    // Escape Key Listener to dismiss modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && adminModal && adminModal.style.display === 'flex') {
+            closeAdminPanel();
+        }
+    });
+
+    // Sign Out Button inside Admin Panel Footer
+    const panelSignOutBtn = document.getElementById('panelSignOutBtn');
+    if (panelSignOutBtn) {
+        panelSignOutBtn.addEventListener('click', async () => {
+            closeAdminPanel();
+            if (window.firebaseService?.signOut) {
+                await window.firebaseService.signOut();
+            }
+        });
+    }
+
+    // Admin Overview Quick-Jump Cards
+    document.querySelectorAll('.admin-overview-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const jumpTarget = card.getAttribute('data-jump');
+            if (jumpTarget) switchAdminTab(jumpTarget);
+        });
+    });
+
+    // Panel Donation Option Preset Buttons & Stripe Action
+    const panelDonationPresets = document.querySelectorAll('#panelDonationPresets .donation-preset-btn');
+    const panelDonationCustomInput = document.getElementById('panelDonationCustomAmount');
+    const panelPayWithStripeBtn = document.getElementById('panelPayWithStripeBtn');
+
+    panelDonationPresets.forEach(btn => {
+        btn.addEventListener('click', () => {
+            panelDonationPresets.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedDonationAmount = parseInt(btn.dataset.amount, 10);
+            if (panelDonationCustomInput) panelDonationCustomInput.value = '';
+            // Also sync front page presets if present
+            document.querySelectorAll('.donation-presets .donation-preset-btn').forEach(fb => {
+                fb.classList.toggle('active', fb.dataset.amount === btn.dataset.amount);
+            });
+        });
+    });
+
+    if (panelDonationCustomInput) {
+        panelDonationCustomInput.addEventListener('input', function() {
+            const cleanVal = this.value.replace(/\D/g, '');
+            this.value = cleanVal;
+            if (cleanVal && parseInt(cleanVal, 10) > 0) {
+                selectedDonationAmount = parseInt(cleanVal, 10);
+                panelDonationPresets.forEach(b => b.classList.remove('active'));
+            } else {
+                selectedDonationAmount = 24;
+                const defaultPreset = document.querySelector('#panelDonationPresets .donation-preset-btn[data-amount="24"]');
+                if (defaultPreset) defaultPreset.classList.add('active');
+            }
+        });
+    }
+
+    if (panelPayWithStripeBtn) {
+        panelPayWithStripeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof openPaymentModal === 'function') {
+                openPaymentModal('stripe');
+            }
+        });
+    }
+
+    if (adminModal) {
+        adminModal.addEventListener('click', (e) => {
+            if (e.target === adminModal) {
+                closeAdminPanel();
             }
         });
     }
@@ -355,10 +547,18 @@ const postObserver = new IntersectionObserver((entries) => {
                 postcode: addressPostcode
             };
 
+            const isAdmin = checkIsAdmin(currentUser);
+            const supporterRole = isAdmin ? 'admin' : 'supporter';
+            const supporterStatus = isAdmin ? 'admin' : 'supporter';
+
             const userProfileUpdate = {
                 displayName: newDisplayName,
                 phoneNumber: newPhone,
-                address: addressData
+                address: addressData,
+                role: supporterRole,
+                status: supporterStatus,
+                detailsRegistered: true,
+                registeredAt: new Date().toISOString()
             };
 
             const saveBtn = document.getElementById('saveUserDetailsBtn');
@@ -379,8 +579,6 @@ const postObserver = new IntersectionObserver((entries) => {
             }
 
             try {
-                const isAdmin = checkIsAdmin(currentUser);
-
                 // 1. Dual-layer client sync to Firestore
                 if (window.firebaseService?.syncUserProfile) {
                     await window.firebaseService.syncUserProfile(currentUser, userProfileUpdate);
@@ -396,7 +594,10 @@ const postObserver = new IntersectionObserver((entries) => {
                         displayName: newDisplayName,
                         phoneNumber: newPhone,
                         address: addressData,
-                        role: isAdmin ? 'admin' : 'supporter'
+                        role: supporterRole,
+                        status: supporterStatus,
+                        detailsRegistered: true,
+                        registeredAt: new Date().toISOString()
                     })
                 });
 
@@ -435,6 +636,15 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     // Wire up dropdown settings actions to open admin functions
+    const menuSupporterChatBtn = document.getElementById('menuSupporterChatBtn');
+    const menuAdminChatInboxBtn = document.getElementById('menuAdminChatInboxBtn');
+
+    if (menuSupporterChatBtn) {
+        menuSupporterChatBtn.addEventListener('click', () => openSupporterChatModal());
+    }
+    if (menuAdminChatInboxBtn) {
+        menuAdminChatInboxBtn.addEventListener('click', () => openAdminSettings('admin-supporter-chat'));
+    }
     if (menuAdminSettingsBtn) {
         menuAdminSettingsBtn.addEventListener('click', () => openAdminSettings());
     }
@@ -450,16 +660,14 @@ const postObserver = new IntersectionObserver((entries) => {
     if (menuDatabaseActivityBtn) {
         menuDatabaseActivityBtn.addEventListener('click', () => openAdminSettings('admin-database-activity'));
     }
-    if (menuDataContractsBtn) {
-        menuDataContractsBtn.addEventListener('click', () => openAdminSettings('admin-data-contracts'));
-    }
+
 
     function renderAuthUser(user) {
         if (user) {
             if (googleSignInBtn) googleSignInBtn.style.display = 'none';
             if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
             
-            const photo = user.photoURL || 'https://www.gstatic.com/images/branding/product/2x/avatar_square_grey_120dp.png';
+            const photo = user.photoURL || 'assets/avatar.png';
             const name = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
             const firstName = name.split(' ')[0];
 
@@ -481,10 +689,14 @@ const postObserver = new IntersectionObserver((entries) => {
                 menuUserEmail.textContent = user.email || '';
             }
 
-            // Role badge display and RBAC menu partitioning
-            const isAdmin = checkIsAdmin(user);
+            // Role badge display: SuperAdmin or Supporter
+            let isAdmin = checkIsAdmin(user);
+            let isSuper = (user.role === 'superadmin' || user.status === 'superadmin' || user.classification === 'Superadmin' || user.isSuperAdmin);
             if (menuUserRoleBadge) {
-                if (isAdmin) {
+                if (isSuper) {
+                    menuUserRoleBadge.className = 'user-role-badge role-admin';
+                    menuUserRoleBadge.innerHTML = '<i class="fa-solid fa-crown"></i> SuperAdmin';
+                } else if (isAdmin) {
                     menuUserRoleBadge.className = 'user-role-badge role-admin';
                     menuUserRoleBadge.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Administrator';
                 } else {
@@ -493,22 +705,62 @@ const postObserver = new IntersectionObserver((entries) => {
                 }
             }
 
-            // Supporter Role: gets only Register Your Details
-            // Admin Role: gets Administration & Settings
+            // Supporter Role: gets Supporter Portal (Register Details)
+            // Admin/SuperAdmin Role: gets Administration & Settings
             if (supporterMenuSection) {
                 supporterMenuSection.style.display = 'block';
             }
             if (adminMenuSection) {
-                adminMenuSection.style.display = isAdmin ? 'block' : 'none';
+                adminMenuSection.style.display = (isAdmin || isSuper) ? 'block' : 'none';
             }
 
-            if (isAdmin) {
+            if (isAdmin || isSuper) {
                 document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
             } else {
                 document.cookie = "adminAuth=; max-age=0; path=/";
                 document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             }
             document.cookie = "userAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+
+            // Verify admin status against Firebase database
+            if (user && user.email && !user._firebaseAdminVerified) {
+                user._firebaseAdminVerified = true;
+                fetch('/api/auth/admin-verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: user.email, uid: user.uid })
+                }).then(res => res.json()).then(data => {
+                    const isFirebaseAdmin = Boolean(data.authorized);
+                    const isFirebaseSuper = Boolean(data.isSuperAdmin || data.role === 'superadmin');
+                    user.isAdmin = isFirebaseAdmin;
+                    user.isSuperAdmin = isFirebaseSuper;
+                    user.verifiedAdmin = isFirebaseAdmin;
+                    user.role = isFirebaseSuper ? 'superadmin' : (isFirebaseAdmin ? 'admin' : 'supporter');
+                    user.status = isFirebaseSuper ? 'superadmin' : (isFirebaseAdmin ? 'admin' : 'supporter');
+
+                    if (menuUserRoleBadge) {
+                        if (isFirebaseSuper) {
+                            menuUserRoleBadge.className = 'user-role-badge role-admin';
+                            menuUserRoleBadge.innerHTML = '<i class="fa-solid fa-crown"></i> SuperAdmin';
+                        } else if (isFirebaseAdmin) {
+                            menuUserRoleBadge.className = 'user-role-badge role-admin';
+                            menuUserRoleBadge.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Administrator';
+                        } else {
+                            menuUserRoleBadge.className = 'user-role-badge role-supporter';
+                            menuUserRoleBadge.innerHTML = '<i class="fa-solid fa-user-check"></i> Supporter';
+                        }
+                    }
+                    if (adminMenuSection) {
+                        adminMenuSection.style.display = (isFirebaseAdmin || isFirebaseSuper) ? 'block' : 'none';
+                    }
+                    if (isFirebaseAdmin || isFirebaseSuper) {
+                        document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
+                    } else {
+                        document.cookie = "adminAuth=; max-age=0; path=/";
+                        document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    }
+                }).catch(() => {});
+            }
         } else {
             if (googleSignInBtn) googleSignInBtn.style.display = 'inline-flex';
             if (userMenuWrapper) userMenuWrapper.style.display = 'none';
@@ -829,8 +1081,503 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     }
 
+    // =========================================================================
+    // Supporter Chat & SuperAdmin Messaging Logic
+    // Compliance: 7-Year Statutory Record Retention, No Uploads, Links Supported
+    // =========================================================================
+    const supporterChatModal = document.getElementById('supporterChatModal');
+    const closeSupporterChatBtn = document.getElementById('closeSupporterChatBtn');
+    const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+    const chatLoadingState = document.getElementById('chatLoadingState');
+    const chatEmptyState = document.getElementById('chatEmptyState');
+    const chatFeedList = document.getElementById('chatFeedList');
+    const supporterChatForm = document.getElementById('supporterChatForm');
+    const chatMessageInput = document.getElementById('chatMessageInput');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const chatCharCounter = document.getElementById('chatCharCounter');
+    const chatDropzoneNotice = document.getElementById('chatDropzoneNotice');
+    const chatStatusAlert = document.getElementById('chatStatusAlert');
+
+    let supporterChatPollTimer = null;
+    let currentAdminActiveConvId = null;
+    let currentAdminActiveSupporter = null;
+
+    function escapeHtmlChat(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderMessageWithLinks(rawText) {
+        if (!rawText) return '';
+        const escaped = escapeHtmlChat(rawText);
+        // Identify URLs and convert to clickable anchors
+        const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/gi;
+        return escaped.replace(urlRegex, (url) => {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link" title="Open external link: ${url}"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.72rem;"></i> ${url}</a>`;
+        });
+    }
+
+    function formatChatTimestamp(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    function formatRetentionUntilDate(isoDate) {
+        if (!isoDate) {
+            const d = new Date();
+            d.setFullYear(d.getFullYear() + 7);
+            return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        const d = new Date(isoDate);
+        if (isNaN(d.getTime())) return '7 Years';
+        return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    // Open Supporter Chat Modal behind Login
+    async function openSupporterChatModal() {
+        if (!supporterChatModal) return;
+
+        // Close dropdown
+        if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+        if (userProfileBadge) {
+            userProfileBadge.classList.remove('active');
+            userProfileBadge.setAttribute('aria-expanded', 'false');
+        }
+
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) {
+            alert('Please sign in with Google to message the SuperAdmin team.');
+            return;
+        }
+
+        supporterChatModal.style.display = 'flex';
+        if (chatStatusAlert) chatStatusAlert.style.display = 'none';
+
+        await loadSupporterChatMessages(currentUser.uid);
+
+        // Start auto-refresh polling every 5 seconds while modal is active
+        if (supporterChatPollTimer) clearInterval(supporterChatPollTimer);
+        supporterChatPollTimer = setInterval(() => {
+            if (supporterChatModal.style.display === 'flex') {
+                loadSupporterChatMessages(currentUser.uid, true);
+            }
+        }, 5000);
+
+        if (chatMessageInput) {
+            chatMessageInput.focus();
+        }
+    }
+
+    function closeSupporterChatModal() {
+        if (supporterChatModal) {
+            supporterChatModal.style.display = 'none';
+        }
+        if (supporterChatPollTimer) {
+            clearInterval(supporterChatPollTimer);
+            supporterChatPollTimer = null;
+        }
+    }
+
+    if (closeSupporterChatBtn) {
+        closeSupporterChatBtn.addEventListener('click', closeSupporterChatModal);
+    }
+
+    if (supporterChatModal) {
+        supporterChatModal.addEventListener('click', (e) => {
+            if (e.target === supporterChatModal) {
+                closeSupporterChatModal();
+            }
+        });
+    }
+
+    // Load messages for the authenticated supporter
+    async function loadSupporterChatMessages(uid, isBackgroundPoll = false) {
+        if (!uid || !chatFeedList) return;
+
+        if (!isBackgroundPoll && chatLoadingState) {
+            chatLoadingState.style.display = 'flex';
+            if (chatEmptyState) chatEmptyState.style.display = 'none';
+        }
+
+        try {
+            const res = await fetch(`/api/chat/messages?uid=${encodeURIComponent(uid)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const messages = data.messages || [];
+
+            if (chatLoadingState) chatLoadingState.style.display = 'none';
+
+            if (messages.length === 0) {
+                chatFeedList.innerHTML = '';
+                if (chatEmptyState) chatEmptyState.style.display = 'flex';
+                return;
+            }
+
+            if (chatEmptyState) chatEmptyState.style.display = 'none';
+
+            const currentScrollPos = chatMessagesContainer ? (chatMessagesContainer.scrollHeight - chatMessagesContainer.scrollTop - chatMessagesContainer.clientHeight) : 0;
+            const wasNearBottom = currentScrollPos < 80 || !isBackgroundPoll;
+
+            chatFeedList.innerHTML = messages.map(msg => {
+                const isSentByMe = (msg.senderUid === uid) || (msg.senderRole === 'supporter');
+                const senderName = isSentByMe ? 'You (Supporter)' : (msg.senderName || 'SuperAdmin');
+                const senderRole = isSentByMe ? 'Supporter' : 'SuperAdmin';
+                const rowClass = isSentByMe ? 'chat-message-row sent' : 'chat-message-row received';
+                const avatarIcon = isSentByMe ? '<div class="chat-avatar-icon"><i class="fa-solid fa-user"></i></div>' : '<div class="chat-avatar-icon" style="background: #004ecc;"><i class="fa-solid fa-shield-halved"></i></div>';
+                const retentionDateStr = formatRetentionUntilDate(msg.retainedUntil);
+
+                return `
+                    <div class="${rowClass}">
+                        ${avatarIcon}
+                        <div class="chat-bubble">
+                            <div class="chat-bubble-sender">
+                                <span>${senderName}</span>
+                                <span class="role-tag">${senderRole}</span>
+                            </div>
+                            <div class="chat-bubble-text">${renderMessageWithLinks(msg.userMessage)}</div>
+                            <div class="chat-bubble-footer">
+                                <span>${formatChatTimestamp(msg.createdAt || msg.timestamp)}</span>
+                                <span class="retention-tag-mini" title="Retained for 7 years under Corporations Act 2001 & APP 11">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Retained 7 yrs (until ${retentionDateStr})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Auto-scroll to bottom if near bottom or initial load
+            if (wasNearBottom && chatMessagesContainer) {
+                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+            }
+        } catch (err) {
+            console.warn('[Chat Messages Fetch] Notice:', err.message);
+            if (chatLoadingState) chatLoadingState.style.display = 'none';
+        }
+    }
+
+    // Supporter Chat Form Submit
+    if (supporterChatForm) {
+        supporterChatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+            if (!currentUser) {
+                alert('Please sign in first.');
+                return;
+            }
+
+            const rawText = (chatMessageInput?.value || '').trim();
+            if (!rawText) return;
+
+            if (sendChatBtn) {
+                sendChatBtn.disabled = true;
+                sendChatBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+            }
+
+            try {
+                const res = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        senderUid: currentUser.uid,
+                        senderEmail: currentUser.email,
+                        senderName: currentUser.displayName || 'Supporter',
+                        senderPhoto: currentUser.photoURL || '',
+                        senderRole: 'supporter',
+                        recipientUid: 'superadmin',
+                        recipientEmail: 'support@aifoundation.net.au',
+                        recipientName: 'SuperAdmin',
+                        conversationId: `conv_${currentUser.uid}`,
+                        userMessage: rawText,
+                        hasUploads: false // Strict non-upload compliance
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to send message.');
+                }
+
+                // Clear input
+                if (chatMessageInput) chatMessageInput.value = '';
+                if (chatCharCounter) chatCharCounter.textContent = '0 / 4,000';
+
+                // Immediately refresh chat feed
+                await loadSupporterChatMessages(currentUser.uid);
+
+                if (chatStatusAlert) {
+                    chatStatusAlert.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('[Chat Send Error]:', err);
+                if (chatStatusAlert) {
+                    chatStatusAlert.className = 'chat-status-alert error';
+                    chatStatusAlert.textContent = 'Could not send message: ' + (err.message || 'Please try again.');
+                    chatStatusAlert.style.display = 'block';
+                }
+            } finally {
+                if (sendChatBtn) {
+                    sendChatBtn.disabled = false;
+                    sendChatBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span class="send-btn-label">Send</span>';
+                }
+            }
+        });
+    }
+
+    // Keydown & Char count in Chat Textarea
+    if (chatMessageInput) {
+        chatMessageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                supporterChatForm?.requestSubmit();
+            }
+        });
+
+        chatMessageInput.addEventListener('input', () => {
+            const len = chatMessageInput.value.length;
+            if (chatCharCounter) {
+                chatCharCounter.textContent = `${len.toLocaleString()} / 4,000`;
+                chatCharCounter.style.color = len > 3800 ? '#ef4444' : '#94a3b8';
+            }
+        });
+    }
+
+    // Disallow Drag & Drop uploads strictly
+    const chatModalContent = document.querySelector('.supporter-chat-modal-content');
+    if (chatModalContent) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            chatModalContent.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        chatModalContent.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (chatDropzoneNotice) {
+                chatDropzoneNotice.style.display = 'flex';
+                setTimeout(() => {
+                    chatDropzoneNotice.style.display = 'none';
+                }, 4000);
+            }
+        }, false);
+    }
+
+    // =========================================================================
+    // Admin Supporter Chat Inbox (SuperAdmin Panel Tab)
+    // =========================================================================
+    const adminThreadsList = document.getElementById('adminThreadsList');
+    const adminThreadCount = document.getElementById('adminThreadCount');
+    const adminNoThreadSelected = document.getElementById('adminNoThreadSelected');
+    const adminThreadConversationView = document.getElementById('adminThreadConversationView');
+    const adminThreadAvatar = document.getElementById('adminThreadAvatar');
+    const adminThreadUserName = document.getElementById('adminThreadUserName');
+    const adminThreadUserEmail = document.getElementById('adminThreadUserEmail');
+    const adminThreadFeed = document.getElementById('adminThreadFeed');
+    const adminReplyForm = document.getElementById('adminReplyForm');
+    const adminReplyInput = document.getElementById('adminReplyInput');
+    const adminSendReplyBtn = document.getElementById('adminSendReplyBtn');
+    const adminRefreshChatBtn = document.getElementById('adminRefreshChatBtn');
+
+    async function loadAdminChatConversations() {
+        if (!adminThreadsList) return;
+
+        try {
+            const res = await fetch('/api/chat/conversations');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const conversations = data.conversations || [];
+
+            if (adminThreadCount) adminThreadCount.textContent = conversations.length;
+
+            if (conversations.length === 0) {
+                adminThreadsList.innerHTML = `
+                    <div style="padding: 24px 12px; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                        <i class="fa-solid fa-inbox" style="font-size: 1.8rem; color: #cbd5e1; margin-bottom: 8px; display: block;"></i>
+                        No supporter messages yet.
+                    </div>
+                `;
+                if (!currentAdminActiveConvId) {
+                    if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'flex';
+                    if (adminThreadConversationView) adminThreadConversationView.style.display = 'none';
+                }
+                return;
+            }
+
+            adminThreadsList.innerHTML = conversations.map(c => {
+                const isActive = c.conversationId === currentAdminActiveConvId;
+                const activeClass = isActive ? 'admin-thread-item active' : 'admin-thread-item';
+                const timeStr = formatChatTimestamp(c.lastMessageAt);
+
+                return `
+                    <div class="${activeClass}" data-conv-id="${c.conversationId}" data-supporter-uid="${c.supporterUid}" data-supporter-name="${escapeHtmlChat(c.supporterName)}" data-supporter-email="${escapeHtmlChat(c.supporterEmail)}">
+                        <div class="admin-thread-top">
+                            <span>${escapeHtmlChat(c.supporterName)}</span>
+                            <span class="admin-thread-time">${timeStr}</span>
+                        </div>
+                        <div class="admin-thread-email">${escapeHtmlChat(c.supporterEmail)}</div>
+                        <div class="admin-thread-preview">${escapeHtmlChat(c.lastMessage)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Wire up click handlers on thread items
+            adminThreadsList.querySelectorAll('.admin-thread-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const convId = item.dataset.convId;
+                    const supporterUid = item.dataset.supporterUid;
+                    const supporterName = item.dataset.supporterName;
+                    const supporterEmail = item.dataset.supporterEmail;
+
+                    selectAdminThread(convId, { supporterUid, supporterName, supporterEmail });
+                });
+            });
+
+            // If an active thread is selected, refresh its messages
+            if (currentAdminActiveConvId) {
+                await loadAdminThreadMessages(currentAdminActiveConvId, true);
+            }
+
+        } catch (err) {
+            console.warn('[Admin Chat Conversations] Notice:', err.message);
+        }
+    }
+
+    async function selectAdminThread(convId, supporterInfo) {
+        currentAdminActiveConvId = convId;
+        currentAdminActiveSupporter = supporterInfo;
+
+        // Highlight selected thread item
+        if (adminThreadsList) {
+            adminThreadsList.querySelectorAll('.admin-thread-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.convId === convId);
+            });
+        }
+
+        if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'none';
+        if (adminThreadConversationView) adminThreadConversationView.style.display = 'flex';
+
+        if (adminThreadUserName) adminThreadUserName.textContent = supporterInfo.supporterName || 'Supporter';
+        if (adminThreadUserEmail) adminThreadUserEmail.textContent = supporterInfo.supporterEmail || '';
+
+        await loadAdminThreadMessages(convId);
+    }
+
+    async function loadAdminThreadMessages(convId, isBackground = false) {
+        if (!convId || !adminThreadFeed) return;
+
+        try {
+            const res = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(convId)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const messages = data.messages || [];
+
+            adminThreadFeed.innerHTML = messages.map(msg => {
+                const isAdminSender = msg.senderRole === 'super_admin' || msg.senderRole === 'admin';
+                const rowClass = isAdminSender ? 'chat-message-row sent' : 'chat-message-row received';
+                const senderTitle = isAdminSender ? 'SuperAdmin (You)' : (msg.senderName || 'Supporter');
+                const avatarIcon = isAdminSender ? '<div class="chat-avatar-icon" style="background: #004ecc;"><i class="fa-solid fa-shield-halved"></i></div>' : '<div class="chat-avatar-icon"><i class="fa-solid fa-user"></i></div>';
+                const retentionDateStr = formatRetentionUntilDate(msg.retainedUntil);
+
+                return `
+                    <div class="${rowClass}">
+                        ${avatarIcon}
+                        <div class="chat-bubble">
+                            <div class="chat-bubble-sender">
+                                <span>${senderTitle}</span>
+                                <span class="role-tag">${msg.senderRole || (isAdminSender ? 'Admin' : 'Supporter')}</span>
+                            </div>
+                            <div class="chat-bubble-text">${renderMessageWithLinks(msg.userMessage)}</div>
+                            <div class="chat-bubble-footer">
+                                <span>${formatChatTimestamp(msg.createdAt || msg.timestamp)}</span>
+                                <span class="retention-tag-mini">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Retained 7 yrs (until ${retentionDateStr})
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Scroll feed to bottom
+            adminThreadFeed.scrollTop = adminThreadFeed.scrollHeight;
+
+        } catch (err) {
+            console.warn('[Admin Thread Fetch Error]:', err.message);
+        }
+    }
+
+    // SuperAdmin Reply Form Submission
+    if (adminReplyForm) {
+        adminReplyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentAdminActiveConvId || !currentAdminActiveSupporter) return;
+
+            const replyText = (adminReplyInput?.value || '').trim();
+            if (!replyText) return;
+
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+
+            if (adminSendReplyBtn) {
+                adminSendReplyBtn.disabled = true;
+                adminSendReplyBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+            }
+
+            try {
+                const res = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        senderUid: currentUser?.uid || 'superadmin',
+                        senderEmail: currentUser?.email || 'support@aifoundation.net.au',
+                        senderName: 'SuperAdmin',
+                        senderRole: 'super_admin',
+                        recipientUid: currentAdminActiveSupporter.supporterUid,
+                        recipientEmail: currentAdminActiveSupporter.supporterEmail,
+                        recipientName: currentAdminActiveSupporter.supporterName,
+                        conversationId: currentAdminActiveConvId,
+                        userMessage: replyText,
+                        hasUploads: false
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to send reply.');
+                }
+
+                if (adminReplyInput) adminReplyInput.value = '';
+                await loadAdminThreadMessages(currentAdminActiveConvId);
+                await loadAdminChatConversations();
+
+            } catch (err) {
+                alert('Could not send reply: ' + (err.message || 'Please try again.'));
+            } finally {
+                if (adminSendReplyBtn) {
+                    adminSendReplyBtn.disabled = false;
+                    adminSendReplyBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Reply</span>';
+                }
+            }
+        });
+    }
+
+    if (adminRefreshChatBtn) {
+        adminRefreshChatBtn.addEventListener('click', () => {
+            loadAdminChatConversations();
+        });
+    }
+
     // Admin Tab Switching (Sidebar & Mobile Dropdown)
     const adminTabs = document.querySelectorAll('#adminTabs .sidebar-item');
+
     adminTabs.forEach(tab => {
         tab.addEventListener('click', () => {
             const targetId = tab.getAttribute('data-target');
@@ -863,6 +1610,7 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     const DELETED_IDS_KEY = 'aifoundation_deleted_items';
+    const DELETED_KEYS_KEY = 'aifoundation_deleted_keys';
     function getDeletedIds() {
         try {
             return JSON.parse(localStorage.getItem(DELETED_IDS_KEY) || '[]');
@@ -877,6 +1625,24 @@ const postObserver = new IntersectionObserver((entries) => {
             if (!list.includes(id)) {
                 list.push(id);
                 localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(list));
+            }
+        } catch (e) {}
+    }
+
+    function getDeletedKeys() {
+        try {
+            return JSON.parse(localStorage.getItem(DELETED_KEYS_KEY) || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+    function addDeletedKey(key) {
+        if (!key) return;
+        try {
+            const list = getDeletedKeys();
+            if (!list.includes(key)) {
+                list.push(key);
+                localStorage.setItem(DELETED_KEYS_KEY, JSON.stringify(list));
             }
         } catch (e) {}
     }
@@ -935,17 +1701,38 @@ const postObserver = new IntersectionObserver((entries) => {
 
     function mergePosts(primary, fallback) {
         const deletedIds = new Set(getDeletedIds());
-        const list = Array.isArray(primary) ? primary.filter(p => !deletedIds.has(p.id)) : [];
-        const existingKeys = new Set(list.map(p => p.id || p.link || p.title));
+        const deletedKeys = new Set(getDeletedKeys());
+        const list = [];
+        const seenIds = new Set();
+        const seenLinks = new Set();
+        const seenTitles = new Set();
+
+        const addIfUnique = (item) => {
+            if (!item) return;
+            const id = (item.id || '').trim();
+            if (id && deletedIds.has(id)) return;
+
+            const normLink = (item.link || '').trim().toLowerCase().replace(/\/+$/, '');
+            const normTitle = (item.title || '').trim().toLowerCase();
+
+            if (normLink && deletedKeys.has(normLink)) return;
+            if (normTitle && deletedKeys.has(normTitle)) return;
+
+            if (id && seenIds.has(id)) return;
+            if (normLink && seenLinks.has(normLink)) return;
+            if (normTitle && seenTitles.has(normTitle)) return;
+
+            if (id) seenIds.add(id);
+            if (normLink) seenLinks.add(normLink);
+            if (normTitle) seenTitles.add(normTitle);
+            list.push(item);
+        };
+
+        if (Array.isArray(primary)) {
+            primary.forEach(addIfUnique);
+        }
         if (Array.isArray(fallback)) {
-            for (const item of fallback) {
-                if (deletedIds.has(item.id)) continue;
-                const key = item.id || item.link || item.title;
-                if (!existingKeys.has(key)) {
-                    list.push(item);
-                    existingKeys.add(key);
-                }
-            }
+            fallback.forEach(addIfUnique);
         }
         list.sort((a, b) => getPostTimestamp(b) - getPostTimestamp(a));
         return list;
@@ -1163,10 +1950,7 @@ const postObserver = new IntersectionObserver((entries) => {
         `).join('');
     }
 
-    window.deleteProject = async (id) => {
-        await fetch('/api/projects/' + id, { method: 'DELETE' });
-        loadProjects();
-    };
+    window.deleteProject = (id) => window.deleteAnyPost('projects', id);
 
 
     document.querySelectorAll('.sample-chip').forEach(chip => {
@@ -1382,135 +2166,150 @@ const postObserver = new IntersectionObserver((entries) => {
         const rows = document.querySelectorAll('.link-row-container');
         const category = document.getElementById('postCategory').value;
         const btn = document.getElementById('publishAllBtn');
+        if (btn.disabled) return;
+
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
         btn.innerHTML = 'Publishing...';
         
         let successCount = 0;
         let lastPublishError = null;
 
-        for (const row of rows) {
-            let title = row.querySelector('.multiPostTitle')?.value?.trim();
-            let link = row.querySelector('.multiPostLink')?.value?.trim();
-            const inputUrl = row.querySelector('.multiLinkInput')?.value?.trim();
+        try {
+            for (const row of rows) {
+                let title = row.querySelector('.multiPostTitle')?.value?.trim();
+                let link = row.querySelector('.multiPostLink')?.value?.trim();
+                const inputUrl = row.querySelector('.multiLinkInput')?.value?.trim();
 
-            // If user forgot to click Extract Metadata, try extracting on the fly
-            if ((!title || !link) && inputUrl) {
-                try {
-                    const extRes = await fetch('/api/extract-metadata', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: inputUrl })
-                    });
-                    if (extRes.ok) {
-                        const extData = await extRes.json();
-                        title = extData.title || inputUrl;
-                        link = extData.link || inputUrl;
-                        if (row.querySelector('.multiPostTitle')) row.querySelector('.multiPostTitle').value = title;
-                        if (row.querySelector('.multiPostLink')) row.querySelector('.multiPostLink').value = link;
-                        if (row.querySelector('.multiPostSummary')) row.querySelector('.multiPostSummary').value = extData.summary || '';
-                        if (row.querySelector('.multiPostPlatform')) row.querySelector('.multiPostPlatform').value = extData.platform || 'website';
-                        if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = extData.imageUrl || 'assets/logo.png';
-                    } else {
+                // If user forgot to click Extract Metadata, try extracting on the fly
+                if ((!title || !link) && inputUrl) {
+                    try {
+                        const extRes = await fetch('/api/extract-metadata', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: inputUrl })
+                        });
+                        if (extRes.ok) {
+                            const extData = await extRes.json();
+                            title = extData.title || inputUrl;
+                            link = extData.link || inputUrl;
+                            if (row.querySelector('.multiPostTitle')) row.querySelector('.multiPostTitle').value = title;
+                            if (row.querySelector('.multiPostLink')) row.querySelector('.multiPostLink').value = link;
+                            if (row.querySelector('.multiPostSummary')) row.querySelector('.multiPostSummary').value = extData.summary || '';
+                            if (row.querySelector('.multiPostPlatform')) row.querySelector('.multiPostPlatform').value = extData.platform || 'website';
+                            if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = extData.imageUrl || 'assets/logo.png';
+                        } else {
+                            title = inputUrl;
+                            link = inputUrl;
+                        }
+                    } catch (e) {
                         title = inputUrl;
                         link = inputUrl;
                     }
-                } catch (e) {
-                    title = inputUrl;
-                    link = inputUrl;
                 }
-            }
 
-            if (!title && !link) {
-                if (!lastPublishError) {
-                    lastPublishError = 'Please enter a URL or fill in the Title and Link fields.';
+                if (!title && !link) {
+                    if (!lastPublishError) {
+                        lastPublishError = 'Please enter a URL or fill in the Title and Link fields.';
+                    }
+                    continue;
                 }
-                continue;
-            }
-            
-            let finalImgUrl = row.querySelector('.multiImageUrl')?.value || 'assets/logo.png';
-            // All images uploaded other than posts must be uploaded to ImgBB
-            if (category !== 'articles' && finalImgUrl && finalImgUrl !== 'assets/logo.png' && !finalImgUrl.includes('i.ibb.co')) {
+                
+                let finalImgUrl = row.querySelector('.multiImageUrl')?.value || 'assets/logo.png';
+                // All images uploaded other than posts must be uploaded to ImgBB
+                if (category !== 'articles' && finalImgUrl && finalImgUrl !== 'assets/logo.png' && !finalImgUrl.includes('i.ibb.co')) {
+                    try {
+                        const upRes = await fetch('/api/upload-imgbb', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                imageBase64: finalImgUrl.startsWith('data:') ? finalImgUrl : null,
+                                imageUrl: !finalImgUrl.startsWith('data:') ? finalImgUrl : null
+                            })
+                        });
+                        if (upRes.ok) {
+                            const upData = await upRes.json();
+                            if (upData.success && upData.url) {
+                                finalImgUrl = upData.url;
+                                if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                            }
+                        }
+                    } catch (upErr) {
+                        console.warn('Frontend ImgBB upload fallback:', upErr);
+                    }
+                }
+
+                // Generate a single consistent document ID used across both client and server layers
+                const prefix = category === 'projects' ? 'proj_' : (category === 'tech' ? 'tech_' : (category === 'community' ? 'comm_' : 'post_'));
+                const docId = prefix + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+                const payload = {
+                    id: docId,
+                    title: title || link || 'Untitled',
+                    summary: row.querySelector('.multiPostSummary')?.value || '',
+                    link: link || inputUrl,
+                    imageUrl: finalImgUrl,
+                    platform: row.querySelector('.multiPostPlatform')?.value || 'website',
+                    author: 'Admin',
+                    category: category,
+                    date: new Date().toISOString(),
+                    tag: window.firebaseService?.TRANSACTION_TAG || 'aifoundation'
+                };
+                
                 try {
-                    const upRes = await fetch('/api/upload-imgbb', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            imageBase64: finalImgUrl.startsWith('data:') ? finalImgUrl : null,
-                            imageUrl: !finalImgUrl.startsWith('data:') ? finalImgUrl : null
-                        })
-                    });
-                    if (upRes.ok) {
-                        const upData = await upRes.json();
-                        if (upData.success && upData.url) {
-                            finalImgUrl = upData.url;
-                            if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                    let saved = false;
+
+                    // 1. Direct Firestore write if connected (using idempotent setDoc with consistent docId)
+                    if (window.firebaseService && window.firebaseService.isConnected) {
+                        try {
+                            const { db, collection, doc, setDoc } = window.firebaseService;
+                            const docRef = doc(collection(db, 'content'), docId);
+                            await setDoc(docRef, payload, { merge: true });
+                            saved = true;
+                            payload.firestoreSynced = true;
+                        } catch (fbErr) {
+                            console.warn('Direct Firestore save note:', fbErr);
                         }
                     }
-                } catch (upErr) {
-                    console.warn('Frontend ImgBB upload fallback:', upErr);
-                }
-            }
 
-            const payload = {
-                title: title || link || 'Untitled',
-                summary: row.querySelector('.multiPostSummary')?.value || '',
-                link: link || inputUrl,
-                imageUrl: finalImgUrl,
-                platform: row.querySelector('.multiPostPlatform')?.value || 'website',
-                author: 'Admin'
-            };
-            
-            payload.category = category;
-            payload.date = new Date().toISOString();
-            payload.tag = window.firebaseService?.TRANSACTION_TAG || 'aifoundation';
-            try {
-                let saved = false;
-
-                // 1. Direct Firestore write if connected
-                if (window.firebaseService && window.firebaseService.isConnected) {
+                    // 2. Dual-sync with server backend so local JSON fallback stays updated
+                    const endpoints = {
+                        'articles': '/api/posts', 'projects': '/api/projects',
+                        'tech': '/api/tech', 'community': '/api/community'
+                    };
                     try {
-                        const { db, collection, addDoc } = window.firebaseService;
-                        await addDoc(collection(db, 'content'), payload);
-                        saved = true;
-                    } catch (fbErr) {
-                        console.warn('Direct Firestore save note:', fbErr);
+                        const res = await fetch(endpoints[category] || '/api/posts', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (res.ok) {
+                            saved = true;
+                        } else if (!saved) {
+                            lastPublishError = `Backend returned HTTP ${res.status}. If running on Vercel, please check your network connection.`;
+                        }
+                    } catch (netErr) {
+                        // Endpoint may not exist on static hosting
                     }
-                }
 
-                // 2. Dual-sync with server backend so local JSON fallback stays updated
-                const endpoints = {
-                    'articles': '/api/posts', 'projects': '/api/projects',
-                    'tech': '/api/tech', 'community': '/api/community'
-                };
-                try {
-                    const res = await fetch(endpoints[category] || '/api/posts', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (res.ok) {
-                        saved = true;
-                    } else if (!saved) {
-                        lastPublishError = `Backend returned HTTP ${res.status}. If running on Vercel, please check your network connection.`;
+                    if (saved) {
+                        successCount++;
+                    } else if (!lastPublishError) {
+                        lastPublishError = 'Failed to write to database or server.';
                     }
-                } catch (netErr) {
-                    // Endpoint may not exist on static hosting
-                }
-
-                if (saved) {
-                    successCount++;
-                } else if (!lastPublishError) {
-                    lastPublishError = 'Failed to write to database or server.';
-                }
-            } catch (err) {
-                console.error('Publish error:', err);
-                if (err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) {
-                    lastPublishError = 'Firestore Permission Denied. Your Firebase Console rules need to allow write access for authenticated users or the "content" collection.';
-                } else {
-                    lastPublishError = err.message || 'Database write error';
+                } catch (err) {
+                    console.error('Publish error:', err);
+                    if (err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) {
+                        lastPublishError = 'Firestore Permission Denied. Your Firebase Console rules need to allow write access for authenticated users or the "content" collection.';
+                    } else {
+                        lastPublishError = err.message || 'Database write error';
+                    }
                 }
             }
+        } finally {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.innerHTML = 'Publish All Posts';
         }
-        
-        btn.innerHTML = 'Publish All Posts';
         if (successCount > 0) {
             const catName = category === 'projects' ? 'Projects & Initiatives' : 'Articles / Posts';
             alert(`Successfully published ${successCount} item(s) to ${catName}!`);
@@ -1736,6 +2535,14 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!confirm('Are you sure you want to delete this item?')) return;
         
         // 1. Instantly record in local blacklist so neither cache nor static fallbacks can resurrect it
+        const currentList = category === 'articles' ? allPosts :
+                           (category === 'projects' ? allProjects :
+                           (category === 'tech' ? allTechPosts : allCommunityPosts));
+        const postToDelete = currentList.find(p => p.id === id);
+        if (postToDelete) {
+            if (postToDelete.link) addDeletedKey(postToDelete.link.trim().toLowerCase().replace(/\/+$/, ''));
+            if (postToDelete.title) addDeletedKey(postToDelete.title.trim().toLowerCase());
+        }
         addDeletedId(id);
 
         // 2. Immediately purge from in-memory arrays for immediate UI response

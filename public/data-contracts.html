@@ -546,6 +546,91 @@
             </div>
         </section>
 
+        <!-- Domain: Supporter Chat & Administrative Messaging -->
+        <section class="contract-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fa-solid fa-comments" style="color: #004ecc;"></i> Domain 6B: Supporter Chat &amp; SuperAdmin Messaging
+                </h2>
+                <span class="section-tag" style="background: #e0f2fe; color: #0369a1;">Firestore Chat / 7-Yr Retention</span>
+            </div>
+            <div class="contract-table-wrap">
+                <table class="contract-table">
+                    <thead>
+                        <tr>
+                            <th>Field Name</th>
+                            <th>Type</th>
+                            <th>Ingestion Channel</th>
+                            <th>Constraints &amp; Invariants</th>
+                            <th>Target Storage &amp; Retention</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="code-tag">messageId</span></td>
+                            <td>String</td>
+                            <td>Server Generation</td>
+                            <td>Required. Format: <span class="code-tag">msg_timestamp_rand</span>. Unique.</td>
+                            <td>Firestore <span class="code-tag">chat_interactions/{id}</span> (7 Years)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">conversationId</span></td>
+                            <td>String</td>
+                            <td>API Route (/api/chat/send)</td>
+                            <td>Required. Pattern: <span class="code-tag">conv_${supporterUid}</span>. Grouping key.</td>
+                            <td>Firestore Root Field (7 Years)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">tag</span></td>
+                            <td>Enum String</td>
+                            <td>Server Injection</td>
+                            <td><strong>Immutable Constant:</strong> <span class="code-tag">'aifoundation'</span>. Multi-tenant key.</td>
+                            <td>Firestore Root Field (7 Years)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">userMessage</span></td>
+                            <td>String</td>
+                            <td>UI Chat Composer</td>
+                            <td>Length: 1–4,000 chars. Web links allowed. HTML entities escaped.</td>
+                            <td>Firestore Root Field (7 Years)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">hasLinks</span></td>
+                            <td>Boolean</td>
+                            <td>Server URL Extraction</td>
+                            <td><span class="code-tag">true</span> if valid HTTP/HTTPS URLs present in message.</td>
+                            <td>Firestore Root Field (7 Years)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">hasUploads</span></td>
+                            <td>Boolean</td>
+                            <td>Strict Enforcement</td>
+                            <td><strong>Constant:</strong> <span class="code-tag">false</span>. File uploads strictly prohibited.</td>
+                            <td>Firestore Root Field (7 Years)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">retentionYears</span></td>
+                            <td>Integer</td>
+                            <td>Statutory Rule</td>
+                            <td><strong>Constant:</strong> <span class="code-tag">7</span> (Corporations Act 2001 &amp; APP 11).</td>
+                            <td>Firestore Root Field (7 Years)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">retainedUntil</span></td>
+                            <td>String (Timestamp)</td>
+                            <td>Server Calculation</td>
+                            <td>Calculated as exactly <span class="code-tag">timestamp + 7 years</span>.</td>
+                            <td>Firestore Root Field (Indexed)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="rule-callout">
+                <i class="fa-solid fa-clock-rotate-left" style="color: #047857; margin-right: 6px;"></i>
+                <strong>7-Year Statutory Record Retention Enforced:</strong> All supporter-to-SuperAdmin conversations in <span class="code-tag">chat_interactions</span> are partitioned with <span class="code-tag">tag: 'aifoundation'</span> and retained for 7 years. File uploads are disabled; web links are rendered safely as external anchor elements.
+            </div>
+        </section>
+
         <!-- Domain 7: AI Agent Tools -->
         <section class="contract-section">
             <div class="section-header">
@@ -674,7 +759,23 @@
                             <td>Enum String</td>
                             <td>Server Verification</td>
                             <td>Access Control</td>
-                            <td>Value: <span class="code-tag">'supporter'</span> | <span class="code-tag">'admin'</span></td>
+                            <td>Value: <span class="code-tag">'supporter'</span> | <span class="code-tag">'admin'</span>. Admin verified strictly from list in Firebase.</td>
+                            <td>Firestore root field.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">status</span></td>
+                            <td>Enum String</td>
+                            <td>Server / Client Sync</td>
+                            <td>Account Status</td>
+                            <td>Value: <span class="code-tag">'supporter'</span> (assigned immediately to any registering email not in Firebase admin list) | <span class="code-tag">'admin'</span></td>
+                            <td>Firestore root field. Indexed.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="code-tag">registeredAt</span></td>
+                            <td>ISO 8601 Timestamp</td>
+                            <td>Client / Server Sync</td>
+                            <td>Audit</td>
+                            <td>UTC timestamp of initial registration.</td>
                             <td>Firestore root field.</td>
                         </tr>
                         <tr>

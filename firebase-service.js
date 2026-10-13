@@ -6,6 +6,7 @@
  * Secure server-side Firestore operations via Google Cloud Service Account OAuth2
  */
 
+require('dotenv').config();
 const crypto = require('crypto');
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'ai-foundation-firebase';
@@ -402,19 +403,124 @@ async function listAIFoundationTransactions(limit = 50) {
     }
 }
 
+// The ONLY two authorized SuperAdmins allowed in Firebase
+const SUPERADMIN_UIDS = ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'];
+const SUPERADMIN_EMAILS = ['davidrobertson.info@gmail.com', 'support@aifoundation.net.au'];
+
+function isSuperAdminUser(uid, email) {
+    const normUid = (uid || '').trim();
+    const normEmail = (email || '').toLowerCase().trim();
+    return SUPERADMIN_UIDS.includes(normUid) || SUPERADMIN_EMAILS.includes(normEmail);
+}
+
+let cachedAdminEmails = null;
+let adminEmailsCachedAt = 0;
+
+/**
+ * Retrieve verified admin email addresses listed in Firebase.
+ * Sources in Firebase:
+ * 1. system_settings/admin_emails (emails array)
+ * 2. admins/admin_emails (emails array)
+ * 3. users collection in Firestore (any user with role: 'admin', 'super_admin', or 'superadmin')
+ */
+async function getAdminEmailsFromFirebase(forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && cachedAdminEmails && (now - adminEmailsCachedAt < 60000)) {
+        return cachedAdminEmails;
+    }
+
+    const adminSet = new Set(SUPERADMIN_EMAILS);
+
+    // 1. Check system_settings/admin_emails in Firebase
+    try {
+        const sysDoc = await getDocument('system_settings', 'admin_emails');
+        if (sysDoc && Array.isArray(sysDoc.emails)) {
+            sysDoc.emails.forEach(e => {
+                if (typeof e === 'string' && e.trim()) adminSet.add(e.toLowerCase().trim());
+            });
+        }
+    } catch (e) {
+        console.warn('[Firebase] Notice reading system_settings/admin_emails:', e.message);
+    }
+
+    // 2. Check admins/admin_emails in Firebase
+    try {
+        const adminsDoc = await getDocument('admins', 'admin_emails');
+        if (adminsDoc && Array.isArray(adminsDoc.emails)) {
+            adminsDoc.emails.forEach(e => {
+                if (typeof e === 'string' && e.trim()) adminSet.add(e.toLowerCase().trim());
+            });
+        }
+    } catch (e) {
+        console.warn('[Firebase] Notice reading admins/admin_emails:', e.message);
+    }
+
+    // 3. Check users collection in Firebase for existing admin roles
+    try {
+        const token = await getAccessToken();
+        if (token) {
+            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/users?pageSize=100`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                for (const d of (data.documents || [])) {
+                    const f = fromFirestoreFields(d.fields || {});
+                    const role = (f.role || '').toLowerCase();
+                    if (['admin', 'super_admin', 'superadmin'].includes(role) || f.status === 'admin' || f.status === 'superadmin') {
+                        if (f.email && typeof f.email === 'string') {
+                            adminSet.add(f.email.toLowerCase().trim());
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[Firebase] Notice querying admin users in Firestore:', e.message);
+    }
+
+    cachedAdminEmails = Array.from(adminSet);
+    adminEmailsCachedAt = now;
+    return cachedAdminEmails;
+}
+
+/**
+ * Check if a specific user/email is authorized as superadmin in Firebase
+ */
+async function isEmailAdminInFirebase(email, uid) {
+    if (isSuperAdminUser(uid, email)) return true;
+    if (!email) return false;
+    const normalized = email.toLowerCase().trim();
+    const adminEmails = await getAdminEmailsFromFirebase();
+    return adminEmails.includes(normalized);
+}
+
 /**
  * Synchronize Google Auth User Profile to Cloud Firestore
- * GUARANTEE: User profiles MUST have tag 'aifoundation' and businessId 'aifoundation'
+ * RULE: Only ZK79FRQoVlYhsgvMibhi81dRUWj2 and L5euSJAfNKdDOX6mT0qmrCGjUA53 are SuperAdmin.
+ * Everyone else registering or logging in is strictly 'supporter'.
  */
 async function syncUser(userData) {
     if (!userData || !userData.uid) {
         throw new Error('User UID is required to synchronize user profile.');
     }
 
+    const email = (userData.email || '').toLowerCase().trim();
+    const uid = (userData.uid || '').trim();
+    
+    // Strictly verify if this user is one of the two allowed SuperAdmins
+    const isSuperAdmin = isSuperAdminUser(uid, email);
+
+    // Only these two are superadmin; everyone else is strictly supporter
+    const assignedRole = isSuperAdmin ? 'superadmin' : 'supporter';
+    const assignedStatus = isSuperAdmin ? 'superadmin' : 'supporter';
+    const assignedClassification = isSuperAdmin ? 'Superadmin' : 'Supporter';
+
     const now = new Date().toISOString();
     const payload = {
-        uid: userData.uid,
-        email: (userData.email || '').toLowerCase().trim(),
+        uid: uid,
+        email: email,
         displayName: (userData.displayName || '').trim(),
         photoURL: userData.photoURL || '',
         tag: TRANSACTION_TAG, // 'aifoundation'
@@ -422,7 +528,9 @@ async function syncUser(userData) {
         businessName: 'AI Foundation',
         source: 'aifoundation',
         authProvider: 'google',
-        role: userData.role || 'supporter',
+        role: assignedRole,
+        status: assignedStatus,
+        classification: assignedClassification,
         lastLoginAt: now,
         updatedAt: now
     };
@@ -449,11 +557,32 @@ async function syncUser(userData) {
         } catch (e) { }
     }
 
-    if (userData.createdAt) {
-        payload.createdAt = userData.createdAt;
+    if (userData.detailsRegistered !== undefined) {
+        payload.detailsRegistered = Boolean(userData.detailsRegistered);
     }
 
-    console.log(`🔥 [Firestore] Syncing user ${payload.uid} (${payload.email}) with tag: ${payload.tag}`);
+    if (userData.registeredAt) {
+        payload.registeredAt = userData.registeredAt;
+    }
+
+    if (userData.createdAt) {
+        payload.createdAt = userData.createdAt;
+    } else {
+        try {
+            const existing = await getUser(userData.uid);
+            if (existing && (existing.createdAt || existing.registeredAt)) {
+                payload.createdAt = existing.createdAt || existing.registeredAt;
+            } else {
+                payload.createdAt = now;
+                if (!payload.registeredAt) payload.registeredAt = now;
+            }
+        } catch (e) {
+            payload.createdAt = now;
+            if (!payload.registeredAt) payload.registeredAt = now;
+        }
+    }
+
+    console.log(`🔥 [Firestore] Syncing user ${payload.uid} (${payload.email}) with tag: ${payload.tag}, role: ${payload.role}, status: ${payload.status}`);
 
     // Persist to 'users' collection at doc uid
     const result = await writeDocument('users', payload.uid, payload, true);
@@ -466,6 +595,195 @@ async function syncUser(userData) {
 async function getUser(uid) {
     if (!uid) return null;
     return await getDocument('users', uid);
+}
+
+/**
+ * Extract web URLs from message text
+ */
+function extractUrls(text) {
+    if (!text || typeof text !== 'string') return [];
+    const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/gi;
+    const matches = text.match(urlRegex) || [];
+    return [...new Set(matches)];
+}
+
+/**
+ * Record a chat message in Firebase collection 'chat_interactions'
+ * COMPLIANCE & CONSTRAINTS:
+ * 1. Partitioned with tag: 'aifoundation', businessId: 'aifoundation'
+ * 2. 7-Year statutory record retention (retainedUntil calculated as exactly +7 years)
+ * 3. Text & web links only; file uploads are explicitly prohibited and rejected
+ */
+async function sendChatMessage(data) {
+    if (!data) throw new Error('Message payload is required.');
+
+    const userMessage = (data.userMessage || data.message || '').trim();
+    if (!userMessage) throw new Error('Message text cannot be empty.');
+    if (userMessage.length > 4000) throw new Error('Message exceeds 4,000 character maximum.');
+
+    const senderUid = data.senderUid || data.uid;
+    const senderEmail = (data.senderEmail || data.email || '').toLowerCase().trim();
+    if (!senderUid || !senderEmail) {
+        throw new Error('Sender identity (UID and email) is required.');
+    }
+
+    // Determine conversation ID: group by supporter UID
+    const conversationId = data.conversationId || `conv_${senderUid}`;
+
+    // Extract links
+    const extractedLinks = extractUrls(userMessage);
+
+    const now = new Date();
+    // 7-Year Statutory Record Retention (Corporations Act 2001 & APP 11)
+    const retentionDate = new Date(now);
+    retentionDate.setFullYear(retentionDate.getFullYear() + 7);
+
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    const payload = {
+        id: messageId,
+        messageId: messageId,
+        conversationId: conversationId,
+        tag: TRANSACTION_TAG, // 'aifoundation'
+        businessId: BUSINESS_ID, // 'aifoundation'
+        businessName: 'AI Foundation',
+        source: 'aifoundation',
+        senderUid: senderUid,
+        senderEmail: senderEmail,
+        senderName: (data.senderName || data.displayName || 'Supporter').trim(),
+        senderPhoto: data.senderPhoto || data.photoURL || '',
+        senderRole: data.senderRole || 'supporter', // 'supporter' or 'super_admin'
+        recipientUid: data.recipientUid || 'superadmin',
+        recipientEmail: (data.recipientEmail || 'support@aifoundation.net.au').toLowerCase().trim(),
+        recipientName: data.recipientName || 'SuperAdmin',
+        userMessage: userMessage,
+        hasLinks: extractedLinks.length > 0,
+        links: extractedLinks,
+        hasUploads: false, // Strict constraint: no file uploads permitted
+        createdAt: now.toISOString(),
+        timestamp: now.toISOString(),
+        updatedAt: now.toISOString(),
+        retentionYears: 7,
+        retainedUntil: retentionDate.toISOString(),
+        statutoryRetention: '7-Year Corporations Act / APP 11 Compliance'
+    };
+
+    console.log(`💬 [Firebase] Writing chat message ${messageId} to 'chat_interactions' [conv: ${conversationId}, retainedUntil: ${payload.retainedUntil}]`);
+
+    const result = await writeDocument('chat_interactions', messageId, payload, true);
+    return {
+        success: result.success,
+        message: payload,
+        error: result.error
+    };
+}
+
+/**
+ * Retrieve chat messages for a specific conversation from 'chat_interactions'
+ */
+async function getChatMessages(conversationId, options = {}) {
+    if (!conversationId) return [];
+    const limit = Math.min(Number(options.limit) || 100, 200);
+
+    const token = await getAccessToken();
+    if (!token) return [];
+
+    try {
+        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/chat_interactions?pageSize=100`;
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return [];
+
+        const data = await res.json();
+        const docs = data.documents || [];
+        const messages = [];
+
+        for (const d of docs) {
+            const fields = fromFirestoreFields(d.fields || {});
+            // Filter by conversationId and AI Foundation tag
+            const isMatch = (fields.conversationId === conversationId) || 
+                            (conversationId.startsWith('conv_') && fields.senderUid === conversationId.replace('conv_', '')) ||
+                            (conversationId.startsWith('conv_') && fields.recipientUid === conversationId.replace('conv_', ''));
+            
+            const isAIFoundation = fields.tag === TRANSACTION_TAG || fields.businessId === BUSINESS_ID || fields.businessName === 'AI Foundation' || fields.source === 'aifoundation';
+
+            if (isMatch && isAIFoundation) {
+                messages.push({
+                    id: d.name.split('/').pop(),
+                    ...fields
+                });
+            }
+        }
+
+        // Sort chronologically ascending (oldest first for chat display)
+        messages.sort((a, b) => new Date(a.createdAt || a.timestamp).getTime() - new Date(b.createdAt || b.timestamp).getTime());
+
+        return messages.slice(-limit);
+    } catch (e) {
+        console.error('[Chat Fetch] Error fetching messages:', e.message);
+        return [];
+    }
+}
+
+/**
+ * Retrieve active supporter chat conversations for SuperAdmin view
+ */
+async function getChatConversations(options = {}) {
+    const token = await getAccessToken();
+    if (!token) return [];
+
+    try {
+        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/chat_interactions?pageSize=100`;
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return [];
+
+        const data = await res.json();
+        const docs = data.documents || [];
+        const convMap = new Map();
+
+        for (const d of docs) {
+            const fields = fromFirestoreFields(d.fields || {});
+            const isAIFoundation = fields.tag === TRANSACTION_TAG || fields.businessId === BUSINESS_ID || fields.businessName === 'AI Foundation' || fields.source === 'aifoundation';
+            if (!isAIFoundation || !fields.conversationId) continue;
+
+            const convId = fields.conversationId;
+            const existing = convMap.get(convId);
+            const msgTime = new Date(fields.createdAt || fields.timestamp).getTime();
+
+            // Supporter identity
+            const isSupporterSender = fields.senderRole === 'supporter' || fields.recipientUid === 'superadmin';
+            const supporterEmail = isSupporterSender ? fields.senderEmail : fields.recipientEmail;
+            const supporterName = isSupporterSender ? fields.senderName : fields.recipientName;
+            const supporterUid = isSupporterSender ? fields.senderUid : fields.recipientUid;
+
+            if (!existing || msgTime > new Date(existing.lastMessageAt).getTime()) {
+                convMap.set(convId, {
+                    conversationId: convId,
+                    supporterUid: supporterUid || convId.replace('conv_', ''),
+                    supporterEmail: supporterEmail || 'Supporter',
+                    supporterName: supporterName || 'Supporter',
+                    lastMessage: fields.userMessage || '',
+                    lastSenderRole: fields.senderRole || 'supporter',
+                    lastMessageAt: fields.createdAt || fields.timestamp,
+                    hasLinks: Boolean(fields.hasLinks),
+                    totalMessages: (existing?.totalMessages || 0) + 1
+                });
+            } else if (existing) {
+                existing.totalMessages += 1;
+            }
+        }
+
+        const conversations = Array.from(convMap.values());
+        // Sort descending by most recent message
+        conversations.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+        return conversations;
+    } catch (e) {
+        console.error('[Chat Conversations] Error:', e.message);
+        return [];
+    }
 }
 
 /**
@@ -545,7 +863,8 @@ async function getDatabaseRecentInputs(options = {}) {
                     summary = `${fields.paymentMethod?.toUpperCase() || 'PAYMENT'} AUD $${fields.amount || 0} (${fields.status || 'unknown'}) - ${fields.customerEmail || fields.description || docId}`;
                 } else if (col === 'users') {
                     const addrInfo = fields.address ? ` [${[fields.address.suburb, fields.address.state].filter(Boolean).join(', ')}]` : '';
-                    summary = `User Profile: ${fields.displayName || 'Unnamed'} (${fields.email || 'No email'})${addrInfo} - Role: ${fields.role || 'supporter'}`;
+                    const userStatus = fields.status || fields.role || 'supporter';
+                    summary = `User Profile: ${fields.displayName || 'Unnamed'} (${fields.email || 'No email'})${addrInfo} - Status: ${userStatus} (Role: ${fields.role || 'supporter'})`;
                 } else if (col === 'chat_interactions') {
                     const userMsg = fields.userMessage ? `"${fields.userMessage.substring(0, 50)}..."` : (fields.currentApplicationId || 'Admissions Inquiry');
                     summary = `Chat Query: ${userMsg}`;
@@ -619,10 +938,16 @@ module.exports = {
     listAIFoundationTransactions,
     syncUser,
     getUser,
+    getAdminEmailsFromFirebase,
+    isEmailAdminInFirebase,
     getDatabaseRecentInputs,
     getFirebasePublicConfig,
-    toFirestoreFields,
-    fromFirestoreFields,
+    sendChatMessage,
+    getChatMessages,
+    getChatConversations,
+    isSuperAdminUser,
+    SUPERADMIN_UIDS,
+    SUPERADMIN_EMAILS,
     writeDocument,
     deleteDocument
 };

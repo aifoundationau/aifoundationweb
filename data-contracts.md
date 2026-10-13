@@ -188,9 +188,45 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `authProvider` | String Enum | System Enforcement | Auth Metadata | Required. Value: `'google'`. | Firestore root field. |
 | `phoneNumber` | String | Supporter Registration | PII | Optional. Australian or international E.164 phone format. | Stored in `users/{uid}`. AES-256 encrypted at rest. |
 | `address` | Map / Object | Supporter Registration | PII | Optional. Contains `apartment`, `street`, `suburb`, `state`, `country`, `postcode`. | Stored in `users/{uid}`. AES-256 encrypted at rest. |
-| `role` | String Enum | Server Verification | Access Control | Value: `'supporter'` \| `'admin'`. Admin verified via server rules. | Firestore root field. |
+| `role` | String Enum | Server Verification | Access Control | Value: `'supporter'` \| `'admin'`. Admin verified strictly from list in Firebase (`system_settings/admin_emails` & admin records). | Firestore root field. |
+| `status` | String Enum | Server / Client Sync | Account Status | Value: `'supporter'` (assigned immediately to any registering email not in Firebase admin list) \| `'admin'`. | Firestore root field. Indexed. |
+| `detailsRegistered` | Boolean | Supporter Registration | Profile Status | Optional. `true` when user submits details form. | Firestore root field. |
+| `registeredAt` | String (Timestamp) | Client / Server Sync | Audit | Required. ISO 8601 UTC timestamp of initial registration. | Firestore timestamp/string. |
 | `lastLoginAt` | String (Timestamp) | Client / Server Sync | Audit | Required. ISO 8601 UTC timestamp of most recent authentication. | Firestore timestamp/string. 7-year retention. |
 | `updatedAt` | String (Timestamp) | Client / Server Sync | Audit | Required. ISO 8601 UTC timestamp of profile sync. | Firestore timestamp/string. |
+
+---
+
+### Domain 6: Supporter Chat & Administrative Messaging
+
+#### Target Collections
+- Primary: `chat_interactions/{messageId}`
+
+#### Data Fields Specification
+| Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage & Retention |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `messageId` / `id` | String | Server Generation | Message ID | Required. Unique identifier matching `^msg_[0-9]{13}_[a-z0-9]{7}$`. | Firestore Document ID. |
+| `conversationId` | String | API Route (`/api/chat/send`) | Thread Identifier | Required. Format: `^conv_[A-Za-z0-9_-]+$`. Groups threads by supporter UID. | Firestore root field. Indexed. |
+| `tag` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. Indexed. |
+| `businessId` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. |
+| `businessName` | String | System Enforcement | Metadata | **Constant**: `'AI Foundation'`. | Firestore root field. |
+| `source` | String | System Enforcement | Metadata | **Constant**: `'aifoundation'`. | Firestore root field. |
+| `senderUid` | String | Authenticated Session | Identity | Required. Authenticated sender Firebase UID. | Firestore root field. |
+| `senderEmail` | String (Email) | Authenticated Session | PII | Required. Valid RFC 5322 email. Lowercased. | Firestore root field. |
+| `senderName` | String | Authenticated Session | Public Identity | Required. Trimmed, HTML-sanitized display name. | Firestore root field. |
+| `senderRole` | String Enum | Authenticated Session | Role | Enum: `['supporter', 'super_admin']`. | Firestore root field. |
+| `recipientUid` | String | Session / Route Target | Identity | Target recipient identifier (`'superadmin'` or supporter UID). | Firestore root field. |
+| `recipientEmail` | String (Email) | Session / Route Target | PII | Target recipient email address. | Firestore root field. |
+| `recipientName` | String | Session / Route Target | Identity | Target recipient display name. | Firestore root field. |
+| `userMessage` | String | UI Chat Composer | Content | Required. Length: 1–4,000 characters. HTML entities encoded. Web links allowed. | Firestore root field. |
+| `hasLinks` | Boolean | Server URL Extraction | Content Meta | `true` if valid `http://` or `https://` URLs are present in `userMessage`. | Firestore root field. |
+| `links` | Array of Strings | Server URL Extraction | Content Meta | List of distinct validated URLs extracted from message. | Firestore root field. |
+| `hasUploads` | Boolean | Strict Enforcement | Security / Media | **Constant**: `false`. File uploads are strictly prohibited and rejected. | Firestore root field. |
+| `retentionYears` | Integer | Statutory Compliance | Regulatory | **Constant**: `7`. Exactly 7 years. | Firestore root field. |
+| `retainedUntil` | String (Timestamp) | Statutory Compliance | Regulatory | ISO 8601 UTC timestamp calculated as exactly `timestamp + 7 years`. | Firestore root field. Indexed. |
+| `statutoryRetention` | String | Statutory Compliance | Legal | Description: `'7-Year Corporations Act / APP 11 Compliance'`. | Firestore root field. |
+| `createdAt` / `timestamp` | String (Timestamp) | Server Generation | Audit | Required. ISO 8601 UTC timestamp string. | Firestore timestamp/string. Indexed. |
+| `updatedAt` | String (Timestamp) | Server Generation | Audit | Required. ISO 8601 UTC timestamp string. | Firestore timestamp/string. |
 
 ---
 
