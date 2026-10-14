@@ -536,12 +536,76 @@
 
             <!-- Panel View -->
             <div id="adminPanelView" style="display: none;">
-                <!-- Mobile Dropdown Navigation Menu -->
-                <div class="admin-mobile-nav-bar">
-                    <label for="adminMobileTabSelect" class="admin-mobile-nav-label">
-                        <i class="fa-solid fa-bars-staggered"></i> Menu:
-                    </label>
-                    <select id="adminMobileTabSelect" class="admin-mobile-nav-select" aria-label="Select Admin Section">
+                <!-- Mobile Collapsible Top Menu Navigation -->
+                <div class="admin-mobile-nav-bar" id="adminMobileNavBar">
+                    <button type="button" class="admin-mobile-menu-toggle" id="adminMobileMenuToggle" aria-expanded="false" aria-controls="adminMobileDropdownMenu">
+                        <div class="admin-mobile-current-tab">
+                            <i class="fa-solid fa-sliders" id="adminMobileCurrentIcon"></i>
+                            <span id="adminMobileCurrentText">Settings &amp; Admin Panel</span>
+                        </div>
+                        <div class="admin-mobile-toggle-indicator">
+                            <span class="admin-mobile-menu-badge">Menu</span>
+                            <i class="fa-solid fa-chevron-down toggle-chevron" id="adminMobileToggleChevron"></i>
+                        </div>
+                    </button>
+
+                    <!-- Collapsible Dropdown Menu -->
+                    <div class="admin-mobile-dropdown-menu" id="adminMobileDropdownMenu">
+                        <ul class="admin-mobile-items-list" id="adminMobileItemsList">
+                            <li class="admin-mobile-menu-item" data-target="admin-register-details">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    <span>Register Your Details</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item active" data-target="admin-settings-overview">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-sliders"></i>
+                                    <span>Settings &amp; Admin Panel</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-supporter-chat">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-comments"></i>
+                                    <span>Supporter Messages</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-upload-post">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <span>Upload Content</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-upload-image">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Upload Image</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-manage-posts">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-list-check"></i>
+                                    <span>Manage Posts</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-database-activity">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-database"></i>
+                                    <span>Database Activity</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Hidden native select for backward-compatibility -->
+                    <select id="adminMobileTabSelect" class="admin-mobile-nav-select sr-only" aria-label="Select Admin Section" style="display: none;">
                         <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
                         <option value="admin-settings-overview" selected>Settings &amp; Admin Panel</option>
                         <option value="admin-supporter-chat">Supporter Messages</option>

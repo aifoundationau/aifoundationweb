@@ -134,7 +134,62 @@ const postObserver = new IntersectionObserver((entries) => {
         return role === 'admin' || role === 'super_admin' || role === 'superadmin' || status === 'admin';
     }
 
-    // Admin Tab Switching (Synchronized between desktop sidebar and mobile dropdown)
+    // Admin Tab Constants
+    const SUPER_ADMIN_TABS = [
+        { id: 'admin-register-details', icon: 'fa-solid fa-id-card', title: 'Register Your Details' },
+        { id: 'admin-settings-overview', icon: 'fa-solid fa-sliders', title: 'Settings & Admin Panel' },
+        { id: 'admin-supporter-chat', icon: 'fa-solid fa-comments', title: 'Supporter Messages' },
+        { id: 'admin-upload-post', icon: 'fa-solid fa-upload', title: 'Upload Content' },
+        { id: 'admin-upload-image', icon: 'fa-solid fa-cloud-arrow-up', title: 'Upload Image' },
+        { id: 'admin-manage-posts', icon: 'fa-solid fa-list-check', title: 'Manage Posts' },
+        { id: 'admin-database-activity', icon: 'fa-solid fa-database', title: 'Database Activity' }
+    ];
+
+    const SUPPORTER_TABS = [
+        { id: 'supporter-tab-chat', icon: 'fa-solid fa-comments', title: 'Direct Chat with Team' },
+        { id: 'admin-register-details', icon: 'fa-solid fa-id-card', title: 'Register Your Details' },
+        { id: 'supporter-tab-donate', icon: 'fa-solid fa-heart', title: 'Donation Option', iconColor: '#ef4444' }
+    ];
+
+    // Mobile Collapsible Top Menu Helpers
+    function renderMobileMenuItems(isSuperAdmin) {
+        const list = document.getElementById('adminMobileItemsList');
+        if (!list) return;
+
+        const tabs = isSuperAdmin ? SUPER_ADMIN_TABS : SUPPORTER_TABS;
+        list.innerHTML = tabs.map(tab => `
+            <li class="admin-mobile-menu-item" data-target="${tab.id}">
+                <div class="admin-mobile-item-left">
+                    <i class="${tab.icon}" ${tab.iconColor ? `style="color: ${tab.iconColor};"` : ''}></i>
+                    <span>${tab.title}</span>
+                </div>
+                <i class="fa-solid fa-check active-check"></i>
+            </li>
+        `).join('');
+    }
+
+    function toggleMobileMenu(force = null) {
+        const dropdown = document.getElementById('adminMobileDropdownMenu');
+        const toggleBtn = document.getElementById('adminMobileMenuToggle');
+        if (!dropdown || !toggleBtn) return;
+
+        const isOpen = force !== null ? force : !dropdown.classList.contains('is-open');
+        if (isOpen) {
+            dropdown.classList.add('is-open');
+            toggleBtn.classList.add('is-open');
+            toggleBtn.setAttribute('aria-expanded', 'true');
+        } else {
+            dropdown.classList.remove('is-open');
+            toggleBtn.classList.remove('is-open');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    function closeMobileMenu() {
+        toggleMobileMenu(false);
+    }
+
+    // Admin Tab Switching (Synchronized between desktop sidebar and mobile collapsible menu)
     function switchAdminTab(targetId) {
         if (!targetId) return;
 
@@ -148,7 +203,39 @@ const postObserver = new IntersectionObserver((entries) => {
             }
         });
 
-        // Update mobile dropdown select
+        // Update mobile collapsible menu header (icon, title)
+        const allTabs = [...SUPER_ADMIN_TABS, ...SUPPORTER_TABS];
+        const currentTabObj = allTabs.find(t => t.id === targetId);
+        if (currentTabObj) {
+            const currentIcon = document.getElementById('adminMobileCurrentIcon');
+            const currentText = document.getElementById('adminMobileCurrentText');
+            if (currentIcon) {
+                currentIcon.className = currentTabObj.icon;
+                if (currentTabObj.iconColor) {
+                    currentIcon.style.color = currentTabObj.iconColor;
+                } else {
+                    currentIcon.style.color = '';
+                }
+            }
+            if (currentText) {
+                currentText.textContent = currentTabObj.title;
+            }
+        }
+
+        // Update active highlight on mobile menu items
+        const mobileItems = document.querySelectorAll('.admin-mobile-menu-item');
+        mobileItems.forEach(item => {
+            if (item.getAttribute('data-target') === targetId) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+
+        // Automatically close mobile menu once selection is made
+        closeMobileMenu();
+
+        // Update mobile dropdown select (backward-compatibility)
         const mobileSelect = document.getElementById('adminMobileTabSelect');
         if (mobileSelect && mobileSelect.value !== targetId) {
             mobileSelect.value = targetId;
@@ -238,6 +325,7 @@ const postObserver = new IntersectionObserver((entries) => {
         if (adminModal) {
             adminModal.style.display = 'none';
         }
+        closeMobileMenu();
         if (supporterChatPollTimer) {
             clearInterval(supporterChatPollTimer);
             supporterChatPollTimer = null;
@@ -326,6 +414,8 @@ const postObserver = new IntersectionObserver((entries) => {
                 panelFooterRoleBadge.innerHTML = '<i class="fa-solid fa-crown"></i> SuperAdmin';
             }
 
+            renderMobileMenuItems(true);
+
             if (mobileSelect) {
                 mobileSelect.innerHTML = `
                     <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
@@ -356,6 +446,8 @@ const postObserver = new IntersectionObserver((entries) => {
                 panelFooterRoleBadge.className = 'user-role-badge role-supporter';
                 panelFooterRoleBadge.innerHTML = '<i class="fa-solid fa-user-check"></i> Supporter';
             }
+
+            renderMobileMenuItems(false);
 
             if (mobileSelect) {
                 mobileSelect.innerHTML = `
@@ -389,13 +481,43 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     }
 
-    // Mobile Select Event
+    // Mobile Select Event (backward-compatibility fallback)
     const adminMobileTabSelectEl = document.getElementById('adminMobileTabSelect');
     if (adminMobileTabSelectEl) {
         adminMobileTabSelectEl.addEventListener('change', (e) => {
             switchAdminTab(e.target.value);
         });
     }
+
+    // Mobile Collapsible Top Menu Toggle & Navigation
+    const adminMobileMenuToggle = document.getElementById('adminMobileMenuToggle');
+    if (adminMobileMenuToggle) {
+        adminMobileMenuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMobileMenu();
+        });
+    }
+
+    const adminMobileItemsList = document.getElementById('adminMobileItemsList');
+    if (adminMobileItemsList) {
+        adminMobileItemsList.addEventListener('click', (e) => {
+            const item = e.target.closest('.admin-mobile-menu-item');
+            if (item) {
+                const targetId = item.getAttribute('data-target');
+                if (targetId) {
+                    switchAdminTab(targetId);
+                }
+            }
+        });
+    }
+
+    // Dismiss mobile menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const navBar = document.getElementById('adminMobileNavBar');
+        if (navBar && !navBar.contains(e.target)) {
+            closeMobileMenu();
+        }
+    });
 
     // Desktop Sidebar Tabs Event Delegation
     document.querySelectorAll('.admin-panel-sidebar').forEach(sidebar => {
@@ -417,10 +539,13 @@ const postObserver = new IntersectionObserver((entries) => {
         closeAdminBtn.addEventListener('click', closeAdminPanel);
     }
 
-    // Escape Key Listener to dismiss modal
+    // Escape Key Listener to dismiss modal and collapsible menu
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && adminModal && adminModal.style.display === 'flex') {
-            closeAdminPanel();
+        if (e.key === 'Escape') {
+            closeMobileMenu();
+            if (adminModal && adminModal.style.display === 'flex') {
+                closeAdminPanel();
+            }
         }
     });
 
