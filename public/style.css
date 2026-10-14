@@ -473,6 +473,62 @@ p { margin: 0; }
 }
 .post-footer a:hover { background: var(--primary); color: white; }
 
+/* ==========================================================================
+   Footer Desktop Portal Navigation Buttons
+   ========================================================================== */
+.footer-portal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+.footer-portal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.footer-portal-btn i {
+  color: #0066ff;
+  font-size: 0.95rem;
+  transition: transform 0.2s ease;
+}
+
+.footer-portal-btn:hover {
+  background: #f8fafc;
+  border-color: #0066ff;
+  color: #0066ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 102, 255, 0.14);
+}
+
+.footer-portal-btn:hover i {
+  transform: scale(1.1);
+}
+
+.footer-portal-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 102, 255, 0.1);
+}
+
 /* Admin & General Modal System (Responsive, Fit-To-Screen & Scrollable) */
 .modal,
 .admin-modal {
@@ -1402,6 +1458,12 @@ p { margin: 0; }
   .panel-signout-btn {
     padding: 7px 12px !important;
     font-size: 0.8rem !important;
+  }
+
+  /* Footer Portal Buttons Desktop Only */
+  .footer-portal-nav,
+  .footer-portal-btn {
+    display: none !important;
   }
 }
 
@@ -3828,6 +3890,12 @@ p { margin: 0; }
     max-width: 100% !important;
     padding: 12px 14px 24px 14px !important;
   }
+
+  /* Hide footer portal buttons on mobile, tablets, and touch devices */
+  .footer-portal-nav,
+  .footer-portal-btn {
+    display: none !important;
+  }
 }
 
 /* Explicit Device Class Overrides (Guarantees zero side menu on Android, iPad, iPhone) */
@@ -3911,6 +3979,21 @@ body.admin-touch-device .admin-panel-content-pane,
   max-width: 100% !important;
   padding: 12px 14px 24px 14px !important;
 }
+
+/* Explicit device class hiding for footer portal buttons */
+body.device-android .footer-portal-nav,
+body.device-ipad .footer-portal-nav,
+body.device-ios .footer-portal-nav,
+body.admin-touch-device .footer-portal-nav,
+#adminModal.mobile-tablet-mode .footer-portal-nav,
+body.device-android .footer-portal-btn,
+body.device-ipad .footer-portal-btn,
+body.device-ios .footer-portal-btn,
+body.admin-touch-device .footer-portal-btn,
+#adminModal.mobile-tablet-mode .footer-portal-btn {
+  display: none !important;
+}
+
 
 
 

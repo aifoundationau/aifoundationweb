@@ -796,17 +796,44 @@
         </section>
 
         <!-- Footer -->
-        <footer style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; color: #64748b; font-size: 0.9rem;">
-            <div>
-                <strong>AI Foundation Australia</strong> &bull; ABN 36 339 516 584
+        <footer class="site-footer" style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 16px; color: #64748b; font-size: 0.9rem;">
+            <!-- Footer Meta Details -->
+            <div class="footer-meta-row" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; width: 100%;">
+                <div>
+                    <strong>AI Foundation Australia</strong> &bull; ABN 36 339 516 584
+                </div>
+                <div>
+                    <a href="/data-contracts.md" style="color: var(--primary, #0066ff); text-decoration: none; font-weight: 600;">
+                        <i class="fa-solid fa-download"></i> Raw Markdown Spec
+                    </a>
+                </div>
+                <div>
+                    <span><i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 7-Year Statutory Data Retention Policy Enforced</span>
+                </div>
             </div>
-            <div>
-                <a href="/data-contracts.md" style="color: var(--primary, #0066ff); text-decoration: none; font-weight: 600;">
-                    <i class="fa-solid fa-download"></i> Raw Markdown Spec
+
+            <!-- Desktop Only Portal Buttons (Below Meta Details) -->
+            <div class="footer-portal-nav" role="navigation" aria-label="Portal Navigation Links">
+                <a href="https://www.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                    <i class="fa-solid fa-brain"></i>
+                    <span>AI</span>
                 </a>
-            </div>
-            <div>
-                <span><i class="fa-solid fa-clock-rotate-left" style="color: #10b981;"></i> 7-Year Statutory Data Retention Policy Enforced</span>
+                <a href="https://lms.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>LMS</span>
+                </a>
+                <a href="http://hr.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span>HR</span>
+                </a>
+                <a href="https://jobs.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                    <span>Trades</span>
+                </a>
+                <a href="https://pt.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                    <i class="fa-solid fa-dumbbell"></i>
+                    <span>PT</span>
+                </a>
             </div>
         </footer>
     </main>

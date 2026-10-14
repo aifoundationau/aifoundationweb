@@ -459,20 +459,48 @@
             </div>
 
             <!-- Footer -->
-            <footer
-                style="margin-top: 24px; padding-top: 20px; padding-bottom: 24px; border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 24px; color: var(--text-muted); font-size: 0.95rem;">
-                <div>
-                    <strong>AI Foundation</strong> ABN 36 339 516 584
+            <footer class="site-footer"
+                style="margin-top: 24px; padding-top: 20px; padding-bottom: 24px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 16px; color: var(--text-muted); font-size: 0.95rem;">
+                
+                <!-- Footer Meta Details -->
+                <div class="footer-meta-row" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 24px; width: 100%;">
+                    <div>
+                        <strong>AI Foundation</strong> ABN 36 339 516 584
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-envelope" style="color: var(--primary);"></i>
+                        <a href="mailto:support@aifoundation.net.au"
+                            style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s;"
+                            onmouseover="this.style.color='var(--primary)'"
+                            onmouseout="this.style.color='var(--text-muted)'">support@aifoundation.net.au</a>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-size: 0.85rem; color: #94a3b8;"><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe</span>
+                    </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-envelope" style="color: var(--primary);"></i>
-                    <a href="mailto:support@aifoundation.net.au"
-                        style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s;"
-                        onmouseover="this.style.color='var(--primary)'"
-                        onmouseout="this.style.color='var(--text-muted)'">support@aifoundation.net.au</a>
-                </div>
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <span style="font-size: 0.85rem; color: #94a3b8;"><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe</span>
+
+                <!-- Desktop Only Portal Buttons (Below Meta Details) -->
+                <div class="footer-portal-nav" role="navigation" aria-label="Portal Navigation Links">
+                    <a href="https://www.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                        <i class="fa-solid fa-brain"></i>
+                        <span>AI</span>
+                    </a>
+                    <a href="https://lms.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <span>LMS</span>
+                    </a>
+                    <a href="http://hr.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                        <i class="fa-solid fa-user-tie"></i>
+                        <span>HR</span>
+                    </a>
+                    <a href="https://jobs.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                        <span>Trades</span>
+                    </a>
+                    <a href="https://pt.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                        <i class="fa-solid fa-dumbbell"></i>
+                        <span>PT</span>
+                    </a>
                 </div>
             </footer>
         </div>
