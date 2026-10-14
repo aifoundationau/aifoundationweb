@@ -189,6 +189,72 @@ const postObserver = new IntersectionObserver((entries) => {
         toggleMobileMenu(false);
     }
 
+    // Comprehensive Device & Screen Detection for Android, iPad, iPhone, and Touch Tablets
+    function updateDeviceAdminMode() {
+        const ua = navigator.userAgent || '';
+        // iPad detection: Handles both classic iPad UA and iPadOS 13+ desktop-class Safari (MacIntel + touch points)
+        const isIPad = /iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isIPhone = /iPhone|iPod/i.test(ua);
+        const isAndroid = /Android/i.test(ua);
+        const isCoarseTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        const isTabletOrMobileWidth = window.innerWidth <= 1024 || (isCoarseTouch && window.innerWidth <= 1366);
+
+        const isTargetDevice = isIPad || isIPhone || isAndroid || isTabletOrMobileWidth;
+
+        if (document.body) {
+            if (isAndroid) document.body.classList.add('device-android');
+            if (isIPad) document.body.classList.add('device-ipad');
+            if (isIPhone) document.body.classList.add('device-ios');
+            if (isTargetDevice) {
+                document.body.classList.add('admin-touch-device');
+            } else if (!isIPad && !isIPhone && !isAndroid) {
+                document.body.classList.remove('admin-touch-device');
+            }
+        }
+
+        if (adminModal) {
+            if (isTargetDevice) {
+                adminModal.classList.add('mobile-tablet-mode');
+            } else if (!isIPad && !isIPhone && !isAndroid) {
+                adminModal.classList.remove('mobile-tablet-mode');
+            }
+        }
+
+        // Strictly enforce DOM styles on the sidebars and mobile nav bar
+        const sidebars = document.querySelectorAll('.admin-panel-sidebar, #adminSuperSidebar, #adminSupporterSidebar');
+        const mobileNavBar = document.getElementById('adminMobileNavBar');
+
+        if (isTargetDevice) {
+            sidebars.forEach(el => {
+                el.style.setProperty('display', 'none', 'important');
+            });
+            if (mobileNavBar) {
+                mobileNavBar.style.setProperty('display', 'flex', 'important');
+            }
+        } else {
+            // Genuine desktop mode: restore standard display behavior
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+            const isSuper = currentUser && Boolean(currentUser.role === 'superadmin' || currentUser.status === 'superadmin' || currentUser.classification === 'Superadmin' || currentUser.isSuperAdmin);
+            const superSidebar = document.getElementById('adminSuperSidebar');
+            const supporterSidebar = document.getElementById('adminSupporterSidebar');
+            const mainSidebar = document.querySelector('.admin-panel-sidebar');
+
+            if (mainSidebar) mainSidebar.style.removeProperty('display');
+            if (isSuper) {
+                if (superSidebar) superSidebar.style.display = 'block';
+                if (supporterSidebar) supporterSidebar.style.display = 'none';
+            } else {
+                if (superSidebar) superSidebar.style.display = 'none';
+                if (supporterSidebar) supporterSidebar.style.display = 'block';
+            }
+            if (mobileNavBar) {
+                mobileNavBar.style.removeProperty('display');
+            }
+        }
+
+        return isTargetDevice;
+    }
+
     // Admin Tab Switching (Synchronized between desktop sidebar and mobile collapsible menu)
     function switchAdminTab(targetId) {
         if (!targetId) return;
@@ -378,6 +444,7 @@ const postObserver = new IntersectionObserver((entries) => {
         }
 
         adminModal.style.display = 'flex';
+        const isTargetDevice = updateDeviceAdminMode();
 
         // Views
         const loginView = document.getElementById('adminLoginView');
@@ -405,8 +472,13 @@ const postObserver = new IntersectionObserver((entries) => {
             // ==========================================
             if (superTopWrap) superTopWrap.style.display = 'flex';
             if (supporterTopWrap) supporterTopWrap.style.display = 'none';
-            if (superSidebar) superSidebar.style.display = 'block';
-            if (supporterSidebar) supporterSidebar.style.display = 'none';
+            if (isTargetDevice) {
+                if (superSidebar) superSidebar.style.setProperty('display', 'none', 'important');
+                if (supporterSidebar) supporterSidebar.style.setProperty('display', 'none', 'important');
+            } else {
+                if (superSidebar) superSidebar.style.display = 'block';
+                if (supporterSidebar) supporterSidebar.style.display = 'none';
+            }
             if (adminPanelUserEmail) adminPanelUserEmail.textContent = currentUser.email || 'support@aifoundation.net.au';
 
             if (panelFooterRoleBadge) {
@@ -438,8 +510,13 @@ const postObserver = new IntersectionObserver((entries) => {
             // ==========================================
             if (superTopWrap) superTopWrap.style.display = 'none';
             if (supporterTopWrap) supporterTopWrap.style.display = 'flex';
-            if (superSidebar) superSidebar.style.display = 'none';
-            if (supporterSidebar) supporterSidebar.style.display = 'block';
+            if (isTargetDevice) {
+                if (superSidebar) superSidebar.style.setProperty('display', 'none', 'important');
+                if (supporterSidebar) supporterSidebar.style.setProperty('display', 'none', 'important');
+            } else {
+                if (superSidebar) superSidebar.style.display = 'none';
+                if (supporterSidebar) supporterSidebar.style.display = 'block';
+            }
             if (supporterPanelUserEmail) supporterPanelUserEmail.textContent = currentUser.email || 'supporter@example.com';
 
             if (panelFooterRoleBadge) {
@@ -518,6 +595,11 @@ const postObserver = new IntersectionObserver((entries) => {
             closeMobileMenu();
         }
     });
+
+    // Responsive and Device Event Listeners (Android, iPad, iPhone, and Tablet/Mobile orientation & resize)
+    window.addEventListener('resize', updateDeviceAdminMode);
+    window.addEventListener('orientationchange', updateDeviceAdminMode);
+    updateDeviceAdminMode();
 
     // Desktop Sidebar Tabs Event Delegation
     document.querySelectorAll('.admin-panel-sidebar').forEach(sidebar => {

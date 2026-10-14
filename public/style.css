@@ -554,8 +554,205 @@ p { margin: 0; }
   overflow: hidden;
 }
 
+/* ==========================================================================
+   Admin Panel Top Dropdown Menu Component
+   (Used on Android, iPad, iPhone, and Tablet/Mobile Devices)
+   ========================================================================== */
 .admin-mobile-nav-bar {
   display: none;
+  flex-direction: column;
+  width: 100%;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.admin-mobile-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.admin-mobile-menu-toggle:hover,
+.admin-mobile-menu-toggle:focus-visible,
+.admin-mobile-menu-toggle.is-open {
+  background: #ffffff;
+  border-color: #0066ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+
+.admin-mobile-current-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-mobile-current-tab i {
+  color: #0066ff;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.admin-mobile-current-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.admin-mobile-toggle-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.admin-mobile-menu-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(0, 102, 255, 0.08);
+  color: #0066ff;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.toggle-chevron {
+  font-size: 0.88rem;
+  color: #64748b;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-mobile-menu-toggle.is-open .toggle-chevron {
+  transform: rotate(180deg);
+  color: #0066ff;
+}
+
+.admin-mobile-dropdown-menu {
+  display: none;
+  width: 100%;
+  margin-top: 6px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  max-height: 340px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: mobileMenuSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.admin-mobile-dropdown-menu.is-open {
+  display: block;
+}
+
+@keyframes mobileMenuSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-mobile-items-list {
+  list-style: none;
+  padding: 6px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-mobile-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.admin-mobile-menu-item:hover,
+.admin-mobile-menu-item:active {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.admin-mobile-menu-item.active {
+  background: #eff6ff;
+  color: #0066ff;
+  font-weight: 700;
+}
+
+.admin-mobile-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-mobile-item-left i {
+  width: 20px;
+  text-align: center;
+  font-size: 1.05rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.admin-mobile-menu-item.active .admin-mobile-item-left i {
+  color: #0066ff;
+}
+
+.active-check {
+  display: none;
+  color: #0066ff;
+  font-size: 0.9rem;
+}
+
+.admin-mobile-menu-item.active .active-check {
+  display: inline-block;
 }
 
 .admin-panel-sidebar {
@@ -811,10 +1008,16 @@ p { margin: 0; }
   .welcome-card, .filter-card { padding: 20px; }
   .welcome-card h1 { font-size: 1.85rem; }
   .card-decoration { display: none; }
+}
 
-  /* ==========================================================================
-     Admin Panel Mobile & Android Responsiveness (< 768px)
-     ========================================================================== */
+/* ==========================================================================
+   Admin Panel Android, iPad, & iPhone Responsiveness:
+   - ONLY dropdown at the top
+   - ABSOLUTELY NO side menu on Android, iPad, or iPhone
+   ========================================================================== */
+@media (max-width: 1024px),
+       (hover: none) and (pointer: coarse) and (max-width: 1366px),
+       (max-height: 550px) and (orientation: landscape) {
   .modal,
   .admin-modal {
     padding: 6px !important;
@@ -887,19 +1090,29 @@ p { margin: 0; }
     width: 100% !important;
   }
 
-  /* Completely hide sidebar list on mobile - No menu on the side */
+  /* Completely hide sidebar list on mobile & tablet - Absolutely NO menu on the side */
   .admin-panel-sidebar,
   #adminSuperSidebar,
-  #adminSupporterSidebar {
+  #adminSupporterSidebar,
+  .sidebar-list,
+  #adminSuperTabs,
+  #adminSupporterTabs,
+  .admin-sidebar-section-title {
     display: none !important;
     width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
     height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
     border: none !important;
     overflow: hidden !important;
     visibility: hidden !important;
     pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
   }
 
   /* Mobile Collapsible Top Menu Navigation */
@@ -2120,8 +2333,8 @@ p { margin: 0; }
   transform: rotate(90deg) !important;
 }
 
-@media (min-width: 769px) {
-  .admin-panel-sidebar {
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
+  body:not(.device-android):not(.device-ipad):not(.device-ios):not(.admin-touch-device) #adminModal:not(.mobile-tablet-mode) .admin-panel-sidebar {
     width: 250px !important;
     flex-shrink: 0 !important;
     border-right: 1px solid #e2e8f0 !important;
@@ -3568,21 +3781,39 @@ p { margin: 0; }
 }
 
 /* ==========================================================================
-   Android & iPhone Mobile Rules: Collapsible Top Menu, No Side Menu
+   Enforced Android, iPad, & iPhone Admin Panel Rules:
+   - ONLY dropdown at the top
+   - ABSOLUTELY NO side menu on Android, iPad, or iPhone
    ========================================================================== */
-@media (max-width: 768px) {
+@media (max-width: 1024px),
+       (hover: none) and (pointer: coarse) and (max-width: 1366px),
+       (max-height: 550px) and (orientation: landscape) {
   .admin-panel-sidebar,
   #adminSuperSidebar,
-  #adminSupporterSidebar {
+  #adminSupporterSidebar,
+  .sidebar-list,
+  #adminSuperTabs,
+  #adminSupporterTabs,
+  .admin-sidebar-section-title {
     display: none !important;
     width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
     height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
     border: none !important;
     overflow: hidden !important;
     visibility: hidden !important;
     pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+  }
+
+  .admin-mobile-nav-bar {
+    display: flex !important;
   }
 
   .admin-panel-layout {
@@ -3595,9 +3826,92 @@ p { margin: 0; }
   .admin-panel-content-pane {
     width: 100% !important;
     max-width: 100% !important;
-    padding: 12px 10px 24px 10px !important;
+    padding: 12px 14px 24px 14px !important;
   }
 }
+
+/* Explicit Device Class Overrides (Guarantees zero side menu on Android, iPad, iPhone) */
+body.device-android .admin-panel-sidebar,
+body.device-android #adminSuperSidebar,
+body.device-android #adminSupporterSidebar,
+body.device-android .sidebar-list,
+body.device-android #adminSuperTabs,
+body.device-android #adminSupporterTabs,
+body.device-android .admin-sidebar-section-title,
+body.device-ipad .admin-panel-sidebar,
+body.device-ipad #adminSuperSidebar,
+body.device-ipad #adminSupporterSidebar,
+body.device-ipad .sidebar-list,
+body.device-ipad #adminSuperTabs,
+body.device-ipad #adminSupporterTabs,
+body.device-ipad .admin-sidebar-section-title,
+body.device-ios .admin-panel-sidebar,
+body.device-ios #adminSuperSidebar,
+body.device-ios #adminSupporterSidebar,
+body.device-ios .sidebar-list,
+body.device-ios #adminSuperTabs,
+body.device-ios #adminSupporterTabs,
+body.device-ios .admin-sidebar-section-title,
+body.admin-touch-device .admin-panel-sidebar,
+body.admin-touch-device #adminSuperSidebar,
+body.admin-touch-device #adminSupporterSidebar,
+body.admin-touch-device .sidebar-list,
+body.admin-touch-device #adminSuperTabs,
+body.admin-touch-device #adminSupporterTabs,
+body.admin-touch-device .admin-sidebar-section-title,
+#adminModal.mobile-tablet-mode .admin-panel-sidebar,
+#adminModal.mobile-tablet-mode #adminSuperSidebar,
+#adminModal.mobile-tablet-mode #adminSupporterSidebar,
+#adminModal.mobile-tablet-mode .sidebar-list,
+#adminModal.mobile-tablet-mode #adminSuperTabs,
+#adminModal.mobile-tablet-mode #adminSupporterTabs,
+#adminModal.mobile-tablet-mode .admin-sidebar-section-title {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+body.device-android .admin-mobile-nav-bar,
+body.device-ipad .admin-mobile-nav-bar,
+body.device-ios .admin-mobile-nav-bar,
+body.admin-touch-device .admin-mobile-nav-bar,
+#adminModal.mobile-tablet-mode .admin-mobile-nav-bar {
+  display: flex !important;
+}
+
+body.device-android .admin-panel-layout,
+body.device-ipad .admin-panel-layout,
+body.device-ios .admin-panel-layout,
+body.admin-touch-device .admin-panel-layout,
+#adminModal.mobile-tablet-mode .admin-panel-layout {
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+body.device-android .admin-panel-content-pane,
+body.device-ipad .admin-panel-content-pane,
+body.device-ios .admin-panel-content-pane,
+body.admin-touch-device .admin-panel-content-pane,
+#adminModal.mobile-tablet-mode .admin-panel-content-pane {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 12px 14px 24px 14px !important;
+}
+
 
 
 
