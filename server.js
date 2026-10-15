@@ -479,11 +479,6 @@ app.get('/services', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'services.html'));
 });
 
-// DATA CONTRACTS PAGE ROUTE
-app.get('/data-contracts', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'data-contracts.html'));
-});
-
 // RAW DATA CONTRACTS MARKDOWN ROUTE
 app.get('/data-contracts.md', (req, res) => {
     res.sendFile(path.join(__dirname, 'data-contracts.md'));
@@ -900,10 +895,11 @@ app.post('/api/auth/sync', async (req, res) => {
         
         // Verify superadmin status strictly: ONLY ZK79FRQoVlYhsgvMibhi81dRUWj2 and L5euSJAfNKdDOX6mT0qmrCGjUA53
         const isSuperAdmin = firebaseService.isSuperAdminUser(normUid, normalizedEmail);
+        const isAdmin = isSuperAdmin || await firebaseService.isEmailAdminInFirebase(normalizedEmail, normUid);
 
-        // These two are the ONLY superadmin allowed; everyone else is supporter
-        const assignedRole = isSuperAdmin ? 'superadmin' : 'supporter';
-        const assignedStatus = isSuperAdmin ? 'superadmin' : 'supporter';
+        // These two are the ONLY superadmin allowed; everyone else is admin or supporter
+        const assignedRole = isSuperAdmin ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
+        const assignedStatus = isSuperAdmin ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
 
         const result = await firebaseService.syncUser({
             uid: normUid,
@@ -917,7 +913,7 @@ app.post('/api/auth/sync', async (req, res) => {
             detailsRegistered,
             registeredAt
         });
-        res.json({ success: true, user: result.user, isAdmin: isSuperAdmin, isSuperAdmin });
+        res.json({ success: true, user: result.user, isAdmin, isSuperAdmin });
     } catch (e) {
         console.error('[Auth Sync] Error:', e);
         res.status(500).json({ error: e.message });
@@ -1009,6 +1005,10 @@ app.post('/api/chat/send', async (req, res) => {
             conversationId,
             userMessage,
             message,
+            tag,
+            businessId,
+            businessName,
+            source,
             hasUploads
         } = req.body;
 
@@ -1036,7 +1036,11 @@ app.post('/api/chat/send', async (req, res) => {
             recipientEmail: recipientEmail || 'support@aifoundation.net.au',
             recipientName: recipientName || 'SuperAdmin',
             conversationId: conversationId || `conv_${senderUid}`,
-            userMessage: msgText
+            userMessage: msgText,
+            tag: tag,
+            businessId: businessId,
+            businessName: businessName,
+            source: source
         });
 
         if (!result.success) {
@@ -1058,18 +1062,29 @@ app.post('/api/chat/send', async (req, res) => {
 // Retrieve message history for a conversation
 app.get('/api/chat/messages', async (req, res) => {
     try {
-        const { conversationId, uid, limit = 100 } = req.query;
+        const { conversationId, uid, email, limit = 100 } = req.query;
         const convId = conversationId || (uid ? `conv_${uid}` : null);
 
         if (!convId) {
             return res.status(400).json({ error: 'conversationId or uid is required.' });
         }
 
-        const messages = await firebaseService.getChatMessages(convId, { limit: Number(limit) || 100 });
+        // Determine if requester is SuperAdmin
+        const isSuperAdmin = firebaseService.isSuperAdminUser(uid, email) || 
+                             (email ? await firebaseService.isEmailAdminInFirebase(email, uid) : false);
+
+        const messages = await firebaseService.getChatMessages(convId, { 
+            limit: Number(limit) || 100,
+            isSuperAdmin: isSuperAdmin,
+            requesterUid: uid,
+            requesterEmail: email
+        });
+
         res.json({
             success: true,
             conversationId: convId,
             count: messages.length,
+            isSuperAdmin: isSuperAdmin,
             messages: messages,
             retentionPolicy: '7-Year Statutory Record Retention (Corporations Act 2001 & APP 11)'
         });
@@ -1079,9 +1094,17 @@ app.get('/api/chat/messages', async (req, res) => {
     }
 });
 
-// Retrieve list of supporter conversations (Admin / SuperAdmin inbox)
+// Retrieve list of supporter conversations (Admin / SuperAdmin inbox across all tenants)
 app.get('/api/chat/conversations', async (req, res) => {
     try {
+        const { uid, email } = req.query;
+        const isSuperAdmin = firebaseService.isSuperAdminUser(uid, email) || 
+                             (email ? await firebaseService.isEmailAdminInFirebase(email, uid) : false);
+
+        if ((uid || email) && !isSuperAdmin) {
+            return res.status(403).json({ error: 'Access denied: Only SuperAdmin can view all supporter conversations.' });
+        }
+
         const conversations = await firebaseService.getChatConversations();
         res.json({
             success: true,

@@ -75,6 +75,15 @@ try {
   // Silent fallback to standard initialized config
 }
 
+export const SUPERADMIN_UIDS = ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'];
+export const SUPERADMIN_EMAILS = ['davidrobertson.info@gmail.com', 'support@aifoundation.net.au'];
+
+export function isSuperAdminUser(uid, email) {
+  const normUid = (uid || '').trim();
+  const normEmail = (email || '').toLowerCase().trim();
+  return SUPERADMIN_UIDS.includes(normUid) || SUPERADMIN_EMAILS.includes(normEmail);
+}
+
 /**
  * Synchronize user profile across Firestore and server
  * MANDATORY REQUIREMENT: User profiles MUST have tag: 'aifoundation'
@@ -83,21 +92,26 @@ export async function syncUserProfile(user, additionalData = {}) {
   if (!user || !user.uid) return null;
 
   const email = (user.email || '').toLowerCase().trim();
+  const uid = (user.uid || '').trim();
   const now = new Date().toISOString();
 
-  // Any email address can register: they immediately become a supporter.
-  // The admin email addresses are listed in and verified against Firebase.
-  let assignedRole = additionalData.role || 'supporter';
-  let assignedStatus = additionalData.status || 'supporter';
+  // SuperAdmins are strictly verified: support@aifoundation.net.au / davidrobertson.info@gmail.com
+  const isSuper = isSuperAdminUser(uid, email);
+
+  let assignedRole = isSuper ? 'superadmin' : (additionalData.role || 'supporter');
+  let assignedStatus = isSuper ? 'superadmin' : (additionalData.status || 'supporter');
+  let assignedClassification = isSuper ? 'Superadmin' : (additionalData.classification || 'Supporter');
 
   const payload = {
     uid: user.uid,
     email: email,
-    displayName: user.displayName || '',
-    photoURL: user.photoURL || '',
-    phoneNumber: user.phoneNumber || '',
+    displayName: user.displayName || additionalData.displayName || '',
+    photoURL: user.photoURL || additionalData.photoURL || '',
+    phoneNumber: user.phoneNumber || additionalData.phoneNumber || '',
     role: assignedRole,
-    status: assignedStatus, // Status of supporter for anyone registering
+    status: assignedStatus,
+    classification: assignedClassification,
+    isSuperAdmin: isSuper,
     tag: TRANSACTION_TAG, // CRITICAL: 'aifoundation'
     businessId: BUSINESS_ID, // 'aifoundation'
     businessName: 'AI Foundation',
@@ -106,6 +120,20 @@ export async function syncUserProfile(user, additionalData = {}) {
     lastLoginAt: now,
     ...additionalData
   };
+
+  // Re-enforce superadmin privileges even if additionalData contained supporter
+  if (isSuper) {
+    payload.role = 'superadmin';
+    payload.status = 'superadmin';
+    payload.classification = 'Superadmin';
+    payload.isSuperAdmin = true;
+    if (Array.isArray(payload.tags)) {
+      payload.tags = payload.tags.filter(t => t !== 'supporter');
+      if (!payload.tags.includes('superadmin')) payload.tags.push('superadmin');
+    } else {
+      payload.tags = ['superadmin'];
+    }
+  }
 
   if (!payload.registeredAt) {
     payload.registeredAt = now;
@@ -123,6 +151,7 @@ export async function syncUserProfile(user, additionalData = {}) {
       if (data.user) {
         payload.role = data.user.role;
         payload.status = data.user.status;
+        payload.isSuperAdmin = Boolean(data.isSuperAdmin || data.user.isSuperAdmin || isSuper);
       }
     }
   } catch (err) {
@@ -344,6 +373,9 @@ window.firebaseService = {
   sendChatMessage,
   getChatMessages,
   getChatConversations,
+  isSuperAdminUser,
+  SUPERADMIN_UIDS,
+  SUPERADMIN_EMAILS,
   collection,
   doc,
   setDoc,

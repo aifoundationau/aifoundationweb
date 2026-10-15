@@ -509,20 +509,42 @@ async function syncUser(userData) {
     const email = (userData.email || '').toLowerCase().trim();
     const uid = (userData.uid || '').trim();
     
+    // Check existing document to preserve fields
+    let existing = null;
+    try {
+        existing = await getUser(uid);
+    } catch (e) { }
+
     // Strictly verify if this user is one of the two allowed SuperAdmins
     const isSuperAdmin = isSuperAdminUser(uid, email);
 
-    // Only these two are superadmin; everyone else is strictly supporter
-    const assignedRole = isSuperAdmin ? 'superadmin' : 'supporter';
-    const assignedStatus = isSuperAdmin ? 'superadmin' : 'supporter';
-    const assignedClassification = isSuperAdmin ? 'Superadmin' : 'Supporter';
+    // Only these two are superadmin; everyone else is supporter (or admin if listed in Firebase)
+    let assignedRole = 'supporter';
+    let assignedStatus = 'supporter';
+    let assignedClassification = 'Supporter';
+
+    if (isSuperAdmin) {
+        assignedRole = 'superadmin';
+        assignedStatus = 'superadmin';
+        assignedClassification = 'Superadmin';
+    } else {
+        const isAdmin = await isEmailAdminInFirebase(email, uid);
+        if (isAdmin) {
+            assignedRole = 'admin';
+            assignedStatus = 'admin';
+            assignedClassification = 'Admin';
+        }
+    }
 
     const now = new Date().toISOString();
+    const resolvedDisplayName = (userData.displayName || '').trim() || (existing && existing.displayName) || '';
+    const resolvedPhotoURL = userData.photoURL || (existing && existing.photoURL) || '';
+
     const payload = {
         uid: uid,
         email: email,
-        displayName: (userData.displayName || '').trim(),
-        photoURL: userData.photoURL || '',
+        displayName: resolvedDisplayName,
+        photoURL: resolvedPhotoURL,
         tag: TRANSACTION_TAG, // 'aifoundation'
         businessId: BUSINESS_ID, // 'aifoundation'
         businessName: 'AI Foundation',
@@ -531,55 +553,55 @@ async function syncUser(userData) {
         role: assignedRole,
         status: assignedStatus,
         classification: assignedClassification,
+        isSuperAdmin: isSuperAdmin,
         lastLoginAt: now,
         updatedAt: now
     };
 
+    // Clean up tags: SuperAdmin must never retain 'supporter' tag
+    let userTags = [];
+    if (existing && Array.isArray(existing.tags)) {
+        userTags = existing.tags.slice();
+    }
+    if (isSuperAdmin) {
+        userTags = userTags.filter(t => t !== 'supporter');
+        if (!userTags.includes('superadmin')) userTags.push('superadmin');
+        payload.tags = userTags;
+    } else if (userTags.length > 0) {
+        payload.tags = userTags;
+    }
+
     if (userData.phoneNumber !== undefined && userData.phoneNumber !== null) {
         payload.phoneNumber = String(userData.phoneNumber).trim();
-    } else {
-        try {
-            const existing = await getUser(userData.uid);
-            if (existing && existing.phoneNumber) {
-                payload.phoneNumber = existing.phoneNumber;
-            }
-        } catch (e) { }
+    } else if (existing && existing.phoneNumber) {
+        payload.phoneNumber = existing.phoneNumber;
     }
 
     if (userData.address !== undefined && userData.address !== null) {
         payload.address = userData.address;
-    } else {
-        try {
-            const existing = await getUser(userData.uid);
-            if (existing && existing.address) {
-                payload.address = existing.address;
-            }
-        } catch (e) { }
+    } else if (existing && existing.address) {
+        payload.address = existing.address;
     }
 
     if (userData.detailsRegistered !== undefined) {
         payload.detailsRegistered = Boolean(userData.detailsRegistered);
+    } else if (existing && existing.detailsRegistered !== undefined) {
+        payload.detailsRegistered = existing.detailsRegistered;
     }
 
     if (userData.registeredAt) {
         payload.registeredAt = userData.registeredAt;
+    } else if (existing && existing.registeredAt) {
+        payload.registeredAt = existing.registeredAt;
     }
 
     if (userData.createdAt) {
         payload.createdAt = userData.createdAt;
+    } else if (existing && (existing.createdAt || existing.registeredAt)) {
+        payload.createdAt = existing.createdAt || existing.registeredAt;
     } else {
-        try {
-            const existing = await getUser(userData.uid);
-            if (existing && (existing.createdAt || existing.registeredAt)) {
-                payload.createdAt = existing.createdAt || existing.registeredAt;
-            } else {
-                payload.createdAt = now;
-                if (!payload.registeredAt) payload.registeredAt = now;
-            }
-        } catch (e) {
-            payload.createdAt = now;
-            if (!payload.registeredAt) payload.registeredAt = now;
-        }
+        payload.createdAt = now;
+        if (!payload.registeredAt) payload.registeredAt = now;
     }
 
     console.log(`🔥 [Firestore] Syncing user ${payload.uid} (${payload.email}) with tag: ${payload.tag}, role: ${payload.role}, status: ${payload.status}`);
@@ -640,14 +662,19 @@ async function sendChatMessage(data) {
 
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
+    // Multi-tenant tag identification
+    const tenantTag = (data.tag || data.businessId || data.source || TRANSACTION_TAG || 'aifoundation').toLowerCase().trim();
+    const businessId = (data.businessId || tenantTag || BUSINESS_ID || 'aifoundation').toLowerCase().trim();
+    const businessName = data.businessName || (tenantTag === 'aifoundation' ? 'AI Foundation' : tenantTag);
+
     const payload = {
         id: messageId,
         messageId: messageId,
         conversationId: conversationId,
-        tag: TRANSACTION_TAG, // 'aifoundation'
-        businessId: BUSINESS_ID, // 'aifoundation'
-        businessName: 'AI Foundation',
-        source: 'aifoundation',
+        tag: tenantTag, // Multi-tenant tag attached: 'aifoundation', 'pro-lms', 'healthlms', 'itsasimplejob', 'rto-ai'
+        businessId: businessId,
+        businessName: businessName,
+        source: data.source || tenantTag,
         senderUid: senderUid,
         senderEmail: senderEmail,
         senderName: (data.senderName || data.displayName || 'Supporter').trim(),
@@ -668,7 +695,7 @@ async function sendChatMessage(data) {
         statutoryRetention: '7-Year Corporations Act / APP 11 Compliance'
     };
 
-    console.log(`💬 [Firebase] Writing chat message ${messageId} to 'chat_interactions' [conv: ${conversationId}, retainedUntil: ${payload.retainedUntil}]`);
+    console.log(`💬 [Firebase] Writing chat message ${messageId} to 'chat_interactions' [tag: ${tenantTag}, conv: ${conversationId}, retainedUntil: ${payload.retainedUntil}]`);
 
     const result = await writeDocument('chat_interactions', messageId, payload, true);
     return {
@@ -679,11 +706,15 @@ async function sendChatMessage(data) {
 }
 
 /**
- * Retrieve chat messages for a specific conversation from 'chat_interactions'
+ * Retrieve chat messages for a specific conversation from 'chat_interactions'.
+ * - SuperAdmin can read messages from ALL tenants and sees the tenant tag.
+ * - Regular supporters can ONLY read their own messages and CANNOT read or see the tag.
  */
 async function getChatMessages(conversationId, options = {}) {
     if (!conversationId) return [];
     const limit = Math.min(Number(options.limit) || 100, 200);
+    const isSuperAdmin = Boolean(options.isSuperAdmin);
+    const requesterUid = options.requesterUid ? String(options.requesterUid).trim() : null;
 
     const token = await getAccessToken();
     if (!token) return [];
@@ -701,19 +732,34 @@ async function getChatMessages(conversationId, options = {}) {
 
         for (const d of docs) {
             const fields = fromFirestoreFields(d.fields || {});
-            // Filter by conversationId and AI Foundation tag
+            // Filter by conversationId
             const isMatch = (fields.conversationId === conversationId) || 
                             (conversationId.startsWith('conv_') && fields.senderUid === conversationId.replace('conv_', '')) ||
                             (conversationId.startsWith('conv_') && fields.recipientUid === conversationId.replace('conv_', ''));
             
-            const isAIFoundation = fields.tag === TRANSACTION_TAG || fields.businessId === BUSINESS_ID || fields.businessName === 'AI Foundation' || fields.source === 'aifoundation';
+            if (!isMatch) continue;
 
-            if (isMatch && isAIFoundation) {
-                messages.push({
-                    id: d.name.split('/').pop(),
-                    ...fields
-                });
+            // Access control: if not SuperAdmin, user can only access their own conversation
+            if (!isSuperAdmin && requesterUid) {
+                const isParticipant = fields.senderUid === requesterUid || fields.recipientUid === requesterUid;
+                if (!isParticipant) continue;
             }
+
+            const msgObj = {
+                id: d.name.split('/').pop(),
+                ...fields
+            };
+
+            // TAG PRIVACY: Only SuperAdmin can read the tag attached to each message!
+            // Strip tenant tag and tenant internal IDs for standard supporters
+            if (!isSuperAdmin) {
+                delete msgObj.tag;
+                delete msgObj.businessId;
+                delete msgObj.businessName;
+                delete msgObj.source;
+            }
+
+            messages.push(msgObj);
         }
 
         // Sort chronologically ascending (oldest first for chat display)
@@ -727,7 +773,9 @@ async function getChatMessages(conversationId, options = {}) {
 }
 
 /**
- * Retrieve active supporter chat conversations for SuperAdmin view
+ * Retrieve active supporter chat conversations for SuperAdmin view.
+ * SuperAdmin is able to read all messages sent to superadmin from ALL tenants.
+ * Each conversation has its tenant tag attached for SuperAdmin inspection.
  */
 async function getChatConversations(options = {}) {
     const token = await getAccessToken();
@@ -746,9 +794,9 @@ async function getChatConversations(options = {}) {
 
         for (const d of docs) {
             const fields = fromFirestoreFields(d.fields || {});
-            const isAIFoundation = fields.tag === TRANSACTION_TAG || fields.businessId === BUSINESS_ID || fields.businessName === 'AI Foundation' || fields.source === 'aifoundation';
-            if (!isAIFoundation || !fields.conversationId) continue;
+            if (!fields.conversationId) continue;
 
+            // Multi-tenant: SuperAdmin reads messages from all tenants
             const convId = fields.conversationId;
             const existing = convMap.get(convId);
             const msgTime = new Date(fields.createdAt || fields.timestamp).getTime();
@@ -758,6 +806,7 @@ async function getChatConversations(options = {}) {
             const supporterEmail = isSupporterSender ? fields.senderEmail : fields.recipientEmail;
             const supporterName = isSupporterSender ? fields.senderName : fields.recipientName;
             const supporterUid = isSupporterSender ? fields.senderUid : fields.recipientUid;
+            const tenantTag = fields.tag || fields.businessId || fields.source || 'aifoundation';
 
             if (!existing || msgTime > new Date(existing.lastMessageAt).getTime()) {
                 convMap.set(convId, {
@@ -765,6 +814,9 @@ async function getChatConversations(options = {}) {
                     supporterUid: supporterUid || convId.replace('conv_', ''),
                     supporterEmail: supporterEmail || 'Supporter',
                     supporterName: supporterName || 'Supporter',
+                    tag: tenantTag, // Tenant tag attached (SuperAdmin readable)
+                    businessId: fields.businessId || tenantTag,
+                    businessName: fields.businessName || (tenantTag === 'aifoundation' ? 'AI Foundation' : tenantTag),
                     lastMessage: fields.userMessage || '',
                     lastSenderRole: fields.senderRole || 'supporter',
                     lastMessageAt: fields.createdAt || fields.timestamp,
@@ -773,6 +825,7 @@ async function getChatConversations(options = {}) {
                 });
             } else if (existing) {
                 existing.totalMessages += 1;
+                if (!existing.tag && tenantTag) existing.tag = tenantTag;
             }
         }
 

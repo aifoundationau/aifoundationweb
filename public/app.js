@@ -125,13 +125,33 @@ const postObserver = new IntersectionObserver((entries) => {
     
     const adminGoogleLoginBtn = document.getElementById('adminGoogleLoginBtn');
 
+    const SUPERADMIN_UIDS = ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'];
+    const SUPERADMIN_EMAILS = ['davidrobertson.info@gmail.com', 'support@aifoundation.net.au'];
+
+    function isSuperAdminUser(uid, email) {
+        const normUid = (uid || '').trim();
+        const normEmail = (email || '').toLowerCase().trim();
+        return SUPERADMIN_UIDS.includes(normUid) || SUPERADMIN_EMAILS.includes(normEmail);
+    }
+
+    function checkIsSuperAdmin(user) {
+        if (!user) return false;
+        if (isSuperAdminUser(user.uid, user.email)) return true;
+        if (user.isSuperAdmin === true) return true;
+        const role = (user.role || '').toLowerCase();
+        const status = (user.status || '').toLowerCase();
+        const classification = (user.classification || '').toLowerCase();
+        return role === 'superadmin' || status === 'superadmin' || classification === 'superadmin';
+    }
+
     // Administrator Role Checker strictly checked against Firebase
     function checkIsAdmin(user) {
         if (!user) return false;
+        if (checkIsSuperAdmin(user)) return true;
         if (user.isAdmin === true || user.verifiedAdmin === true) return true;
         const role = (user.role || '').toLowerCase();
         const status = (user.status || '').toLowerCase();
-        return role === 'admin' || role === 'super_admin' || role === 'superadmin' || status === 'admin';
+        return role === 'admin' || role === 'super_admin' || role === 'superadmin' || status === 'admin' || status === 'superadmin';
     }
 
     // Admin Tab Constants
@@ -234,7 +254,7 @@ const postObserver = new IntersectionObserver((entries) => {
         } else {
             // Genuine desktop mode: restore standard display behavior
             const currentUser = window.firebaseService?.getCurrentUser?.();
-            const isSuper = currentUser && Boolean(currentUser.role === 'superadmin' || currentUser.status === 'superadmin' || currentUser.classification === 'Superadmin' || currentUser.isSuperAdmin);
+            const isSuper = checkIsSuperAdmin(currentUser);
             const superSidebar = document.getElementById('adminSuperSidebar');
             const supporterSidebar = document.getElementById('adminSupporterSidebar');
             const mainSidebar = document.querySelector('.admin-panel-sidebar');
@@ -422,7 +442,7 @@ const postObserver = new IntersectionObserver((entries) => {
             return;
         }
 
-        let isSuper = Boolean(currentUser.role === 'superadmin' || currentUser.status === 'superadmin' || currentUser.classification === 'Superadmin' || currentUser.isSuperAdmin);
+        let isSuper = checkIsSuperAdmin(currentUser);
         let isAdmin = isSuper || checkIsAdmin(currentUser);
 
         // Verify with backend if not already verified
@@ -754,9 +774,10 @@ const postObserver = new IntersectionObserver((entries) => {
                 postcode: addressPostcode
             };
 
-            const isAdmin = checkIsAdmin(currentUser);
-            const supporterRole = isAdmin ? 'admin' : 'supporter';
-            const supporterStatus = isAdmin ? 'admin' : 'supporter';
+            const isSuper = checkIsSuperAdmin(currentUser);
+            const isAdmin = isSuper || checkIsAdmin(currentUser);
+            const supporterRole = isSuper ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
+            const supporterStatus = isSuper ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
 
             const userProfileUpdate = {
                 displayName: newDisplayName,
@@ -764,6 +785,8 @@ const postObserver = new IntersectionObserver((entries) => {
                 address: addressData,
                 role: supporterRole,
                 status: supporterStatus,
+                classification: isSuper ? 'Superadmin' : (isAdmin ? 'Admin' : 'Supporter'),
+                isSuperAdmin: isSuper,
                 detailsRegistered: true,
                 registeredAt: new Date().toISOString()
             };
@@ -897,8 +920,8 @@ const postObserver = new IntersectionObserver((entries) => {
             }
 
             // Role badge display: SuperAdmin or Supporter
-            let isAdmin = checkIsAdmin(user);
-            let isSuper = (user.role === 'superadmin' || user.status === 'superadmin' || user.classification === 'Superadmin' || user.isSuperAdmin);
+            let isSuper = checkIsSuperAdmin(user);
+            let isAdmin = isSuper || checkIsAdmin(user);
             if (menuUserRoleBadge) {
                 if (isSuper) {
                     menuUserRoleBadge.className = 'user-role-badge role-admin';
@@ -937,8 +960,8 @@ const postObserver = new IntersectionObserver((entries) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: user.email, uid: user.uid })
                 }).then(res => res.json()).then(data => {
-                    const isFirebaseAdmin = Boolean(data.authorized);
-                    const isFirebaseSuper = Boolean(data.isSuperAdmin || data.role === 'superadmin');
+                    const isFirebaseSuper = Boolean(data.isSuperAdmin || data.role === 'superadmin') || checkIsSuperAdmin(user);
+                    const isFirebaseAdmin = Boolean(data.authorized) || isFirebaseSuper || checkIsAdmin(user);
                     user.isAdmin = isFirebaseAdmin;
                     user.isSuperAdmin = isFirebaseSuper;
                     user.verifiedAdmin = isFirebaseAdmin;
@@ -1414,7 +1437,9 @@ const postObserver = new IntersectionObserver((entries) => {
         }
 
         try {
-            const res = await fetch(`/api/chat/messages?uid=${encodeURIComponent(uid)}`);
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+            const emailParam = currentUser?.email ? `&email=${encodeURIComponent(currentUser.email)}` : '';
+            const res = await fetch(`/api/chat/messages?uid=${encodeURIComponent(uid)}${emailParam}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             const messages = data.messages || [];
@@ -1598,7 +1623,9 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!adminThreadsList) return;
 
         try {
-            const res = await fetch('/api/chat/conversations');
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+            const authParams = currentUser ? `?uid=${encodeURIComponent(currentUser.uid)}&email=${encodeURIComponent(currentUser.email || '')}` : '';
+            const res = await fetch(`/api/chat/conversations${authParams}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             const conversations = data.conversations || [];
@@ -1623,14 +1650,20 @@ const postObserver = new IntersectionObserver((entries) => {
                 const isActive = c.conversationId === currentAdminActiveConvId;
                 const activeClass = isActive ? 'admin-thread-item active' : 'admin-thread-item';
                 const timeStr = formatChatTimestamp(c.lastMessageAt);
+                const tenantTag = c.tag || 'aifoundation';
 
                 return `
-                    <div class="${activeClass}" data-conv-id="${c.conversationId}" data-supporter-uid="${c.supporterUid}" data-supporter-name="${escapeHtmlChat(c.supporterName)}" data-supporter-email="${escapeHtmlChat(c.supporterEmail)}">
+                    <div class="${activeClass}" data-conv-id="${c.conversationId}" data-supporter-uid="${c.supporterUid}" data-supporter-name="${escapeHtmlChat(c.supporterName)}" data-supporter-email="${escapeHtmlChat(c.supporterEmail)}" data-tenant-tag="${escapeHtmlChat(tenantTag)}">
                         <div class="admin-thread-top">
-                            <span>${escapeHtmlChat(c.supporterName)}</span>
+                            <span class="admin-thread-name">${escapeHtmlChat(c.supporterName)}</span>
                             <span class="admin-thread-time">${timeStr}</span>
                         </div>
-                        <div class="admin-thread-email">${escapeHtmlChat(c.supporterEmail)}</div>
+                        <div class="admin-thread-email-row">
+                            <span class="admin-thread-email">${escapeHtmlChat(c.supporterEmail)}</span>
+                            <span class="tenant-badge tag-${escapeHtmlChat(tenantTag)}" title="Tenant: ${escapeHtmlChat(tenantTag)} (SuperAdmin only)">
+                                <i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tenantTag)}
+                            </span>
+                        </div>
                         <div class="admin-thread-preview">${escapeHtmlChat(c.lastMessage)}</div>
                     </div>
                 `;
@@ -1643,8 +1676,9 @@ const postObserver = new IntersectionObserver((entries) => {
                     const supporterUid = item.dataset.supporterUid;
                     const supporterName = item.dataset.supporterName;
                     const supporterEmail = item.dataset.supporterEmail;
+                    const tag = item.dataset.tenantTag || 'aifoundation';
 
-                    selectAdminThread(convId, { supporterUid, supporterName, supporterEmail });
+                    selectAdminThread(convId, { supporterUid, supporterName, supporterEmail, tag });
                 });
             });
 
@@ -1675,6 +1709,15 @@ const postObserver = new IntersectionObserver((entries) => {
         if (adminThreadUserName) adminThreadUserName.textContent = supporterInfo.supporterName || 'Supporter';
         if (adminThreadUserEmail) adminThreadUserEmail.textContent = supporterInfo.supporterEmail || '';
 
+        // Display tenant badge in SuperAdmin thread header
+        const headerBadge = document.getElementById('adminThreadTenantBadge');
+        if (headerBadge) {
+            const tag = supporterInfo.tag || 'aifoundation';
+            headerBadge.innerHTML = `<i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tag)}`;
+            headerBadge.className = `tenant-badge tag-${escapeHtmlChat(tag)}`;
+            headerBadge.style.display = 'inline-flex';
+        }
+
         await loadAdminThreadMessages(convId);
     }
 
@@ -1682,7 +1725,9 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!convId || !adminThreadFeed) return;
 
         try {
-            const res = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(convId)}`);
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+            const authParams = currentUser ? `&uid=${encodeURIComponent(currentUser.uid)}&email=${encodeURIComponent(currentUser.email || '')}` : '';
+            const res = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(convId)}${authParams}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             const messages = data.messages || [];
@@ -1693,6 +1738,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 const senderTitle = isAdminSender ? 'SuperAdmin (You)' : (msg.senderName || 'Supporter');
                 const avatarIcon = isAdminSender ? '<div class="chat-avatar-icon" style="background: #004ecc;"><i class="fa-solid fa-shield-halved"></i></div>' : '<div class="chat-avatar-icon"><i class="fa-solid fa-user"></i></div>';
                 const retentionDateStr = formatRetentionUntilDate(msg.retainedUntil);
+                const tag = msg.tag || (currentAdminActiveSupporter?.tag) || 'aifoundation';
 
                 return `
                     <div class="${rowClass}">
@@ -1701,6 +1747,9 @@ const postObserver = new IntersectionObserver((entries) => {
                             <div class="chat-bubble-sender">
                                 <span>${senderTitle}</span>
                                 <span class="role-tag">${msg.senderRole || (isAdminSender ? 'Admin' : 'Supporter')}</span>
+                                <span class="chat-tenant-tag-badge tag-${escapeHtmlChat(tag)}" title="Tenant Tag (SuperAdmin Only)">
+                                    <i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tag)}
+                                </span>
                             </div>
                             <div class="chat-bubble-text">${renderMessageWithLinks(msg.userMessage)}</div>
                             <div class="chat-bubble-footer">
@@ -1751,6 +1800,7 @@ const postObserver = new IntersectionObserver((entries) => {
                         recipientEmail: currentAdminActiveSupporter.supporterEmail,
                         recipientName: currentAdminActiveSupporter.supporterName,
                         conversationId: currentAdminActiveConvId,
+                        tag: currentAdminActiveSupporter.tag || 'aifoundation',
                         userMessage: replyText,
                         hasUploads: false
                     })

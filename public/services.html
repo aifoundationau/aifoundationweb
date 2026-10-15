@@ -1240,7 +1240,7 @@
                                         <i class="fa-solid fa-comments" style="color: #004ecc;"></i> Supporter Chat Inbox
                                     </h2>
                                     <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
-                                        Review supporter messages &amp; reply directly. Tag: <code>aifoundation</code> &bull; 7-Year Statutory Retention Enforced.
+                                        Multi-tenant inbox: Read all supporter messages sent to SuperAdmin from all tenants with attached tenant tags &bull; 7-Year Statutory Retention Enforced.
                                     </p>
                                 </div>
                                 <button type="button" id="adminRefreshChatBtn" class="admin-refresh-chat-btn">
@@ -1252,7 +1252,7 @@
                                 <!-- Conversations List -->
                                 <div class="admin-chat-threads-sidebar">
                                     <div class="admin-threads-header">
-                                        <span>Active Conversations</span>
+                                        <span>Active Conversations (All Tenants)</span>
                                         <span id="adminThreadCount" class="admin-threads-badge">0</span>
                                     </div>
                                     <div class="admin-threads-list" id="adminThreadsList">
@@ -1273,7 +1273,10 @@
                                             <div class="admin-thread-user-info">
                                                 <img id="adminThreadAvatar" src="assets/avatar.png" alt="Avatar" class="user-avatar-small" />
                                                 <div>
-                                                    <strong id="adminThreadUserName">Supporter Name</strong>
+                                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                                        <strong id="adminThreadUserName">Supporter Name</strong>
+                                                        <span id="adminThreadTenantBadge" class="tenant-badge" style="display: none;"></span>
+                                                    </div>
                                                     <div id="adminThreadUserEmail" style="font-size: 0.8rem; color: #64748b;">supporter@example.com</div>
                                                 </div>
                                             </div>

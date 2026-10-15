@@ -3,29 +3,57 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'support@aifoundation.net.au' ||
+        request.auth.token.email == 'davidrobertson.info@gmail.com' ||
+        request.auth.token.email == 'david@aifoundation.com.au'
+      );
+    }
+
     // AI Foundation Content (Articles, Projects, Tech, Community)
     // Anyone can read public content on the website
     // Authenticated users (admin: support@aifoundation.net.au) can write, publish, and delete
     match /content/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthenticated();
     }
     
     // User Profiles (partitioned with tag: 'aifoundation')
     match /users/{userId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthenticated();
     }
     
     // Transactions / Checkout Records
     match /transactions/{txId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthenticated();
+    }
+
+    // Supporter Chat & Administrative Messaging (Multi-Tenant)
+    // - Authenticated supporters can send messages
+    // - SuperAdmin can read all messages from ALL tenants
+    // - Normal supporters can ONLY read their own messages
+    // - Only SuperAdmin can delete or modify records
+    match /chat_interactions/{msgId} {
+      allow create: if isAuthenticated();
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && (
+          request.auth.uid == resource.data.senderUid ||
+          request.auth.uid == resource.data.recipientUid
+        )
+      );
+      allow update, delete: if isSuperAdmin();
     }
 
     // Fallback for multi-tenant collections
     match /{document=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthenticated();
     }
   }
 }

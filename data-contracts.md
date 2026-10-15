@@ -197,7 +197,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 
 ---
 
-### Domain 6: Supporter Chat & Administrative Messaging
+### Domain 9: Supporter Chat & Administrative Messaging
 
 #### Target Collections
 - Primary: `chat_interactions/{messageId}`
@@ -207,10 +207,10 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `messageId` / `id` | String | Server Generation | Message ID | Required. Unique identifier matching `^msg_[0-9]{13}_[a-z0-9]{7}$`. | Firestore Document ID. |
 | `conversationId` | String | API Route (`/api/chat/send`) | Thread Identifier | Required. Format: `^conv_[A-Za-z0-9_-]+$`. Groups threads by supporter UID. | Firestore root field. Indexed. |
-| `tag` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. Indexed. |
-| `businessId` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. |
-| `businessName` | String | System Enforcement | Metadata | **Constant**: `'AI Foundation'`. | Firestore root field. |
-| `source` | String | System Enforcement | Metadata | **Constant**: `'aifoundation'`. | Firestore root field. |
+| `tag` | String Enum | System Enforcement | Partition Key & Privacy | Multi-tenant discriminator: `['aifoundation', 'pro-lms', 'healthlms', 'itsasimplejob', 'rto-ai']`. **Tag Privacy Invariant**: Readable **strictly by SuperAdmin**. Stripped for normal supporters. | Firestore root field. Indexed. |
+| `businessId` | String Enum | System Enforcement | Partition Key | Tenant business code (`aifoundation`, `pro-lms`, `healthlms`, `itsasimplejob`, `rto-ai`). SuperAdmin only. | Firestore root field. |
+| `businessName` | String | System Enforcement | Metadata | Source business/app name. SuperAdmin only. | Firestore root field. |
+| `source` | String | System Enforcement | Metadata | Ingestion origin tenant code. SuperAdmin only. | Firestore root field. |
 | `senderUid` | String | Authenticated Session | Identity | Required. Authenticated sender Firebase UID. | Firestore root field. |
 | `senderEmail` | String (Email) | Authenticated Session | PII | Required. Valid RFC 5322 email. Lowercased. | Firestore root field. |
 | `senderName` | String | Authenticated Session | Public Identity | Required. Trimmed, HTML-sanitized display name. | Firestore root field. |
@@ -227,6 +227,11 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `statutoryRetention` | String | Statutory Compliance | Legal | Description: `'7-Year Corporations Act / APP 11 Compliance'`. | Firestore root field. |
 | `createdAt` / `timestamp` | String (Timestamp) | Server Generation | Audit | Required. ISO 8601 UTC timestamp string. | Firestore timestamp/string. Indexed. |
 | `updatedAt` | String (Timestamp) | Server Generation | Audit | Required. ISO 8601 UTC timestamp string. | Firestore timestamp/string. |
+
+#### Domain 9 Multi-Tenant Invariants
+- **Invariant 9.1 (SuperAdmin Multi-Tenant Aggregation)**: SuperAdmin accounts (`support@aifoundation.net.au`, `davidrobertson.info@gmail.com`, `david@aifoundation.com.au`) must be able to read and review all messages sent to SuperAdmin from all tenants in the shared Firebase database (`ai-foundation-firebase`).
+- **Invariant 9.2 (Tenant Tag Confidentiality)**: Each message must have a tenant tag attached identifying its source application. This tag is confidential and readable **strictly by SuperAdmin**. APIs serving standard supporters must omit the tag and prevent cross-tenant message discovery.
+- **Invariant 9.3 (Supporter Conversation Isolation)**: Regular supporters may only read and write messages within their own individual conversation thread (`conv_${uid}`).
 
 ---
 

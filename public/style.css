@@ -3443,6 +3443,29 @@ p { margin: 0; }
   background: rgba(0, 0, 0, 0.08);
 }
 
+/* Multi-tenant tag badge (Only visible to SuperAdmin) */
+.chat-tenant-tag-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.chat-message-row.sent .chat-tenant-tag-badge {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
 .chat-bubble-text {
   white-space: pre-wrap;
 }
@@ -3743,12 +3766,75 @@ p { margin: 0; }
   color: #94a3b8;
 }
 
+.admin-thread-email-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .admin-thread-email {
   font-size: 0.78rem;
   color: #64748b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Tenant Badges (Visible to SuperAdmin only) */
+.tenant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.tenant-badge.tag-aifoundation,
+.chat-tenant-tag-badge.tag-aifoundation {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.tenant-badge.tag-healthlms,
+.tenant-badge.tag-teachmehealthcare,
+.chat-tenant-tag-badge.tag-healthlms,
+.chat-tenant-tag-badge.tag-teachmehealthcare {
+  background: #fdf2f8;
+  border-color: #fbcfe8;
+  color: #be185d;
+}
+
+.tenant-badge.tag-pro-lms,
+.tenant-badge.tag-lms,
+.chat-tenant-tag-badge.tag-pro-lms,
+.chat-tenant-tag-badge.tag-lms {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.tenant-badge.tag-itsasimplejob,
+.chat-tenant-tag-badge.tag-itsasimplejob {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.tenant-badge.tag-rto-ai,
+.chat-tenant-tag-badge.tag-rto-ai {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #6d28d9;
 }
 
 .admin-thread-preview {
