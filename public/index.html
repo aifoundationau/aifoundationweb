@@ -546,16 +546,10 @@
                     </div>
 
                     <div class="donation-bar-controls">
-                        <div class="donation-presets" id="donationPresets">
-                            <button type="button" class="donation-preset-btn active" data-amount="24">AUD $24</button>
-                            <button type="button" class="donation-preset-btn" data-amount="48">AUD $48</button>
-                            <button type="button" class="donation-preset-btn" data-amount="96">AUD $96</button>
-                            <button type="button" class="donation-preset-btn" data-amount="120">AUD $120</button>
-                        </div>
-
-                        <div class="donation-custom-wrap" title="Enter custom whole dollar amount">
-                            <span class="donation-custom-currency">AUD $</span>
-                            <input type="text" id="donationCustomAmount" class="donation-custom-input" placeholder="Custom" inputmode="numeric">
+                        <div class="donation-amount-wrap" title="Enter contribution amount (Minimum AUD $50)">
+                            <span class="donation-amount-currency">AUD $</span>
+                            <input type="number" id="donationAmountInput" class="donation-amount-input" value="50" min="50" step="1" placeholder="50" inputmode="numeric">
+                            <span class="donation-amount-min-badge">Min $50</span>
                         </div>
 
                         <div class="donation-actions">
@@ -1109,16 +1103,10 @@
 
                             <div class="donation-bar-card" style="box-shadow: none; border: 1px solid #e2e8f0; background: #f8fafc; padding: 24px;">
                                 <div class="donation-bar-controls">
-                                    <div class="donation-presets" id="panelDonationPresets">
-                                        <button type="button" class="donation-preset-btn active" data-amount="24">AUD $24</button>
-                                        <button type="button" class="donation-preset-btn" data-amount="48">AUD $48</button>
-                                        <button type="button" class="donation-preset-btn" data-amount="96">AUD $96</button>
-                                        <button type="button" class="donation-preset-btn" data-amount="120">AUD $120</button>
-                                    </div>
-
-                                    <div class="donation-custom-wrap" title="Enter custom whole dollar amount">
-                                        <span class="donation-custom-currency">AUD $</span>
-                                        <input type="text" id="panelDonationCustomAmount" class="donation-custom-input" placeholder="Custom" inputmode="numeric">
+                                    <div class="donation-amount-wrap" title="Enter contribution amount (Minimum AUD $50)">
+                                        <span class="donation-amount-currency">AUD $</span>
+                                        <input type="number" id="panelDonationAmountInput" class="donation-amount-input" value="50" min="50" step="1" placeholder="50" inputmode="numeric">
+                                        <span class="donation-amount-min-badge">Min $50</span>
                                     </div>
 
                                     <div class="donation-actions">
@@ -1455,7 +1443,7 @@
                 <h2 style="margin: 10px 0 4px; font-size: 1.4rem; color: #0f172a;">Complete Contribution</h2>
                 <div class="payment-amount-display">
                     <span style="font-size: 0.95rem; color: #64748b;">Selected Amount:</span>
-                    <span id="popupSelectedAmount" style="font-size: 1.45rem; font-weight: 800; color: #0066ff;">AUD $24</span>
+                    <span id="popupSelectedAmount" style="font-size: 1.45rem; font-weight: 800; color: #0066ff;">AUD $50</span>
                 </div>
             </div>
 
@@ -1469,7 +1457,7 @@
                     <div id="stripePaymentElement" style="min-height: 160px; margin-bottom: 16px;"></div>
                     <div id="stripePaymentError" style="display: none; color: #ef4444; font-size: 0.88rem; margin-bottom: 12px; font-weight: 600;"></div>
                     <button type="submit" id="stripeSubmitBtn" class="payment-submit-btn" style="background: #635bff; color: white; box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35); display: none;">
-                        <i class="fa-solid fa-lock"></i> <span id="stripeSubmitText">Pay AUD $24 Securely</span>
+                        <i class="fa-solid fa-lock"></i> <span id="stripeSubmitText">Pay AUD $50 Securely</span>
                     </button>
                 </form>
                 <div style="margin-top: 14px; text-align: center;">

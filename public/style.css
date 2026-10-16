@@ -1566,42 +1566,64 @@ p { margin: 0; }
   color: white;
   box-shadow: 0 4px 14px rgba(0, 102, 255, 0.28);
 }
+.donation-amount-wrap,
 .donation-custom-wrap {
   display: flex;
   align-items: center;
   background: white;
   border: 1.5px solid #cbd5e1;
   border-radius: 12px;
-  padding: 0 14px;
-  height: 44px;
-  transition: all 0.2s;
+  padding: 0 16px;
+  height: 48px;
+  min-width: 220px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
+.donation-amount-wrap:focus-within,
 .donation-custom-wrap:focus-within {
   border-color: #0066ff;
-  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.18);
 }
+.donation-amount-currency,
 .donation-custom-currency {
-  font-weight: 700;
-  color: #64748b;
-  font-size: 0.9rem;
-  margin-right: 4px;
+  font-weight: 800;
+  color: #0066ff;
+  font-size: 1rem;
+  margin-right: 6px;
   user-select: none;
 }
+.donation-amount-input,
 .donation-custom-input {
   border: none;
   outline: none;
   background: transparent;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   color: #0f172a;
   width: 90px;
   font-family: inherit;
 }
+.donation-amount-min-badge {
+  margin-left: auto;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  border: 1px solid #bfdbfe;
+  user-select: none;
+}
+.donation-amount-input::-webkit-outer-spin-button,
+.donation-amount-input::-webkit-inner-spin-button,
 .donation-custom-input::-webkit-outer-spin-button,
 .donation-custom-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+.donation-amount-input[type=number],
 .donation-custom-input[type=number] {
   -moz-appearance: textfield;
 }

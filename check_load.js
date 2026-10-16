@@ -1,0 +1,17 @@
+console.log('Step 1: start');
+const t0 = Date.now();
+require('dotenv').config();
+console.log('Step 2: dotenv loaded in', Date.now() - t0, 'ms');
+const t1 = Date.now();
+const express = require('express');
+console.log('Step 3: express loaded in', Date.now() - t1, 'ms');
+const t2 = Date.now();
+const Stripe = require('stripe');
+console.log('Step 4: stripe loaded in', Date.now() - t2, 'ms');
+const t3 = Date.now();
+const firebaseService = require('./firebase-service');
+console.log('Step 5: firebaseService loaded in', Date.now() - t3, 'ms');
+console.log('Step 6: requiring full server.js...');
+const t4 = Date.now();
+require('./server.js');
+console.log('Step 7: server.js completed in', Date.now() - t4, 'ms');

@@ -1,14 +1,33 @@
+process.on('uncaughtException', (err) => {
+    try { require('fs').writeFileSync('crash_error.txt', 'UNCAUGHT EXCEPTION: ' + (err?.stack || err) + '\n'); } catch (e) {}
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason) => {
+    try { require('fs').writeFileSync('crash_error.txt', 'UNHANDLED REJECTION: ' + (reason?.stack || reason) + '\n'); } catch (e) {}
+    console.error('UNHANDLED REJECTION:', reason);
+});
+console.log('[Server Startup] 1. Initializing environment...');
 require('dotenv').config();
+console.log('[Server Startup] 2. Loading core dependencies...');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
-const Stripe = require('stripe');
+console.log('[Server Startup] 3. Loading firebase service...');
 const firebaseService = require('./firebase-service');
+console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+
+let _stripe = null;
+function getStripe() {
+    if (!_stripe && process.env.STRIPE_SECRET_KEY) {
+        const Stripe = require('stripe');
+        _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    }
+    return _stripe;
+}
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
 const COMM_DATA_FILE = path.join(__dirname, 'data', 'community.json');
@@ -54,7 +73,6 @@ if (!fs.existsSync(DATA_FILE)) {
             date: new Date(Date.now() - 86400000).toISOString()
         }
     ];
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initialPosts, null, 2));
     fs.writeFileSync(DATA_FILE, JSON.stringify(initialPosts, null, 2));
 }
 
@@ -584,13 +602,14 @@ app.post('/api/upload-imgbb', async (req, res) => {
 // Stripe Checkout Session Creation
 app.post('/api/stripe/create-checkout-session', async (req, res) => {
     try {
+        const stripe = getStripe();
         if (!stripe) {
             return res.status(500).json({ error: 'Stripe is not configured on the server.' });
         }
         let { amount, returnPath } = req.body;
         amount = parseInt(amount, 10);
-        if (!amount || isNaN(amount) || amount < 1) {
-            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $1.' });
+        if (!amount || isNaN(amount) || amount < 50) {
+            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $50.' });
         }
 
         const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
@@ -680,8 +699,8 @@ app.post('/api/paypal/create-order', async (req, res) => {
     try {
         let { amount } = req.body;
         amount = parseInt(amount, 10);
-        if (!amount || isNaN(amount) || amount < 1) {
-            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $1.' });
+        if (!amount || isNaN(amount) || amount < 50) {
+            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $50.' });
         }
 
         const pp = await getPayPalAccessToken();
@@ -782,13 +801,14 @@ app.post('/api/paypal/capture-order/:orderId', async (req, res) => {
 // Stripe PaymentIntent for in-page popup modal
 app.post('/api/stripe/create-payment-intent', async (req, res) => {
     try {
+        const stripe = getStripe();
         if (!stripe) {
             return res.status(500).json({ error: 'Stripe is not configured on the server.' });
         }
         let { amount } = req.body;
         amount = parseInt(amount, 10);
-        if (!amount || isNaN(amount) || amount < 1) {
-            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $1.' });
+        if (!amount || isNaN(amount) || amount < 50) {
+            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $50.' });
         }
 
         const paymentIntent = await stripe.paymentIntents.create({
@@ -1117,6 +1137,6 @@ app.get('/api/chat/conversations', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`AI Foundation website running on http://localhost:${PORT}`);
 });

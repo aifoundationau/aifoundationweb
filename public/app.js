@@ -670,35 +670,35 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     });
 
-    // Panel Donation Option Preset Buttons & Stripe Action
-    const panelDonationPresets = document.querySelectorAll('#panelDonationPresets .donation-preset-btn');
-    const panelDonationCustomInput = document.getElementById('panelDonationCustomAmount');
+    // Panel Donation Option Input & Stripe Action
+    const panelDonationAmountInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
     const panelPayWithStripeBtn = document.getElementById('panelPayWithStripeBtn');
+    const panelDonationStatusMsg = document.getElementById('panelDonationStatusMsg');
 
-    panelDonationPresets.forEach(btn => {
-        btn.addEventListener('click', () => {
-            panelDonationPresets.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedDonationAmount = parseInt(btn.dataset.amount, 10);
-            if (panelDonationCustomInput) panelDonationCustomInput.value = '';
-            // Also sync front page presets if present
-            document.querySelectorAll('.donation-presets .donation-preset-btn').forEach(fb => {
-                fb.classList.toggle('active', fb.dataset.amount === btn.dataset.amount);
-            });
-        });
-    });
-
-    if (panelDonationCustomInput) {
-        panelDonationCustomInput.addEventListener('input', function() {
+    if (panelDonationAmountInput) {
+        panelDonationAmountInput.addEventListener('input', function() {
             const cleanVal = this.value.replace(/\D/g, '');
             this.value = cleanVal;
-            if (cleanVal && parseInt(cleanVal, 10) > 0) {
-                selectedDonationAmount = parseInt(cleanVal, 10);
-                panelDonationPresets.forEach(b => b.classList.remove('active'));
+            const parsed = parseInt(cleanVal, 10);
+            if (parsed >= 50) {
+                selectedDonationAmount = parsed;
+                if (panelDonationStatusMsg) panelDonationStatusMsg.style.display = 'none';
+            }
+            const mainInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
+            if (mainInput && mainInput !== this) {
+                mainInput.value = this.value;
+            }
+        });
+        panelDonationAmountInput.addEventListener('blur', function() {
+            const cleanVal = this.value.replace(/\D/g, '');
+            const parsed = parseInt(cleanVal, 10);
+            if (!parsed || parsed < 50) {
+                this.value = '50';
+                selectedDonationAmount = 50;
+                const mainInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
+                if (mainInput) mainInput.value = '50';
             } else {
-                selectedDonationAmount = 24;
-                const defaultPreset = document.querySelector('#panelDonationPresets .donation-preset-btn[data-amount="24"]');
-                if (defaultPreset) defaultPreset.classList.add('active');
+                selectedDonationAmount = parsed;
             }
         });
     }
@@ -706,6 +706,25 @@ const postObserver = new IntersectionObserver((entries) => {
     if (panelPayWithStripeBtn) {
         panelPayWithStripeBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            const input = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
+            const cleanVal = input ? input.value.replace(/\D/g, '') : '';
+            const parsed = parseInt(cleanVal, 10);
+            if (!parsed || parsed < 50) {
+                if (input) {
+                    input.value = '50';
+                    input.focus();
+                }
+                selectedDonationAmount = 50;
+                if (panelDonationStatusMsg) {
+                    panelDonationStatusMsg.style.display = 'block';
+                    panelDonationStatusMsg.style.color = '#ef4444';
+                    panelDonationStatusMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Minimum donation amount is AUD $50.';
+                    setTimeout(() => { if (panelDonationStatusMsg) panelDonationStatusMsg.style.display = 'none'; }, 4000);
+                }
+                return;
+            }
+            selectedDonationAmount = parsed;
+            if (panelDonationStatusMsg) panelDonationStatusMsg.style.display = 'none';
             if (typeof openPaymentModal === 'function') {
                 openPaymentModal('stripe');
             }
@@ -2943,9 +2962,8 @@ const postObserver = new IntersectionObserver((entries) => {
     // ==========================================
     // Donation & Payment Bar + Foreground Popup Modal Logic
     // ==========================================
-    let selectedDonationAmount = 24;
-    const presetBtns = document.querySelectorAll('.donation-preset-btn');
-    const customAmountInput = document.getElementById('donationCustomAmount');
+    let selectedDonationAmount = 50;
+    const amountInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
     const payStripeBtn = document.getElementById('payWithStripeBtn');
     const payPayPalBtn = document.getElementById('payWithPayPalBtn');
     const statusMsg = document.getElementById('donationStatusMsg');
@@ -2985,7 +3003,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 paymentMethod: provider || 'stripe',
                 tag: 'aifoundation',
                 businessId: 'aifoundation',
-                amount: amt ? Number(amt) : (selectedDonationAmount || 24),
+                amount: amt ? Number(amt) : (selectedDonationAmount || 50),
                 customerEmail: currentUser?.email || '',
                 customerName: currentUser?.displayName || '',
                 userId: currentUser?.uid || ''
@@ -3012,42 +3030,43 @@ const postObserver = new IntersectionObserver((entries) => {
         statusMsg.innerHTML = msg;
     }
 
-    presetBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            presetBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedDonationAmount = parseInt(btn.dataset.amount, 10);
-            if (customAmountInput) customAmountInput.value = '';
-            if (statusMsg) statusMsg.style.display = 'none';
-        });
-    });
-
-    if (customAmountInput) {
-        customAmountInput.addEventListener('input', function() {
-            // Strictly enforce whole rounded numbers (no decimals, no letters, no symbols)
+    if (amountInput) {
+        amountInput.addEventListener('input', function() {
             const cleanVal = this.value.replace(/\D/g, '');
             this.value = cleanVal;
-
-            if (cleanVal && parseInt(cleanVal, 10) > 0) {
-                selectedDonationAmount = parseInt(cleanVal, 10);
-                presetBtns.forEach(b => b.classList.remove('active'));
-            } else {
-                // If emptied, fall back to default 24
-                selectedDonationAmount = 24;
-                const defaultPreset = document.querySelector('.donation-preset-btn[data-amount="24"]');
-                if (defaultPreset) defaultPreset.classList.add('active');
+            const parsed = parseInt(cleanVal, 10);
+            if (parsed >= 50) {
+                selectedDonationAmount = parsed;
+                if (statusMsg) statusMsg.style.display = 'none';
             }
-            if (statusMsg) statusMsg.style.display = 'none';
+            const pInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
+            if (pInput && pInput !== this) {
+                pInput.value = this.value;
+            }
+        });
+        amountInput.addEventListener('blur', function() {
+            const cleanVal = this.value.replace(/\D/g, '');
+            const parsed = parseInt(cleanVal, 10);
+            if (!parsed || parsed < 50) {
+                this.value = '50';
+                selectedDonationAmount = 50;
+                const pInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
+                if (pInput) pInput.value = '50';
+            } else {
+                selectedDonationAmount = parsed;
+            }
         });
     }
 
     // Modal Control Functions
     function openPaymentModal(method = 'stripe') {
         if (!paymentModal) return;
-        if (!selectedDonationAmount || selectedDonationAmount < 1) {
-            selectedDonationAmount = 24;
-            const defaultPreset = document.querySelector('.donation-preset-btn[data-amount="24"]');
-            if (defaultPreset) defaultPreset.classList.add('active');
+        if (!selectedDonationAmount || selectedDonationAmount < 50) {
+            selectedDonationAmount = 50;
+            const mInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
+            if (mInput) mInput.value = '50';
+            const pInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
+            if (pInput) pInput.value = '50';
         }
 
         if (popupSelectedAmount) popupSelectedAmount.textContent = `AUD $${selectedDonationAmount}`;
@@ -3380,12 +3399,42 @@ const postObserver = new IntersectionObserver((entries) => {
     if (payStripeBtn) {
         payStripeBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            const input = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
+            const cleanVal = input ? input.value.replace(/\D/g, '') : '';
+            const parsed = parseInt(cleanVal, 10);
+            if (!parsed || parsed < 50) {
+                if (input) {
+                    input.value = '50';
+                    input.focus();
+                }
+                selectedDonationAmount = 50;
+                setDonationStatus('<i class="fa-solid fa-circle-exclamation"></i> Minimum donation amount is AUD $50.', true);
+                setTimeout(() => { if (statusMsg) statusMsg.style.display = 'none'; }, 4000);
+                return;
+            }
+            selectedDonationAmount = parsed;
+            if (statusMsg) statusMsg.style.display = 'none';
             openPaymentModal('stripe');
         });
     }
     if (payPayPalBtn) {
         payPayPalBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            const input = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
+            const cleanVal = input ? input.value.replace(/\D/g, '') : '';
+            const parsed = parseInt(cleanVal, 10);
+            if (!parsed || parsed < 50) {
+                if (input) {
+                    input.value = '50';
+                    input.focus();
+                }
+                selectedDonationAmount = 50;
+                setDonationStatus('<i class="fa-solid fa-circle-exclamation"></i> Minimum donation amount is AUD $50.', true);
+                setTimeout(() => { if (statusMsg) statusMsg.style.display = 'none'; }, 4000);
+                return;
+            }
+            selectedDonationAmount = parsed;
+            if (statusMsg) statusMsg.style.display = 'none';
             openPaymentModal('paypal');
         });
     }

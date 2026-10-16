@@ -253,7 +253,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 ## 4. System Integrity Checklist for Engineers & Automated Agents
 
 - [x] **Partition Key Guarantee**: Verify `tag: "aifoundation"` is present on all Firestore writes.
-- [x] **Financial Integer Validation**: Ensure `amount` is an integer `>= 1` before invoking Stripe or PayPal APIs.
+- [x] **Financial Integer Validation**: Ensure `amount` is an integer `>= 50` (minimum AUD $50) before invoking Stripe or PayPal APIs.
 - [x] **SSRF Prevention**: Block private subnet resolution on `/api/extract-metadata`.
 - [x] **Sanitization Enforcement**: Run all HTML-rendered text through entity encodings.
 - [x] **Audit Durability**: Ensure all transactions log both initiated and completed states with 7-year storage lifecycle compliance.
