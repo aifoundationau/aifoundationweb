@@ -3058,6 +3058,24 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     }
 
+    // Preset amount buttons ($50 / $100 / $200) - drive the input so existing handlers keep both bars in sync
+    const presetBtns = document.querySelectorAll('.donation-preset-btn');
+    function syncPresetButtons(value) {
+        presetBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.amount === String(value)));
+    }
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = btn.closest('.donation-bar-controls')?.querySelector('.donation-amount-input');
+            if (!input) return;
+            input.value = btn.dataset.amount;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    });
+    document.querySelectorAll('.donation-amount-input').forEach(input => {
+        input.addEventListener('input', () => syncPresetButtons(input.value));
+        input.addEventListener('blur', () => syncPresetButtons(input.value));
+    });
+
     // Modal Control Functions
     function openPaymentModal(method = 'stripe') {
         if (!paymentModal) return;

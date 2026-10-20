@@ -295,12 +295,32 @@ p { margin: 0; }
   transform: translateY(-2px);
 }
 
-.profile-social-btns {
-  align-self: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+/* Social Banner (between About David and Contact Us) */
+.social-banner {
+  padding: 20px 24px;
+  margin: 24px 0;
 }
+
+.profile-social-btns {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+}
+
+.profile-social-btns .profile-linkedin-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  align-self: stretch;
+  margin-top: 0;
+  padding: 14px 20px;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.profile-social-btns svg { flex-shrink: 0; }
+
+.social-banner + .contact-card { margin-top: 0; }
 
 .profile-telegram-btn {
   background: #229ed9;
@@ -1033,9 +1053,16 @@ p { margin: 0; }
     border-radius: 18px;
     max-width: 100%;
   }
+  .social-banner {
+    padding: 12px !important;
+  }
   .profile-social-btns {
-    align-self: center;
-    justify-content: center;
+    gap: 8px;
+  }
+  .profile-social-btns .profile-linkedin-btn {
+    padding: 10px 8px;
+    font-size: 0.78rem;
+    gap: 6px;
   }
   .form-row {
     flex-direction: column;
@@ -1681,6 +1708,12 @@ p { margin: 0; }
   box-shadow: 0 4px 14px rgba(0, 112, 186, 0.3);
 }
 @media (max-width: 992px) {
+  .donation-presets {
+    width: 100%;
+  }
+  .donation-preset-btn {
+    flex: 1;
+  }
   .donation-actions {
     margin-left: 0;
     width: 100%;
