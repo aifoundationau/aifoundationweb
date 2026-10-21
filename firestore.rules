@@ -2,45 +2,90 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // SuperAdmins: matched by UID, or by email only when Google has verified that email
     function isSuperAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email == 'support@aifoundation.net.au' ||
-        request.auth.token.email == 'davidrobertson.info@gmail.com' ||
-        request.auth.token.email == 'david@aifoundation.com.au'
+        request.auth.uid in ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'] ||
+        (request.auth.token.email_verified == true && request.auth.token.email in [
+          'support@aifoundation.net.au',
+          'davidrobertson.info@gmail.com',
+          'david@aifoundation.com.au'
+        ])
       );
     }
 
+    // Admins: SuperAdmins, or users whose profile role was set to admin by a SuperAdmin / the server
+    function isAdmin() {
+      return isSuperAdmin() || (
+        isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'super_admin', 'superadmin']
+      );
+    }
+
+    // Collections holding PII or authorization data. Excluded from the catch-all rule below,
+    // because Firestore rules are OR'd and a broad match would otherwise override these.
+    function isProtectedCollection(name) {
+      return name in ['users', 'transactions', 'stripe_transactions', 'paypal_transactions',
+                      'chat_interactions', 'system_settings', 'admins', 'content'];
+    }
+
+    // Profile fields that grant privileges; users can never set or change these themselves
+    function privilegedFields() {
+      return ['role', 'status', 'classification', 'isSuperAdmin', 'isAdmin', 'tags'];
+    }
+
     // AI Foundation Content (Articles, Projects, Tech, Community)
-    // Anyone can read public content on the website
-    // Authenticated users (admin: support@aifoundation.net.au) can write, publish, and delete
+    // Anyone can read public content; only admins can publish, edit or delete
     match /content/{docId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
-    
-    // User Profiles (partitioned with tag: 'aifoundation')
+
+    // User Profiles (PII): readable by the owner and admins only
     match /users/{userId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isSuperAdmin() || (
+        isOwner(userId) &&
+        request.resource.data.get('role', 'supporter') == 'supporter' &&
+        request.resource.data.get('status', 'supporter') == 'supporter' &&
+        request.resource.data.get('isSuperAdmin', false) == false &&
+        request.resource.data.get('isAdmin', false) == false &&
+        !request.resource.data.keys().hasAny(['tags'])
+      );
+      allow update: if isSuperAdmin() || (
+        isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(privilegedFields())
+      );
+      allow delete: if isSuperAdmin();
     }
-    
-    // Transactions / Checkout Records
+
+    // Transactions / Checkout Records (PII): written only by the server (service account)
+    match /{txCollection}/{txId} {
+      allow read: if txCollection in ['stripe_transactions', 'paypal_transactions'] && isAdmin();
+      allow write: if false;
+    }
     match /transactions/{txId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Supporter Chat & Administrative Messaging (Multi-Tenant)
-    // - Authenticated supporters can send messages
+    // - Supporters can only send as themselves
     // - SuperAdmin can read all messages from ALL tenants
     // - Normal supporters can ONLY read their own messages
     // - Only SuperAdmin can delete or modify records
     match /chat_interactions/{msgId} {
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.senderUid == request.auth.uid;
       allow read: if isSuperAdmin() || (
         isAuthenticated() && (
           request.auth.uid == resource.data.senderUid ||
@@ -50,10 +95,19 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-    // Fallback for multi-tenant collections
-    match /{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+    // Admin email lists used for authorization (PII)
+    match /system_settings/{docId} {
+      allow read, write: if isSuperAdmin();
+    }
+    match /admins/{docId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Fallback for other tenants' collections (unchanged behaviour),
+    // excluding the protected collections above
+    match /{collectionName}/{document=**} {
+      allow read: if !isProtectedCollection(collectionName);
+      allow write: if isAuthenticated() && !isProtectedCollection(collectionName);
     }
   }
 }

@@ -16,6 +16,7 @@ const https = require('https');
 const http = require('http');
 console.log('[Server Startup] 3. Loading firebase service...');
 const firebaseService = require('./firebase-service');
+const { attachUser, requireAuth, requireAdmin } = require('./auth-middleware');
 console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
@@ -28,13 +29,48 @@ function getStripe() {
     }
     return _stripe;
 }
+// Log the full error server-side; send the browser a generic message.
+// Stripe card/validation errors are written for customers, so those are passed through.
+function sendServerError(res, err, publicMessage = 'Something went wrong. Please try again.') {
+    const isCustomerFacing = err && (err.type === 'StripeCardError' || err.type === 'StripeInvalidRequestError');
+    res.status(500).json({ error: isCustomerFacing ? err.message : publicMessage });
+}
+// Donation limits (AUD, whole dollars). The maximum can be raised with MAX_DONATION_AUD in .env
+const MIN_DONATION_AUD = 50;
+const MAX_DONATION_AUD = Number(process.env.MAX_DONATION_AUD) || 100000;
+
+// Returns a whole-dollar amount within limits, or null. Rejects "50abc", "50.5", "1e3", negatives
+function parseDonationAmount(value) {
+    const text = String(value ?? '').trim();
+    if (!/^\d{1,9}$/.test(text)) return null;
+    const amount = Number(text);
+    return (amount >= MIN_DONATION_AUD && amount <= MAX_DONATION_AUD) ? amount : null;
+}
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
 const COMM_DATA_FILE = path.join(__dirname, 'data', 'community.json');
 const TECH_DATA_FILE = path.join(__dirname, 'data', 'tech.json');
 const PROJECTS_DATA_FILE = path.join(__dirname, 'data', 'projects.json');
 
+app.disable('x-powered-by');
+
+// Security headers on every response
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    // Clickjacking: only this site and AI Foundation portals may frame these pages
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.aifoundation.net.au; object-src 'none'; base-uri 'self'");
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://js.stripe.com")');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+    next();
+});
+
 app.use(express.json({ limit: '10mb' }));
+// Every /api request: verify the Firebase ID token (if sent) and expose it as req.user
+app.use('/api', attachUser);
 app.use(express.static(path.join(__dirname, 'public'), {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
@@ -262,7 +298,7 @@ app.get('/api/posts', (req, res) => {
 });
 
 // CREATE new post
-app.post('/api/posts', async (req, res) => {
+app.post('/api/posts', requireAdmin, async (req, res) => {
     const { title, summary, link, imageUrl, platform, author, id, firestoreSynced } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
@@ -304,7 +340,7 @@ app.post('/api/posts', async (req, res) => {
 });
 
 // DELETE post
-app.delete('/api/posts/:id', async (req, res) => {
+app.delete('/api/posts/:id', requireAdmin, async (req, res) => {
     let posts = getPosts();
     posts = posts.filter(p => p.id !== req.params.id);
     savePosts(posts);
@@ -320,7 +356,7 @@ app.get('/api/community', (req, res) => {
     res.json(posts.sort((a, b) => new Date(b.date) - new Date(a.date)));
 });
 
-app.post('/api/community', async (req, res) => {
+app.post('/api/community', requireAdmin, async (req, res) => {
     const { title, summary, link, imageUrl, imageBase64, platform, id, firestoreSynced } = req.body;
     let imgUrl = imageUrl || imageBase64 || '';
     if (imgUrl) {
@@ -360,7 +396,7 @@ app.post('/api/community', async (req, res) => {
     res.json({ success: true, post: newPost });
 });
 
-app.delete('/api/community/:id', async (req, res) => {
+app.delete('/api/community/:id', requireAdmin, async (req, res) => {
     let posts = getCommunityPosts();
     posts = posts.filter(p => p.id !== req.params.id);
     saveCommunityPosts(posts);
@@ -376,7 +412,7 @@ app.get('/api/tech', (req, res) => {
     res.json(posts.sort((a, b) => new Date(b.date) - new Date(a.date)));
 });
 
-app.post('/api/tech', async (req, res) => {
+app.post('/api/tech', requireAdmin, async (req, res) => {
     const { title, summary, link, imageUrl, imageBase64, platform, id, firestoreSynced } = req.body;
     let imgUrl = imageUrl || imageBase64 || '';
     if (imgUrl) {
@@ -416,7 +452,7 @@ app.post('/api/tech', async (req, res) => {
     res.json({ success: true, post: newPost });
 });
 
-app.delete('/api/tech/:id', async (req, res) => {
+app.delete('/api/tech/:id', requireAdmin, async (req, res) => {
     let posts = getTechPosts();
     posts = posts.filter(p => p.id !== req.params.id);
     saveTechPosts(posts);
@@ -432,7 +468,7 @@ app.get('/api/projects', (req, res) => {
     res.json(projects.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
 });
 
-app.post('/api/projects', async (req, res) => {
+app.post('/api/projects', requireAdmin, async (req, res) => {
     const { title, summary, link, imageUrl, imageBase64, platform, author, id, firestoreSynced } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
@@ -477,7 +513,7 @@ app.post('/api/projects', async (req, res) => {
     res.json({ success: true, project: newProject });
 });
 
-app.delete('/api/projects/:id', async (req, res) => {
+app.delete('/api/projects/:id', requireAdmin, async (req, res) => {
     let projects = getProjects();
     projects = projects.filter(p => p.id !== req.params.id);
     saveProjects(projects);
@@ -502,7 +538,7 @@ app.get('/data-contracts.md', (req, res) => {
     res.sendFile(path.join(__dirname, 'data-contracts.md'));
 });
 
-app.post('/api/extract-metadata', async (req, res) => {
+app.post('/api/extract-metadata', requireAdmin, async (req, res) => {
     let { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
     
@@ -562,7 +598,7 @@ app.post('/api/extract-metadata', async (req, res) => {
 });
 
 // PROXY Upload to ImgBB (https://api.imgbb.com/1/upload)
-app.post('/api/upload-imgbb', async (req, res) => {
+app.post('/api/upload-imgbb', requireAdmin, async (req, res) => {
     const { imageBase64, imageUrl, apiKey, name } = req.body;
     const finalKey = apiKey || process.env.IMGBB_API_KEY;
     if (!finalKey) {
@@ -595,7 +631,7 @@ app.post('/api/upload-imgbb', async (req, res) => {
         }
     } catch (e) {
         console.error('Upload ImgBB Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
@@ -607,9 +643,9 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
             return res.status(500).json({ error: 'Stripe is not configured on the server.' });
         }
         let { amount, returnPath } = req.body;
-        amount = parseInt(amount, 10);
-        if (!amount || isNaN(amount) || amount < 50) {
-            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $50.' });
+        amount = parseDonationAmount(amount);
+        if (!amount) {
+            return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
         }
 
         const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
@@ -669,7 +705,7 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         res.json({ url: session.url, sessionId: session.id });
     } catch (e) {
         console.error('Stripe Checkout Error:', e);
-        res.status(500).json({ error: e.message || 'Error creating Stripe session' });
+        sendServerError(res, e, 'Error creating Stripe session');
     }
 });
 
@@ -698,9 +734,9 @@ async function getPayPalAccessToken() {
 app.post('/api/paypal/create-order', async (req, res) => {
     try {
         let { amount } = req.body;
-        amount = parseInt(amount, 10);
-        if (!amount || isNaN(amount) || amount < 50) {
-            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $50.' });
+        amount = parseDonationAmount(amount);
+        if (!amount) {
+            return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
         }
 
         const pp = await getPayPalAccessToken();
@@ -757,7 +793,7 @@ app.post('/api/paypal/create-order', async (req, res) => {
         }
     } catch (e) {
         console.error('PayPal Order Error:', e);
-        res.status(500).json({ error: e.message || 'Error creating PayPal order' });
+        sendServerError(res, e, 'Error creating PayPal order');
     }
 });
 
@@ -794,7 +830,7 @@ app.post('/api/paypal/capture-order/:orderId', async (req, res) => {
         res.json(captureData);
     } catch (e) {
         console.error('PayPal Capture Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
@@ -806,9 +842,9 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
             return res.status(500).json({ error: 'Stripe is not configured on the server.' });
         }
         let { amount } = req.body;
-        amount = parseInt(amount, 10);
-        if (!amount || isNaN(amount) || amount < 50) {
-            return res.status(400).json({ error: 'Invalid donation amount. Please enter a whole number of at least AUD $50.' });
+        amount = parseDonationAmount(amount);
+        if (!amount) {
+            return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
         }
 
         const paymentIntent = await stripe.paymentIntents.create({
@@ -847,33 +883,90 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
         });
     } catch (e) {
         console.error('Stripe PaymentIntent Error:', e);
-        res.status(500).json({ error: e.message || 'Error creating payment intent' });
+        sendServerError(res, e, 'Error creating payment intent');
     }
 });
 
+// Look up a payment with the provider so status/amount never come from the browser
+async function fetchVerifiedPayment(transactionId) {
+    if (/^(pi|cs)_[A-Za-z0-9_]+$/.test(transactionId)) {
+        const stripe = getStripe();
+        if (!stripe) throw new Error('Stripe is not configured on the server.');
+        if (transactionId.startsWith('cs_')) {
+            const session = await stripe.checkout.sessions.retrieve(transactionId);
+            return {
+                paymentMethod: 'stripe',
+                status: session.payment_status === 'paid' ? 'succeeded' : (session.status === 'expired' ? 'failed' : 'pending'),
+                amount: (session.amount_total || 0) / 100,
+                providerEmail: session.customer_details?.email || '',
+                providerName: session.customer_details?.name || ''
+            };
+        }
+        const intent = await stripe.paymentIntents.retrieve(transactionId);
+        return {
+            paymentMethod: 'stripe',
+            status: intent.status === 'succeeded' ? 'succeeded' : (intent.status === 'canceled' ? 'failed' : 'pending'),
+            amount: (intent.amount_received || intent.amount || 0) / 100,
+            providerEmail: intent.receipt_email || '',
+            providerName: ''
+        };
+    }
+    if (/^[A-Z0-9]{10,30}$/.test(transactionId)) {
+        const pp = await getPayPalAccessToken();
+        if (!pp || !pp.token) throw new Error('PayPal credentials not configured.');
+        const orderRes = await fetch(`${pp.baseUrl}/v2/checkout/orders/${transactionId}`, {
+            headers: { 'Authorization': `Bearer ${pp.token}` }
+        });
+        if (!orderRes.ok) return null;
+        const order = await orderRes.json();
+        return {
+            paymentMethod: 'paypal',
+            status: order.status === 'COMPLETED' ? 'succeeded' : (order.status === 'VOIDED' ? 'failed' : 'pending'),
+            amount: Number(order.purchase_units?.[0]?.amount?.value || 0),
+            providerEmail: order.payer?.email_address || '',
+            providerName: [order.payer?.name?.given_name, order.payer?.name?.surname].filter(Boolean).join(' ')
+        };
+    }
+    return null;
+}
+
 // Confirm or sync a transaction with tag 'aifoundation'
+// Status and amount are verified with Stripe / PayPal; donor identity comes from the ID token or the provider
 app.post('/api/transactions/confirm', async (req, res) => {
     try {
-        const { transactionId, status, paymentMethod, amount, customerEmail, customerName } = req.body;
+        const transactionId = String(req.body.transactionId || '').trim();
         if (!transactionId) {
             return res.status(400).json({ error: 'transactionId is required' });
         }
-        const result = await firebaseService.updateTransactionStatus(transactionId, status || 'succeeded', {
-            paymentMethod: paymentMethod || 'stripe',
+
+        let verified;
+        try {
+            verified = await fetchVerifiedPayment(transactionId);
+        } catch (lookupErr) {
+            console.warn('[Transactions] Provider lookup failed:', lookupErr.message);
+            return res.status(404).json({ error: 'Transaction not found.' });
+        }
+        if (!verified) {
+            return res.status(404).json({ error: 'Transaction not found.' });
+        }
+
+        const result = await firebaseService.updateTransactionStatus(transactionId, verified.status, {
+            paymentMethod: verified.paymentMethod,
             tag: 'aifoundation',
-            amount: amount ? Number(amount) : undefined,
-            customerEmail,
-            customerName
+            amount: verified.amount,
+            customerEmail: req.user?.email || verified.providerEmail,
+            customerName: req.user?.name || verified.providerName,
+            userId: req.user?.uid || ''
         });
-        res.json({ success: true, result });
+        res.json({ success: true, status: verified.status, amount: verified.amount, recorded: Boolean(result.success) });
     } catch (e) {
         console.error('[Transactions] Confirm error:', e);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Could not confirm transaction.' });
     }
 });
 
 // Record a transaction directly into Firestore with tag 'aifoundation'
-app.post('/api/transactions/record', async (req, res) => {
+app.post('/api/transactions/record', requireAdmin, async (req, res) => {
     try {
         const txData = req.body;
         txData.tag = 'aifoundation';
@@ -882,18 +975,18 @@ app.post('/api/transactions/record', async (req, res) => {
         res.json({ success: true, result });
     } catch (e) {
         console.error('[Transactions] Record error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
 // Fetch recent transactions tagged with 'aifoundation'
-app.get('/api/transactions', async (req, res) => {
+app.get('/api/transactions', requireAdmin, async (req, res) => {
     try {
         const list = await firebaseService.listAIFoundationTransactions(50);
         res.json({ count: list.length, tag: 'aifoundation', transactions: list });
     } catch (e) {
         console.error('[Transactions] Query error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
@@ -903,19 +996,16 @@ app.get('/api/firebase/config', (req, res) => {
 });
 
 // Synchronize Firebase Google Auth user profile with tag 'aifoundation'
-app.post('/api/auth/sync', async (req, res) => {
+app.post('/api/auth/sync', requireAuth, async (req, res) => {
     try {
-        const { uid, email, displayName, photoURL, phoneNumber, address, role, status, detailsRegistered, registeredAt } = req.body;
-        if (!uid) {
-            return res.status(400).json({ error: 'UID is required' });
-        }
+        // Identity comes from the verified ID token; role/status in the body are ignored
+        const { displayName, photoURL, phoneNumber, address, detailsRegistered, registeredAt } = req.body;
+        const normalizedEmail = req.user.email;
+        const normUid = req.user.uid;
 
-        const normalizedEmail = (email || '').toLowerCase().trim();
-        const normUid = (uid || '').trim();
-        
         // Verify superadmin status strictly: ONLY ZK79FRQoVlYhsgvMibhi81dRUWj2 and L5euSJAfNKdDOX6mT0qmrCGjUA53
-        const isSuperAdmin = firebaseService.isSuperAdminUser(normUid, normalizedEmail);
-        const isAdmin = isSuperAdmin || await firebaseService.isEmailAdminInFirebase(normalizedEmail, normUid);
+        const isSuperAdmin = firebaseService.isSuperAdminUser(normUid, req.user.emailVerified ? normalizedEmail : '');
+        const isAdmin = isSuperAdmin || req.user.isAdmin;
 
         // These two are the ONLY superadmin allowed; everyone else is admin or supporter
         const assignedRole = isSuperAdmin ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
@@ -936,13 +1026,16 @@ app.post('/api/auth/sync', async (req, res) => {
         res.json({ success: true, user: result.user, isAdmin, isSuperAdmin });
     } catch (e) {
         console.error('[Auth Sync] Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
 // Retrieve user profile by UID
-app.get('/api/users/:uid', async (req, res) => {
+app.get('/api/users/:uid', requireAuth, async (req, res) => {
     try {
+        if (req.params.uid !== req.user.uid && !req.user.isAdmin) {
+            return res.status(403).json({ error: 'You can only view your own profile.' });
+        }
         const user = await firebaseService.getUser(req.params.uid);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -950,19 +1043,16 @@ app.get('/api/users/:uid', async (req, res) => {
         res.json(user);
     } catch (e) {
         console.error('[User Fetch] Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
 // Verify if a Google Auth user is authorized as a SuperAdmin in Firebase
-app.post('/api/auth/admin-verify', async (req, res) => {
+app.post('/api/auth/admin-verify', requireAuth, async (req, res) => {
     try {
-        const { email, uid } = req.body;
-        const normalizedEmail = (email || '').toLowerCase().trim();
-        const normUid = (uid || '').trim();
-        
-        // SuperAdmin authorization strictly verified: only the two authorized users
-        const isAuthorized = firebaseService.isSuperAdminUser(normUid, normalizedEmail) || await firebaseService.isEmailAdminInFirebase(normalizedEmail, normUid);
+        const normalizedEmail = req.user.email;
+        // SuperAdmin authorization strictly verified from the ID token
+        const isAuthorized = req.user.isAdmin;
 
         res.json({
             authorized: isAuthorized,
@@ -973,24 +1063,24 @@ app.post('/api/auth/admin-verify', async (req, res) => {
         });
     } catch (e) {
         console.error('[Admin Verify] Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
 // Fast check if a user is listed as a SuperAdmin in Firebase
-app.get('/api/auth/admin-check', async (req, res) => {
+app.get('/api/auth/admin-check', requireAuth, async (req, res) => {
     try {
-        const email = (req.query.email || '').toLowerCase().trim();
-        const uid = (req.query.uid || '').trim();
-        const isAdmin = firebaseService.isSuperAdminUser(uid, email) || await firebaseService.isEmailAdminInFirebase(email, uid);
+        const email = req.user.email;
+        const isAdmin = req.user.isAdmin;
         res.json({ email, isAdmin, isSuperAdmin: isAdmin });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        console.error('[Admin Check] Error:', e);
+        sendServerError(res, e);
     }
 });
 
 // Retrieve recent inputs from the whole multi-tenant database (Admin only)
-app.get('/api/admin/database-inputs', async (req, res) => {
+app.get('/api/admin/database-inputs', requireAdmin, async (req, res) => {
     try {
         const { tenant = 'all', collection = 'all', limit = 50 } = req.query;
         const result = await firebaseService.getDatabaseRecentInputs({
@@ -1001,7 +1091,7 @@ app.get('/api/admin/database-inputs', async (req, res) => {
         res.json(result);
     } catch (e) {
         console.error('[Admin DB Inputs] Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
@@ -1011,14 +1101,9 @@ app.get('/api/admin/database-inputs', async (req, res) => {
 // ==========================================
 
 // Send a chat message (Supporter to SuperAdmin, or SuperAdmin reply)
-app.post('/api/chat/send', async (req, res) => {
+app.post('/api/chat/send', requireAuth, async (req, res) => {
     try {
-        const {
-            senderUid,
-            senderEmail,
-            senderName,
-            senderPhoto,
-            senderRole,
+        let {
             recipientUid,
             recipientEmail,
             recipientName,
@@ -1042,8 +1127,19 @@ app.post('/api/chat/send', async (req, res) => {
             return res.status(400).json({ error: 'Message cannot be empty.' });
         }
 
-        if (!senderUid || !senderEmail) {
-            return res.status(400).json({ error: 'Authenticated sender UID and email are required.' });
+        // Sender identity always comes from the verified ID token
+        const senderUid = req.user.uid;
+        const senderEmail = req.user.email;
+        const senderName = req.user.name || req.body.senderName || '';
+        const senderPhoto = req.user.picture || '';
+        const senderRole = req.user.isAdmin ? 'superadmin' : 'supporter';
+
+        // Supporters can only message the SuperAdmin inside their own conversation
+        if (!req.user.isAdmin) {
+            recipientUid = 'superadmin';
+            recipientEmail = 'support@aifoundation.net.au';
+            recipientName = 'SuperAdmin';
+            conversationId = `conv_${senderUid}`;
         }
 
         const result = await firebaseService.sendChatMessage({
@@ -1051,7 +1147,7 @@ app.post('/api/chat/send', async (req, res) => {
             senderEmail,
             senderName,
             senderPhoto,
-            senderRole: senderRole || 'supporter',
+            senderRole,
             recipientUid: recipientUid || 'superadmin',
             recipientEmail: recipientEmail || 'support@aifoundation.net.au',
             recipientName: recipientName || 'SuperAdmin',
@@ -1075,23 +1171,20 @@ app.post('/api/chat/send', async (req, res) => {
         });
     } catch (e) {
         console.error('[Chat Send] Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
 // Retrieve message history for a conversation
-app.get('/api/chat/messages', async (req, res) => {
+app.get('/api/chat/messages', requireAuth, async (req, res) => {
     try {
-        const { conversationId, uid, email, limit = 100 } = req.query;
-        const convId = conversationId || (uid ? `conv_${uid}` : null);
+        const { conversationId, limit = 100 } = req.query;
+        const uid = req.user.uid;
+        const email = req.user.email;
+        const isSuperAdmin = req.user.isAdmin;
 
-        if (!convId) {
-            return res.status(400).json({ error: 'conversationId or uid is required.' });
-        }
-
-        // Determine if requester is SuperAdmin
-        const isSuperAdmin = firebaseService.isSuperAdminUser(uid, email) || 
-                             (email ? await firebaseService.isEmailAdminInFirebase(email, uid) : false);
+        // Supporters may only read their own conversation
+        const convId = isSuperAdmin ? (conversationId || `conv_${uid}`) : `conv_${uid}`;
 
         const messages = await firebaseService.getChatMessages(convId, { 
             limit: Number(limit) || 100,
@@ -1110,21 +1203,13 @@ app.get('/api/chat/messages', async (req, res) => {
         });
     } catch (e) {
         console.error('[Chat Messages Fetch] Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 
 // Retrieve list of supporter conversations (Admin / SuperAdmin inbox across all tenants)
-app.get('/api/chat/conversations', async (req, res) => {
+app.get('/api/chat/conversations', requireAdmin, async (req, res) => {
     try {
-        const { uid, email } = req.query;
-        const isSuperAdmin = firebaseService.isSuperAdminUser(uid, email) || 
-                             (email ? await firebaseService.isEmailAdminInFirebase(email, uid) : false);
-
-        if ((uid || email) && !isSuperAdmin) {
-            return res.status(403).json({ error: 'Access denied: Only SuperAdmin can view all supporter conversations.' });
-        }
-
         const conversations = await firebaseService.getChatConversations();
         res.json({
             success: true,
@@ -1133,7 +1218,7 @@ app.get('/api/chat/conversations', async (req, res) => {
         });
     } catch (e) {
         console.error('[Chat Conversations Fetch] Error:', e);
-        res.status(500).json({ error: e.message });
+        sendServerError(res, e);
     }
 });
 

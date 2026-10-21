@@ -1,0 +1,408 @@
+AI FOUNDATION - ERROR LOG
+=========================
+Each entry records: the error, its risk area (PII / Firebase Security / Responsive / Reliability),
+how it was repaired, and how the repair was checked for reliability.
+
+
+------------------------------------------------------------------------
+#1  2026-10-21  CRITICAL  Server API had no authentication
+------------------------------------------------------------------------
+Area:      Firebase Safety & Security, PII
+
+Error:
+  Every /api endpoint trusted the uid / email sent in the request body or query
+  string. The server talks to Firestore with the service account (which bypasses
+  Firestore rules), so anyone on the internet could, without signing in:
+    - GET  /api/transactions             -> read donor names, emails, amounts (PII)
+    - GET  /api/users/:uid               -> read any user's profile (PII)
+    - GET  /api/admin/database-inputs    -> read the whole multi-tenant database view
+    - GET  /api/chat/conversations       -> read every supporter conversation
+    - POST /api/auth/admin-verify        -> send the SuperAdmin's email and be told "authorized"
+    - POST/DELETE /api/posts|community|tech|projects -> publish or delete site content
+    - POST /api/chat/send                -> send messages pretending to be any user
+    - POST /api/upload-imgbb, /api/extract-metadata -> abuse server API keys / outbound requests
+
+Repair:
+  - New file auth-middleware.js verifies the Firebase ID token in the
+    "Authorization: Bearer <token>" header: RS256 signature against Google's
+    published securetoken keys (cached per Cache-Control), audience = project ID,
+    issuer = securetoken.google.com/<project>, expiry, issued-at and subject.
+    No new npm dependency (uses Node's built-in crypto).
+  - server.js: app.use('/api', attachUser) sets req.user from the verified token.
+    Admin status is only granted by UID, or by email when the token says the email is verified.
+      requireAdmin: content create/delete, image upload, metadata extraction,
+                    transaction list/record, database-inputs, chat conversations.
+      requireAuth:  auth sync, admin-verify, admin-check, user profile (own profile
+                    unless admin), chat send, chat messages.
+  - Identity now always comes from the token, never from the body:
+      /api/auth/sync ignores role/status sent by the client;
+      chat sender, sender role and (for supporters) recipient and conversation
+      are forced server-side; supporters can only read their own conversation.
+  - public/firebase-client.js wraps window.fetch so same-origin /api/ requests
+    automatically carry the signed-in user's ID token (no changes needed to the
+    ~30 existing fetch calls in app.js). Script version bumped to v=40.
+  - Public endpoints are unchanged: GET content feeds, /api/firebase/config,
+    Stripe/PayPal checkout creation.
+
+Reliability check:
+  - node --check and ESLint no-undef pass on server.js and auth-middleware.js.
+  - Ran the server on a test port and called every protected endpoint:
+      anonymous request         -> 401 on all 10 protected endpoints
+      forged unsigned token     -> 401 ("Unknown signing key")
+      garbage token             -> 401 ("Malformed token")
+      public GET endpoints, home page -> 200
+    (This also confirmed the server can fetch Google's live signing keys.)
+  - Unit test with a locally generated RSA key: valid token PASS (accepted);
+    expired, wrong audience, wrong issuer, signed by another key, and tampered
+    payload (uid swapped to the SuperAdmin's) all PASS (rejected).
+  - Not yet checked: a real Google sign-in in the browser end to end.
+
+Recommendation:
+  Keep every new admin or user-data route behind requireAdmin / requireAuth.
+  Never read uid, email or role from req.body or req.query for authorization.
+
+
+------------------------------------------------------------------------
+#2  2026-10-21  CRITICAL  Firestore rules exposed PII and allowed self-promotion to admin
+------------------------------------------------------------------------
+Area:      Firebase Safety & Security, PII
+
+Error:
+  firestore.rules (applies to the whole ai-foundation-firebase project):
+    - users/{id}: "allow read: if true" -> every user's name, email, phone, photo public.
+    - users/{id}: any signed-in user could write ANY profile, including their own
+      role: 'admin'. The server treats users with role 'admin' as admins
+      (getAdminEmailsFromFirebase source #3), so anyone could make themselves admin.
+    - content: any signed-in Google account could publish/delete site content.
+    - transactions: any signed-in user could read every donor record and forge records.
+    - chat_interactions: senders could create messages as any senderUid.
+    - isSuperAdmin() matched by email without checking email_verified.
+    - The catch-all "match /{document=**} { allow read: if true; allow write: if isAuthenticated(); }"
+      matched EVERY collection. Firestore rules are OR'd, so it silently overrode all
+      the stricter rules above (users, transactions and chat were effectively public),
+      and exposed system_settings/admin_emails and admins/admin_emails.
+
+Repair (firestore.rules rewritten):
+  - isSuperAdmin(): SuperAdmin UIDs, or listed email only when email_verified == true.
+  - isAdmin(): SuperAdmin, or users/{uid}.role in admin/super_admin/superadmin
+    (safe now that users cannot set their own role).
+  - content: public read; write admin only.
+  - users: read owner or admin; create own profile only as supporter;
+    owner updates may not touch role, status, classification, isSuperAdmin, isAdmin, tags;
+    delete SuperAdmin only.
+  - transactions: read admin only; client writes denied (the server records
+    them with the service account, and the client code already falls back to it).
+  - chat_interactions: create only with senderUid == your own uid.
+  - system_settings and admins: SuperAdmin only.
+  - Catch-all rewritten as match /{collectionName}/{document=**} and excludes
+    the protected collections, so other tenant apps sharing this Firebase project
+    (LMS, HR, Health, etc.) keep their current behaviour.
+
+Reliability check:
+  - Reviewed every client-side Firestore call in app.js / firebase-client.js
+    (content read/write/delete, users setDoc, transactions setDoc) against the new rules:
+    allowed paths still work; denied paths are already wrapped in try/catch and fall
+    back to the authenticated server endpoint from fix #1.
+  - Wrote tests/firestore-rules-test.js: 28 (now 31) allow/deny cases (PII reads, self-promotion,
+    impersonation with unverified email, chat spoofing, tenant fallback, subcollections).
+    It compiles and runs the rules through Google's Firebase Rules API (projects:test),
+    which deploys nothing.
+  - NOT YET RUN: the API returned 403 because the server's service account does not have
+    firebaserules.rulesets.test (correct least privilege), and the Firebase CLI login
+    for support@aifoundation.net.au has expired.
+
+ACTION REQUIRED (owner):
+  1. firebase login --reauth
+  2. RULES_TEST_TOKEN="$(gcloud auth print-access-token)" node tests/firestore-rules-test.js
+     -> expect 31/31 passed
+  3. Confirm the other apps sharing this project do not read users/transactions/content
+     directly from the browser, then deploy:
+     firebase deploy --only firestore:rules --project ai-foundation-firebase
+  The new rules have NOT been deployed. Production still runs the old rules until then.
+
+UPDATE 2026-10-21: DEPLOYED by owner (firebase deploy --only firestore:rules: "Deploy complete").
+  Live check: anonymous requests to the Firestore REST API with the public web API key:
+    content (read)            -> 200 allowed (public site content)
+    users, transactions, stripe_transactions, paypal_transactions,
+    chat_interactions, system_settings, admins (read) -> 403 denied
+    content (anonymous write) -> 403 denied
+  Before this deploy, users, transactions and chat were publicly readable.
+
+Recommendation:
+  Each tenant app should keep its data in its own named collections with explicit rules,
+  and the catch-all fallback should eventually be removed (default deny).
+
+
+------------------------------------------------------------------------
+#3  2026-10-21  HIGH  Payment confirmation trusted the browser
+------------------------------------------------------------------------
+Area:      Firebase Safety & Security, PII, Reliability
+
+Error:
+  POST /api/transactions/confirm was public and wrote whatever the request said:
+  any transactionId, status 'succeeded', any amount, any customerEmail/customerName.
+  Anyone could create fake "succeeded" donations, overwrite real donor records,
+  or attach someone else's email (PII) to a payment. The admin dashboard and
+  receipts would then show false data.
+  Also: stripe_transactions and paypal_transactions (written by the server) were not
+  covered by any explicit Firestore rule.
+
+Repair:
+  - server.js: new fetchVerifiedPayment() looks the payment up with the provider:
+      pi_...  -> stripe.paymentIntents.retrieve  (status, amount_received, receipt_email)
+      cs_...  -> stripe.checkout.sessions.retrieve (payment_status, amount_total, customer_details)
+      PayPal order ID -> GET /v2/checkout/orders/{id} (status, amount, payer)
+    Unknown formats or lookups that fail return 404 and nothing is written.
+  - Status and amount recorded are the provider's values only; anything the browser
+    sends besides transactionId is ignored.
+  - Donor name/email come from the verified ID token (fix #1) when signed in,
+    otherwise from the payment provider.
+  - 500 errors no longer return internal error messages to the browser.
+  - firestore.rules: stripe_transactions and paypal_transactions added to the
+    protected list (admin read, no client writes).
+
+Reliability check (Stripe TEST mode key, sk_test_):
+  1. Made-up ID "tx_fake123" claiming $99,999 succeeded  -> 404, nothing written
+  2. Non-existent "pi_doesnotexist000"                  -> 404, nothing written
+  3. Real but UNPAID PaymentIntent, browser claims succeeded/$99,999
+                                                         -> recorded status "pending", amount 100
+  4. Same intent after paying with Stripe test card pm_card_visa
+                                                         -> recorded status "succeeded", amount 100
+  - Added 3 cases for stripe_transactions / paypal_transactions to
+    tests/firestore-rules-test.js (31 cases total, pending owner run - see #2).
+  - PayPal path checked by code review only (sandbox order not created).
+
+Recommendation:
+  Add a Stripe webhook (payment_intent.succeeded, checkout.session.completed) with
+  signature verification as the primary source of truth, so donations are recorded
+  even if the donor closes the browser before the confirm call.
+
+
+------------------------------------------------------------------------
+#4  2026-10-21  CRITICAL  Cross-site scripting (XSS) in the public site and admin panel
+------------------------------------------------------------------------
+Area:      Firebase Safety & Security, PII
+
+Error:
+  public/app.js builds HTML with innerHTML and template strings, inserting data
+  without escaping:
+    - REFLECTED XSS: /?donation=success&amt=<img src=x onerror=...> was written into
+      the payment success message. Anyone could send this link; if a signed-in admin
+      opened it, the script could read their Firebase session and act as SuperAdmin.
+    - STORED XSS into the admin panel: supporter senderName (now the Google profile
+      name, which anyone can set to HTML), senderRole, conversation/supporter IDs,
+      and every column of the multi-tenant "database inputs" table (data from other
+      tenant collections that any signed-in user can write).
+    - Content cards (articles, projects, tech, community) and admin content lists:
+      title, summary, platform, image URL and link unescaped. Titles/summaries can come
+      from third-party pages via /api/extract-metadata, and links allowed javascript: URLs.
+    - Delete buttons built onclick="fn('${id}')", so an ID containing a quote could run code.
+    - Database error message (err.message) inserted unescaped.
+
+Repair (public/app.js):
+  - New shared helpers next to truncateSummary():
+      escapeHtml(str)  - escapes & < > " '
+      safeUrl(url)     - allows only http(s) and relative URLs, escaped; anything else -> ''
+      jsArg(value)     - JSON-encodes then escapes a value for inline onclick handlers
+  - Applied to every untrusted interpolation: 4 public card grids, 4 admin content lists,
+    supporter and admin chat feeds, admin thread list attributes, DB records table,
+    DB error message, payment success message.
+  - ?amt= from the return URL is only accepted if it is a whole number (1-7 digits).
+  - Chat message bodies were already escaped (escapeHtmlChat) and are unchanged.
+  - app.js version bumped to v=43 on all three pages.
+
+Reliability check:
+  - node --check passes; ESLint no-undef (browser env) confirms escapeHtml / safeUrl / jsArg
+    are in scope at every call site.
+  - Re-scanned all 73 innerHTML assignments: remaining interpolations are internal
+    constants only (tab config, counters, amounts, window.location).
+  - Unit test of the helpers taken straight from app.js, 12/12 PASS:
+      <script>, <img onerror>, attribute break-out -> escaped
+      javascript:, mixed-case/whitespace javascript:, data: URLs -> blocked
+      https and relative URLs -> kept (with & escaped)
+      quote injection inside a URL -> cannot leave the attribute
+      onclick ID "x');alert(1);//" -> stays a plain string
+      ?amt=<img onerror> -> rejected; ?amt=100 -> accepted
+  - Not yet checked: visual check of the feeds and admin panel in a browser.
+
+Recommendation:
+  Prefer textContent / createElement for user data. Add a Content-Security-Policy header
+  (planned as a later fix) so any missed injection cannot run inline script.
+
+
+------------------------------------------------------------------------
+#5  2026-10-21  MEDIUM  Deleting a community post crashed half-way (ReferenceError)
+------------------------------------------------------------------------
+Area:      Reliable web app
+
+Error:
+  window.deleteAnyPost() called renderCommunity(), which does not exist (the function
+  is renderCommunityPosts()). For category 'community' the delete threw a
+  ReferenceError at step 3, BEFORE the Firestore delete (step 4) and the server
+  delete (step 5) ran. The post vanished from the screen but came back on reload.
+  Also: a click handler for '.sample-chip' wrote to an undefined variable linkInput.
+  No page has .sample-chip elements, so it was dead code that would crash if one were added.
+
+Repair (public/app.js):
+  - renderCommunity() -> renderCommunityPosts().
+  - Removed the dead .sample-chip handler.
+  - app.js version bumped to v=44.
+
+Reliability check:
+  - ESLint no-undef (browser env) on app.js and firebase-client.js: 0 errors
+    (previously 2: linkInput, renderCommunity).
+  - Confirmed with grep that no HTML page contains .sample-chip.
+  - node --check passes.
+  - Not yet checked: deleting a community post in the browser as an admin.
+
+Recommendation:
+  Add ESLint (no-undef at minimum) to the project and run it before each release.
+
+
+------------------------------------------------------------------------
+#6  2026-10-21  MEDIUM  No HTTP security headers (clickjacking, MIME sniffing)
+------------------------------------------------------------------------
+Area:      Firebase Safety & Security, PII
+
+Error:
+  The server sent no security headers. Any website could load the site (including the
+  signed-in admin panel) in a hidden iframe and trick an admin into clicking
+  (clickjacking). There was no nosniff, no referrer policy (full URLs, including
+  ?session_id= payment return parameters, could leak to third-party sites), no HSTS,
+  and "X-Powered-By: Express" advertised the server stack.
+
+Repair (server.js, one middleware before static files):
+  - X-Powered-By removed.
+  - Content-Security-Policy: frame-ancestors 'self' https://*.aifoundation.net.au;
+    object-src 'none'; base-uri 'self'
+    (only AI Foundation portals may frame the site; scripts are not restricted yet,
+    so inline onclick handlers, Stripe, PayPal and Firebase keep working).
+  - X-Content-Type-Options: nosniff
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy: camera, microphone, geolocation off; payment allowed for
+    this site and Stripe (Apple Pay / Google Pay).
+  - Cross-Origin-Opener-Policy: same-origin-allow-popups (keeps the Google sign-in
+    popup and PayPal popup working).
+  - Strict-Transport-Security, only when the request arrived over HTTPS
+    (directly or via X-Forwarded-Proto from the host's proxy), so localhost is unaffected.
+
+Reliability check:
+  - curl -I on the restarted server shows all headers; X-Powered-By is gone.
+  - HSTS is sent only with X-Forwarded-Proto: https, not on plain http://localhost.
+  - /, /projects, /services, app.js, style.css and /api/posts all return 200.
+  - nosniff check: app.js, firebase-client.js, style.css and logo.png are served with
+    correct Content-Type, so the browser will not block them.
+  - Not yet checked in a browser: Google sign-in popup, Stripe card form, PayPal buttons
+    with the new headers.
+
+Recommendation:
+  Next step is a full script-src CSP, which requires moving the inline onclick /
+  onmouseover handlers in the HTML and app.js templates into addEventListener calls.
+
+
+------------------------------------------------------------------------
+#7  2026-10-21  MEDIUM  API returned internal error details to browsers
+------------------------------------------------------------------------
+Area:      Firebase Safety & Security, PII
+
+Error:
+  15 catch blocks in server.js answered with res.status(500).json({ error: e.message }).
+  Firestore / Google OAuth / network errors can contain project IDs, document paths,
+  service-account details, internal hostnames and sometimes record contents. Any visitor
+  could trigger these and read them.
+
+Repair (server.js):
+  - New sendServerError(res, err, publicMessage) helper: full error stays in the
+    server log (console.error, unchanged); the browser gets a generic message.
+  - Stripe errors of type StripeCardError / StripeInvalidRequestError are still passed
+    through, because Stripe writes those for customers ("Your card was declined.").
+  - All 15 occurrences replaced; existing friendly messages ('Error creating Stripe
+    session', etc.) kept as the public message. Added the one missing console.error
+    (admin-check) so no error is swallowed.
+
+Reliability check:
+  - node --check passes; grep shows no remaining "error: e.message" responses.
+  - Unit test of the helper taken from server.js, 3/3 PASS:
+      Firestore/service-account error text -> hidden, generic message returned
+      custom public message -> used
+      StripeCardError -> customer message passed through
+  - Restarted server: Stripe payment intent creation still returns 200 with a client secret.
+
+Recommendation:
+  Use a structured logger with request IDs so a donor's "Something went wrong" can be
+  matched to the server log line.
+
+
+------------------------------------------------------------------------
+#8  2026-10-21  MEDIUM  Donation amounts had no upper limit and accepted malformed input
+------------------------------------------------------------------------
+Area:      Reliable web app, Security
+
+Error:
+  The Stripe PaymentIntent, Stripe Checkout and PayPal order endpoints each used
+  parseInt(amount) and only checked amount >= 50:
+    - No maximum: Stripe test mode accepted an AUD $99,999,999 donation intent.
+      Card-testing bots and typos ("100000" instead of "100") go straight to the provider.
+    - parseInt accepted junk: "50abc" -> 50, "50.9" -> 50, "1e3" -> 1 (rejected only by luck).
+    - The same check was copy-pasted three times.
+
+Repair (server.js):
+  - One parseDonationAmount() helper used by all three endpoints: whole dollars only
+    (digits only), between MIN_DONATION_AUD = 50 and MAX_DONATION_AUD (default 100000,
+    can be changed with MAX_DONATION_AUD in .env without a code change).
+  - Error message now states the allowed range.
+
+Reliability check (restarted server, Stripe test mode / PayPal sandbox), 13 inputs x 3 endpoints:
+    accepted (200): 50, 100, 200, 100000, "100"
+    rejected (400): 49, 100001, 99999999, "50abc", 50.5, "1e3", -50, null
+  All 39 results as expected. $50 / $100 / $200 preset buttons are inside the range.
+
+Recommendation:
+  Add rate limiting on the payment-creation endpoints (see next fixes) to slow card testing.
+
+
+------------------------------------------------------------------------
+#9  2026-10-21  LOW  Google profile picture not shown after sign-in
+------------------------------------------------------------------------
+Area:      Reliable web app, Responsive design (header UI)
+
+Error:
+  After Google sign-in the header showed the generic avatar instead of the user's Google
+  profile picture. renderAuthUser() already set img.src = user.photoURL, but Google's image
+  server (lh3.googleusercontent.com) commonly refuses or rate-limits image requests that carry
+  a Referer header from another site, so the image failed to load. There was no error fallback,
+  and accounts that only expose the photo on providerData got no photo at all.
+
+Repair:
+  - index.html, projects.html, services.html: referrerpolicy="no-referrer" on the header avatar
+    (userAvatarImg), the dropdown avatar (menuUserAvatar) and the admin chat avatar.
+  - app.js renderAuthUser(): photo = user.photoURL, else the first providerData photoURL,
+    else assets/avatar.png; sets referrerPolicy = 'no-referrer' in code as well, and an
+    onerror fallback to assets/avatar.png (runs once, so it cannot loop).
+  - app.js version bumped to v=45.
+
+Reliability check:
+  - node --check passes; all three pages contain the attribute on the three avatar images.
+  - Confirmed no CSS rule hides .user-avatar-small at any screen width (32px round avatar).
+  - Not yet checked: signing in with a real Google account in the browser.
+
+========================================================================
+OPEN ITEMS (found, not yet fixed) - next in order of priority
+========================================================================
+  A. DONE 2026-10-21: Firestore rules deployed and checked live (see #2).
+  B. Browser end-to-end check of fixes #1-#6: Google sign-in, admin panel, chat,
+     content publish/delete, Stripe card form, PayPal buttons.
+  C. Rate limiting on payment creation, chat send and transaction confirm.
+     Needs a decision on hosting (which proxy sits in front of the app) so client
+     IPs are read correctly.
+  D. Stripe webhook with signature verification as the source of truth for donations (#3).
+  E. process.on('uncaughtException') keeps the server running in an unknown state and
+     overwrites crash_error.txt each time. It should log (append) and exit, so the host restarts it.
+  F. firebase-client.js calls initializeApp() twice with the same app name when the server
+     config differs; the second call fails silently and the server config is ignored.
+  G. Full script-src Content-Security-Policy (needs inline onclick handlers removed, #6).
+  H. /api/extract-metadata fetches any URL server-side (SSRF). Now admin-only (#1), but it
+     should block private/internal addresses.
+  I. Hard-coded SuperAdmin UIDs/emails are duplicated in firestore.rules, firebase-service.js
+     and firebase-client.js, and the lists differ (david@aifoundation.com.au is only in the rules).
+     Move them to one place (Firebase custom claims recommended).

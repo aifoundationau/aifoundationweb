@@ -37,7 +37,7 @@
                     <!-- Logged In State: User Profile Trigger with Dropdown -->
                     <div class="user-menu-wrapper" id="userMenuWrapper" style="display: none;">
                         <button type="button" class="user-profile-badge" id="userProfileBadge" aria-haspopup="true" aria-expanded="false" title="Account &amp; Settings">
-                            <img id="userAvatarImg" src="assets/avatar.png" alt="User Avatar" class="user-avatar-small" />
+                            <img id="userAvatarImg" referrerpolicy="no-referrer" src="assets/avatar.png" alt="User Avatar" class="user-avatar-small" />
                             <span id="userDisplayName" class="user-display-name">AI Foundation</span>
                             <i class="fa-solid fa-chevron-down user-dropdown-caret" id="userDropdownCaret"></i>
                         </button>
@@ -46,7 +46,7 @@
                         <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;">
                             <!-- Profile Header -->
                             <div class="user-dropdown-header">
-                                <img id="menuUserAvatar" src="assets/avatar.png" alt="Avatar" class="dropdown-avatar-img" />
+                                <img id="menuUserAvatar" referrerpolicy="no-referrer" src="assets/avatar.png" alt="Avatar" class="dropdown-avatar-img" />
                                 <div class="dropdown-user-details">
                                     <div id="menuUserName" class="dropdown-user-name">Account</div>
                                     <div id="menuUserEmail" class="dropdown-user-email"></div>
@@ -635,6 +635,10 @@
                     <a href="https://edu.aifoundation.net.au/" class="footer-portal-btn" target="_self">
                         <i class="fa-solid fa-certificate"></i>
                         <span>RTO</span>
+                    </a>
+                    <a href="https://nihongo.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                        <i class="fa-solid fa-language"></i>
+                        <span>Nihongo</span>
                     </a>
                 </div>
             </footer>
@@ -1407,7 +1411,7 @@
                                     <div id="adminThreadConversationView" style="display: none; height: 100%; flex-direction: column;">
                                         <div class="admin-thread-meta-bar">
                                             <div class="admin-thread-user-info">
-                                                <img id="adminThreadAvatar" src="assets/avatar.png" alt="Avatar" class="user-avatar-small" />
+                                                <img id="adminThreadAvatar" referrerpolicy="no-referrer" src="assets/avatar.png" alt="Avatar" class="user-avatar-small" />
                                                 <div>
                                                     <strong id="adminThreadUserName">Supporter Name</strong>
                                                     <div id="adminThreadUserEmail" style="font-size: 0.8rem; color: #64748b;">supporter@example.com</div>
@@ -1532,11 +1536,11 @@
     </div>
 
     <!-- Firebase SDK & Client Integration -->
-    <script type="module" src="firebase-client.js?v=39"></script>
+    <script type="module" src="firebase-client.js?v=40"></script>
 
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="app.js?v=42"></script>
+    <script src="app.js?v=45"></script>
 </body>
 
 </html>

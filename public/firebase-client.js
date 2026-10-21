@@ -75,6 +75,27 @@ try {
   // Silent fallback to standard initialized config
 }
 
+// 3. Attach the signed-in user's Firebase ID token to same-origin /api/ requests,
+//    so the server verifies identity instead of trusting uid/email in request bodies
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async (input, init = {}) => {
+  const rawUrl = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+  const url = new URL(rawUrl, window.location.origin);
+  const user = auth ? auth.currentUser : null;
+  if (user && url.origin === window.location.origin && url.pathname.startsWith('/api/')) {
+    try {
+      const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${await user.getIdToken()}`);
+      }
+      init = { ...init, headers };
+    } catch (tokenErr) {
+      console.warn("⚠️ [Firebase Auth] Could not attach ID token:", tokenErr.message);
+    }
+  }
+  return nativeFetch(input, init);
+};
+
 export const SUPERADMIN_UIDS = ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'];
 export const SUPERADMIN_EMAILS = ['davidrobertson.info@gmail.com', 'support@aifoundation.net.au'];
 

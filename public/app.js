@@ -26,6 +26,33 @@ const postObserver = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.1 });
 
+    // Escape untrusted text before it is placed in innerHTML templates (XSS protection)
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Allow only http(s) and same-site relative URLs in href/src (blocks javascript: and data: URLs)
+    function safeUrl(url) {
+        if (!url) return '';
+        try {
+            const parsed = new URL(String(url), window.location.origin);
+            return (parsed.protocol === 'https:' || parsed.protocol === 'http:') ? escapeHtml(String(url)) : '';
+        } catch (e) {
+            return '';
+        }
+    }
+
+    // Safely pass an ID into an inline onclick="fn(...)" handler
+    function jsArg(value) {
+        return escapeHtml(JSON.stringify(String(value ?? '')));
+    }
+
     function truncateSummary(text) {
         if (!text) return '';
         const words = text.split(/\s+/);
@@ -916,18 +943,20 @@ const postObserver = new IntersectionObserver((entries) => {
             if (googleSignInBtn) googleSignInBtn.style.display = 'none';
             if (userMenuWrapper) userMenuWrapper.style.display = 'inline-flex';
             
-            const photo = user.photoURL || 'assets/avatar.png';
+            // Google profile photo (some accounts only expose it on providerData)
+            const photo = user.photoURL || (user.providerData || []).find(p => p && p.photoURL)?.photoURL || 'assets/avatar.png';
             const name = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
             const firstName = name.split(' ')[0];
 
-            if (userAvatarImg) {
-                userAvatarImg.src = photo;
-                userAvatarImg.alt = name;
-            }
-            if (menuUserAvatar) {
-                menuUserAvatar.src = photo;
-                menuUserAvatar.alt = name;
-            }
+            [userAvatarImg, menuUserAvatar].forEach(img => {
+                if (!img) return;
+                // Google's image server can refuse requests that send a Referer header
+                img.referrerPolicy = 'no-referrer';
+                // Fall back to the default avatar if the photo cannot load
+                img.onerror = () => { img.onerror = null; img.src = 'assets/avatar.png'; };
+                img.src = photo;
+                img.alt = name;
+            });
             if (userDisplayName) {
                 userDisplayName.textContent = firstName;
             }
@@ -1267,18 +1296,18 @@ const postObserver = new IntersectionObserver((entries) => {
                         <td style="white-space: nowrap;">${formatDbTime(rec.timestamp)}</td>
                         <td>
                             <span class="${pillClass}">
-                                <i class="${iconClass}"></i> ${rec.websiteLabel}
+                                <i class="${iconClass}"></i> ${escapeHtml(rec.websiteLabel)}
                             </span>
-                            <span style="display: block; font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">tag: ${rec.tag}</span>
+                            <span style="display: block; font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">tag: ${escapeHtml(rec.tag)}</span>
                         </td>
                         <td>
                             <span style="font-weight: 600; color: #475569; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="${colIcon}" style="font-size: 0.8rem; color: #0066ff;"></i> ${rec.collection}
+                                <i class="${colIcon}" style="font-size: 0.8rem; color: #0066ff;"></i> ${escapeHtml(rec.collection)}
                             </span>
-                            <span style="display: block; font-size: 0.72rem; color: #94a3b8; font-family: monospace;">${rec.id.substring(0, 16)}...</span>
+                            <span style="display: block; font-size: 0.72rem; color: #94a3b8; font-family: monospace;">${escapeHtml(String(rec.id || '').substring(0, 16))}...</span>
                         </td>
                         <td style="max-width: 380px;">
-                            <div style="font-size: 0.84rem; color: #1e293b; line-height: 1.4; word-break: break-word;">${rec.summary}</div>
+                            <div style="font-size: 0.84rem; color: #1e293b; line-height: 1.4; word-break: break-word;">${escapeHtml(rec.summary)}</div>
                         </td>
                         <td style="text-align: right; white-space: nowrap;">
                             <button type="button" class="db-json-btn" data-record-idx="${idx}">
@@ -1310,7 +1339,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     <td colspan="5" style="text-align: center; padding: 24px; color: #ef4444;">
                         <i class="fa-solid fa-triangle-exclamation fa-2x" style="margin-bottom: 8px;"></i>
                         <div style="font-weight: 600;">Failed to load database inputs</div>
-                        <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">${err.message}</div>
+                        <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">${escapeHtml(err.message)}</div>
                     </td>
                 </tr>
             `;
@@ -1489,7 +1518,7 @@ const postObserver = new IntersectionObserver((entries) => {
                         ${avatarIcon}
                         <div class="chat-bubble">
                             <div class="chat-bubble-sender">
-                                <span>${senderName}</span>
+                                <span>${escapeHtml(senderName)}</span>
                                 <span class="role-tag">${senderRole}</span>
                             </div>
                             <div class="chat-bubble-text">${renderMessageWithLinks(msg.userMessage)}</div>
@@ -1672,7 +1701,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 const tenantTag = c.tag || 'aifoundation';
 
                 return `
-                    <div class="${activeClass}" data-conv-id="${c.conversationId}" data-supporter-uid="${c.supporterUid}" data-supporter-name="${escapeHtmlChat(c.supporterName)}" data-supporter-email="${escapeHtmlChat(c.supporterEmail)}" data-tenant-tag="${escapeHtmlChat(tenantTag)}">
+                    <div class="${activeClass}" data-conv-id="${escapeHtml(c.conversationId)}" data-supporter-uid="${escapeHtml(c.supporterUid)}" data-supporter-name="${escapeHtmlChat(c.supporterName)}" data-supporter-email="${escapeHtmlChat(c.supporterEmail)}" data-tenant-tag="${escapeHtmlChat(tenantTag)}">
                         <div class="admin-thread-top">
                             <span class="admin-thread-name">${escapeHtmlChat(c.supporterName)}</span>
                             <span class="admin-thread-time">${timeStr}</span>
@@ -1764,8 +1793,8 @@ const postObserver = new IntersectionObserver((entries) => {
                         ${avatarIcon}
                         <div class="chat-bubble">
                             <div class="chat-bubble-sender">
-                                <span>${senderTitle}</span>
-                                <span class="role-tag">${msg.senderRole || (isAdminSender ? 'Admin' : 'Supporter')}</span>
+                                <span>${escapeHtml(senderTitle)}</span>
+                                <span class="role-tag">${escapeHtml(msg.senderRole || (isAdminSender ? 'Admin' : 'Supporter'))}</span>
                                 <span class="chat-tenant-tag-badge tag-${escapeHtmlChat(tag)}" title="Tenant Tag (SuperAdmin Only)">
                                     <i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tag)}
                                 </span>
@@ -2029,17 +2058,17 @@ const postObserver = new IntersectionObserver((entries) => {
         grid.innerHTML = allCommunityPosts.map(post => `
             <article class="post-card">
                 <div class="post-image-box">
-                    <img src="${post.imageUrl || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
+                    <img src="${safeUrl(post.imageUrl) || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
                     <span class="platform-badge platform-linkedin" style="background: var(--primary);">COMMUNITY</span>
                 </div>
                 <div class="post-content">
-                    <h3 class="post-title">${post.title}</h3>
-                    <p class="post-summary">${truncateSummary(post.summary)}</p>
+                    <h3 class="post-title">${escapeHtml(post.title)}</h3>
+                    <p class="post-summary">${escapeHtml(truncateSummary(post.summary))}</p>
                     <div class="post-actions">
                         ${generateShareButtonsHtml(post.title, post.link, post.summary)}
                         <div class="post-footer">
                             <span>${new Date(post.date).toLocaleDateString()}</span>
-                            ${post.link ? `<a href="${post.link}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
+                            ${post.link ? `<a href="${safeUrl(post.link)}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
                         </div>
                     </div>
                 </div>
@@ -2054,8 +2083,8 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!list) return;
         list.innerHTML = allCommunityPosts.map(p => `
             <div style="display:flex; justify-content:space-between; margin-bottom:8px; background:white; padding:8px; border-radius:6px; align-items:center;">
-                <span><strong>${p.title}</strong></span>
-                <button onclick="deleteCommunityPost('${p.id}')" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">Delete</button>
+                <span><strong>${escapeHtml(p.title)}</strong></span>
+                <button onclick="deleteCommunityPost(${jsArg(p.id)})" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">Delete</button>
             </div>
         `).join('');
     }
@@ -2086,17 +2115,17 @@ const postObserver = new IntersectionObserver((entries) => {
         grid.innerHTML = allTechPosts.map(post => `
             <article class="post-card">
                 <div class="post-image-box">
-                    <img src="${post.imageUrl || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
+                    <img src="${safeUrl(post.imageUrl) || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
                     <span class="platform-badge platform-linkedin" style="background: var(--primary);">TECH R&D</span>
                 </div>
                 <div class="post-content">
-                    <h3 class="post-title">${post.title}</h3>
-                    <p class="post-summary">${truncateSummary(post.summary)}</p>
+                    <h3 class="post-title">${escapeHtml(post.title)}</h3>
+                    <p class="post-summary">${escapeHtml(truncateSummary(post.summary))}</p>
                     <div class="post-actions">
                         ${generateShareButtonsHtml(post.title, post.link, post.summary)}
                         <div class="post-footer">
                             <span>${new Date(post.date).toLocaleDateString()}</span>
-                            ${post.link ? `<a href="${post.link}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
+                            ${post.link ? `<a href="${safeUrl(post.link)}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
                         </div>
                     </div>
                 </div>
@@ -2111,8 +2140,8 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!list) return;
         list.innerHTML = allTechPosts.map(p => `
             <div style="display:flex; justify-content:space-between; margin-bottom:8px; background:white; padding:8px; border-radius:6px; align-items:center;">
-                <span><strong>${p.title}</strong></span>
-                <button onclick="deleteTechPost('${p.id}')" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">Delete</button>
+                <span><strong>${escapeHtml(p.title)}</strong></span>
+                <button onclick="deleteTechPost(${jsArg(p.id)})" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">Delete</button>
             </div>
         `).join('');
     }
@@ -2183,17 +2212,17 @@ const postObserver = new IntersectionObserver((entries) => {
         grid.innerHTML = paginated.map(project => `
             <article class="post-card">
                 <div class="post-image-box">
-                    <img src="${project.imageUrl || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
-                    <span class="platform-badge platform-${project.platform || 'website'}">${(project.platform || 'PROJECT').toUpperCase()}</span>
+                    <img src="${safeUrl(project.imageUrl) || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
+                    <span class="platform-badge platform-${escapeHtml(project.platform || 'website')}">${escapeHtml((project.platform || 'PROJECT').toUpperCase())}</span>
                 </div>
                 <div class="post-content">
-                    <h3 class="post-title">${project.title}</h3>
-                    <p class="post-summary">${truncateSummary(project.summary)}</p>
+                    <h3 class="post-title">${escapeHtml(project.title)}</h3>
+                    <p class="post-summary">${escapeHtml(truncateSummary(project.summary))}</p>
                     <div class="post-actions">
                         ${generateShareButtonsHtml(project.title, project.link, project.summary)}
                         <div class="post-footer">
                             <span>${formatPostDate(project.date)}</span>
-                            <a href="${project.link}" target="_blank" rel="noopener noreferrer">View Project ↗</a>
+                            <a href="${safeUrl(project.link)}" target="_blank" rel="noopener noreferrer">View Project ↗</a>
                         </div>
                     </div>
                 </div>
@@ -2220,18 +2249,14 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!list) return;
         list.innerHTML = allProjects.map(p => `
             <div style="display:flex; justify-content:space-between; margin-bottom:8px; background:white; padding:8px; border-radius:6px; align-items:center;">
-                <span><strong>${p.title}</strong> (${p.platform || 'project'})</span>
-                <button onclick="deleteProject('${p.id}')" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">Delete</button>
+                <span><strong>${escapeHtml(p.title)}</strong> (${escapeHtml(p.platform || 'project')})</span>
+                <button onclick="deleteProject(${jsArg(p.id)})" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">Delete</button>
             </div>
         `).join('');
     }
 
     window.deleteProject = (id) => window.deleteAnyPost('projects', id);
 
-
-    document.querySelectorAll('.sample-chip').forEach(chip => {
-        chip.addEventListener('click', () => linkInput.value = chip.dataset.url);
-    });
 
     document.getElementById('finalImageUrl')?.addEventListener('input', (e) => {
         const url = e.target.value.trim();
@@ -2280,17 +2305,17 @@ const postObserver = new IntersectionObserver((entries) => {
         postsGrid.innerHTML = paginated.map(post => `
             <article class="post-card">
                 <div class="post-image-box">
-                    <img src="${post.imageUrl || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
-                    <span class="platform-badge platform-${post.platform}">${post.platform.toUpperCase()}</span>
+                    <img src="${safeUrl(post.imageUrl) || 'assets/logo.png'}" class="post-image" onerror="this.src='assets/logo.png'">
+                    <span class="platform-badge platform-${escapeHtml(post.platform)}">${escapeHtml(post.platform.toUpperCase())}</span>
                 </div>
                 <div class="post-content">
-                    <h3 class="post-title">${post.title}</h3>
+                    <h3 class="post-title">${escapeHtml(post.title)}</h3>
                     <p class="post-summary">${truncateSummary(post.summary)}</p>
                     <div class="post-actions">
                         ${generateShareButtonsHtml(post.title, post.link, post.summary)}
                         <div class="post-footer">
                             <span>${formatPostDate(post.date)}</span>
-                            <a href="${post.link}" target="_blank" rel="noopener noreferrer">View Post ↗</a>
+                            <a href="${safeUrl(post.link)}" target="_blank" rel="noopener noreferrer">View Post ↗</a>
                         </div>
                     </div>
                 </div>
@@ -2797,12 +2822,12 @@ const postObserver = new IntersectionObserver((entries) => {
                 <div style="display:flex; flex-direction:column; gap:4px; min-width:0; overflow:hidden;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span style="font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px; background:${item._bg}; color:${item._color};">${item._label.toUpperCase()}</span>
-                        <span style="font-size:0.8rem; color:#64748b; font-weight:500; text-transform:uppercase;">${item.platform || 'web'}</span>
+                        <span style="font-size:0.8rem; color:#64748b; font-weight:500; text-transform:uppercase;">${escapeHtml(item.platform || 'web')}</span>
                         <span style="font-size:0.8rem; color:#94a3b8;">• ${item.date ? new Date(item.date).toLocaleDateString() : 'Recent'}</span>
                     </div>
-                    <strong style="font-size:0.95rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${item.title}">${item.title}</strong>
+                    <strong style="font-size:0.95rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
                 </div>
-                <button onclick="deleteAnyPost('${item._category}', '${item.id}')" style="background:#ef4444; color:white; border:none; border-radius:6px; padding:6px 14px; cursor:pointer; font-weight:600; font-size:0.85rem; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">Delete</button>
+                <button onclick="deleteAnyPost(${jsArg(item._category)}, ${jsArg(item.id)})" style="background:#ef4444; color:white; border:none; border-radius:6px; padding:6px 14px; cursor:pointer; font-weight:600; font-size:0.85rem; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">Delete</button>
             </div>
         `).join('');
     }
@@ -2832,7 +2857,7 @@ const postObserver = new IntersectionObserver((entries) => {
         if (category === 'articles') renderPosts();
         if (category === 'projects') renderProjects();
         if (category === 'tech') renderTechPosts();
-        if (category === 'community') renderCommunity();
+        if (category === 'community') renderCommunityPosts();
 
         // 4. Delete from Cloud Firestore via Client SDK (if connected)
         if (window.firebaseService && window.firebaseService.isConnected) {
@@ -3409,7 +3434,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
         const successMsg = document.getElementById('paymentSuccessMsg');
         if (successMsg) {
-            successMsg.innerHTML = `Your contribution of <strong>${amountStr}</strong> via ${provider} was successful!<br>Your support powers open AI tools, educational equity, and community learning across Australia.`;
+            successMsg.innerHTML = `Your contribution of <strong>${escapeHtml(amountStr)}</strong> via ${escapeHtml(provider)} was successful!<br>Your support powers open AI tools, educational equity, and community learning across Australia.`;
         }
     }
 
@@ -3460,7 +3485,8 @@ const postObserver = new IntersectionObserver((entries) => {
     // Check for Return URLs (Success / Cancel)
     const urlParams = new URLSearchParams(window.location.search);
     const donationStatus = urlParams.get('donation');
-    const donatedAmt = urlParams.get('amt');
+    // Only accept a whole-number amount from the return URL
+    const donatedAmt = /^\d{1,7}$/.test(urlParams.get('amt') || '') ? urlParams.get('amt') : null;
 
     const sessionId = urlParams.get('session_id');
 
