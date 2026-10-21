@@ -1189,11 +1189,12 @@ p { margin: 0; }
     width: 100% !important;
   }
 
-  /* Completely hide sidebar list on mobile & tablet - Absolutely NO menu on the side */
+  /* Completely hide sidebar list on mobile & tablet - Absolutely NO menu on the side.
+     Scoped to #adminModal: the public "Special Sections" nav (#sidebarNav) is also a .sidebar-list */
   .admin-panel-sidebar,
   #adminSuperSidebar,
   #adminSupporterSidebar,
-  .sidebar-list,
+  #adminModal .sidebar-list,
   #adminSuperTabs,
   #adminSupporterTabs,
   .admin-sidebar-section-title {
@@ -4010,7 +4011,7 @@ p { margin: 0; }
   .admin-panel-sidebar,
   #adminSuperSidebar,
   #adminSupporterSidebar,
-  .sidebar-list,
+  #adminModal .sidebar-list,
   #adminSuperTabs,
   #adminSupporterTabs,
   .admin-sidebar-section-title {
@@ -4055,32 +4056,33 @@ p { margin: 0; }
   }
 }
 
-/* Explicit Device Class Overrides (Guarantees zero side menu on Android, iPad, iPhone) */
+/* Explicit Device Class Overrides (Guarantees zero Admin Panel side menu on Android, iPad, iPhone).
+   .sidebar-list stays scoped to #adminModal so the public "Special Sections" nav still shows */
 body.device-android .admin-panel-sidebar,
 body.device-android #adminSuperSidebar,
 body.device-android #adminSupporterSidebar,
-body.device-android .sidebar-list,
+body.device-android #adminModal .sidebar-list,
 body.device-android #adminSuperTabs,
 body.device-android #adminSupporterTabs,
 body.device-android .admin-sidebar-section-title,
 body.device-ipad .admin-panel-sidebar,
 body.device-ipad #adminSuperSidebar,
 body.device-ipad #adminSupporterSidebar,
-body.device-ipad .sidebar-list,
+body.device-ipad #adminModal .sidebar-list,
 body.device-ipad #adminSuperTabs,
 body.device-ipad #adminSupporterTabs,
 body.device-ipad .admin-sidebar-section-title,
 body.device-ios .admin-panel-sidebar,
 body.device-ios #adminSuperSidebar,
 body.device-ios #adminSupporterSidebar,
-body.device-ios .sidebar-list,
+body.device-ios #adminModal .sidebar-list,
 body.device-ios #adminSuperTabs,
 body.device-ios #adminSupporterTabs,
 body.device-ios .admin-sidebar-section-title,
 body.admin-touch-device .admin-panel-sidebar,
 body.admin-touch-device #adminSuperSidebar,
 body.admin-touch-device #adminSupporterSidebar,
-body.admin-touch-device .sidebar-list,
+body.admin-touch-device #adminModal .sidebar-list,
 body.admin-touch-device #adminSuperTabs,
 body.admin-touch-device #adminSupporterTabs,
 body.admin-touch-device .admin-sidebar-section-title,
