@@ -37,12 +37,15 @@ const postObserver = new IntersectionObserver((entries) => {
             .replace(/'/g, '&#039;');
     }
 
-    // Allow only http(s) and same-site relative URLs in href/src (blocks javascript: and data: URLs)
+    // Allow only http(s) and same-site relative URLs in href/src (blocks javascript: and data: URLs).
+    // Thumbnails scraped from og:image tags are stored with "&amp;" entities; decode them first so
+    // escaping doesn't double-encode them (LinkedIn's CDN rejects "&amp;amp;" URLs with a 403)
     function safeUrl(url) {
         if (!url) return '';
+        const decoded = String(url).replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
         try {
-            const parsed = new URL(String(url), window.location.origin);
-            return (parsed.protocol === 'https:' || parsed.protocol === 'http:') ? escapeHtml(String(url)) : '';
+            const parsed = new URL(decoded, window.location.origin);
+            return (parsed.protocol === 'https:' || parsed.protocol === 'http:') ? escapeHtml(decoded) : '';
         } catch (e) {
             return '';
         }
