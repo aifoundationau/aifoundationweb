@@ -386,6 +386,43 @@ Reliability check:
   - Confirmed no CSS rule hides .user-avatar-small at any screen width (32px round avatar).
   - Not yet checked: signing in with a real Google account in the browser.
 
+
+------------------------------------------------------------------------
+#10  2026-10-21  MEDIUM  "Special Sections" menu empty on Android, iPhone and iPad
+------------------------------------------------------------------------
+Area:      Responsive design
+
+Error:
+  On Android the "Special Sections" card showed only its title: no Articles, Projects,
+  Services or Contact links, on all three pages. The CSS that hides the Admin Panel's side
+  menu on phones and tablets also listed a bare .sidebar-list selector, and the public
+  Special Sections list (#sidebarNav) uses the same class. So it was hidden (display: none,
+  moved off-screen):
+    - by the (max-width: 1024px) and touch-tablet media queries, on any phone or small tablet;
+    - by body.device-android / .device-ios / .device-ipad / .admin-touch-device, which app.js
+      adds on page load, so on Android, iPhone and iPad it was hidden at every screen size.
+  Introduced 2026-10-14 (commit 52f95bf) when the Admin Panel mobile rules were extended.
+
+Repair (public/style.css):
+  - The six bare .sidebar-list selectors in those rules are now #adminModal .sidebar-list.
+    The Admin Panel's own lists (#adminSuperTabs, #adminSupporterTabs) were already hidden
+    by ID, so the Admin Panel is unchanged. Comments say why the scope matters.
+  - style.css version bumped to v=44 on all three pages.
+
+Reliability check (headless Chrome with device emulation, external services blocked):
+  - Android phone 412x915, all three pages: before 0 of 4 links visible (0x0 box);
+    after 4 of 4 visible.
+  - Android tablet landscape 1480x924 (wider than every breakpoint, so only the
+    body.device-android rule applies): same before/after result.
+  - Touch tap on Projects (index.html) opens the Projects section and sets #projects.
+  - Admin Panel on Android: side menu still hidden, top dropdown menu still shown.
+  - Desktop 1440x900: Special Sections and Admin Panel side menu unchanged.
+  - Not yet checked: a physical Android phone, iPhone and iPad.
+
+Recommendation:
+  Scope device and mobile override rules to the component they are for (#adminModal ...),
+  not to shared class names such as .sidebar-list or .sidebar-item.
+
 ========================================================================
 OPEN ITEMS (found, not yet fixed) - next in order of priority
 ========================================================================
