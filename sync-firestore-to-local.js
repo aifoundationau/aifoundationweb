@@ -35,6 +35,7 @@ async function syncFirestoreToLocal() {
             summary: f.summary?.stringValue || '',
             link: f.link?.stringValue || '',
             imageUrl: f.imageUrl?.stringValue || 'assets/logo.png',
+            imageBackupUrl: f.imageBackupUrl?.stringValue || '',
             platform: f.platform?.stringValue || 'website',
             author: f.author?.stringValue || 'AI Foundation Australia',
             date: f.date?.stringValue || f.date?.timestampValue || new Date().toISOString()

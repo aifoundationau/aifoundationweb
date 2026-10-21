@@ -80,7 +80,8 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `title` | String | UI Admin / API Route | Public | Required. Length: 1–250 chars. Trimmed. HTML special entities escaped (`&`, `<`, `>`, `"`, `'`). | Flat JSON array. |
 | `summary` | String | UI Admin / API Route | Public | Optional. Length: 0–3,000 chars. Trimmed. Display cards auto-truncate to first 30 words. | Flat JSON array. |
 | `link` | String (URI) | UI Admin / API Route | Public | Required. Valid URI matching `^https?://[^\s/$.?#].[^\s]*$`. Max length 2,048 chars. | Flat JSON array. |
-| `imageUrl` | String (URI) | UI Admin / ImgBB Upload | Public | Required. Must be valid URI. Non-post images strictly hosted on `i.ibb.co` CDN or default fallback `assets/logo.png`. | Flat JSON array. |
+| `imageUrl` | String (URI) | UI Admin / Metadata Scrape | Public | Required. Must be valid URI. The original post thumbnail (e.g. the article's `og:image`) and the only image displayed; never replaced by the ImgBB copy. An `i.ibb.co` URL only when the image was uploaded as a file, or default fallback `assets/logo.png`. | Flat JSON array. |
+| `imageBackupUrl` | String (URI) | ImgBB Upload | Public | Optional. ImgBB backup copy (`i.ibb.co`) of the original thumbnail, made for `projects`, `tech` and `community` items. Empty when no copy was made. Never displayed. | Flat JSON array. |
 | `platform` | String Enum | UI Admin / Auto-Detect | Public | Required. Enum: `['linkedin', 'instagram', 'facebook', 'twitter', 'google', 'google_business', 'youtube', 'website']`. | Flat JSON array. |
 | `author` | String | UI Admin / API Route | Public | Required. Length: 1–100 chars. Defaults to `'AI Foundation Australia'` or `'Admin'`. | Flat JSON array. |
 | `date` | String (Timestamp) | Server Generation | Public | Required. ISO 8601 UTC timestamp string. Auto-populated at creation. | Flat JSON array. |
@@ -115,7 +116,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `url` | String (URI) | UI Scrape Input / API | Internal System | Required. Must be valid HTTP/HTTPS URL. Max length 2,048 chars. Automatically maps `x.com` and `twitter.com` to `fxtwitter.com`. | **SSRF Protection Rule**: Connections to RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), Loopback (`127.0.0.0/8`), Link-Local (`169.254.0.0/16`), and Cloud Metadata services are strictly rejected. |
 | Return: `title` | String | Server Response | Public | Output length clamped to 300 chars. Decoded from HTML entities. | In-memory transient; returned to client. |
 | Return: `summary` | String | Server Response | Public | Output length clamped to 1,000 chars. Extracted from `og:description` or `meta[name=description]`. | In-memory transient. |
-| Return: `imageUrl` | String (URI) | Server Response | Public | Extracted from `og:image` or `twitter:image`. | In-memory transient. |
+| Return: `imageUrl` | String (URI) | Server Response | Public | Extracted from `og:image` or `twitter:image`. HTML entities for `&` decoded (`&amp;` → `&`). | In-memory transient. |
 | Return: `platform` | String Enum | Server Response | Public | Classified based on hostname analysis (`detectPlatform`). | In-memory transient. |
 
 ---

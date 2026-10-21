@@ -2520,7 +2520,8 @@ const postObserver = new IntersectionObserver((entries) => {
                 }
                 
                 let finalImgUrl = row.querySelector('.multiImageUrl')?.value || 'assets/logo.png';
-                // All images uploaded other than posts must be uploaded to ImgBB
+                let imageBackupUrl = '';
+                // Images other than posts also get an ImgBB backup copy; the original thumbnail stays the one shown
                 if (category !== 'articles' && finalImgUrl && finalImgUrl !== 'assets/logo.png' && !finalImgUrl.includes('i.ibb.co')) {
                     try {
                         const upRes = await fetch('/api/upload-imgbb', {
@@ -2534,8 +2535,13 @@ const postObserver = new IntersectionObserver((entries) => {
                         if (upRes.ok) {
                             const upData = await upRes.json();
                             if (upData.success && upData.url) {
-                                finalImgUrl = upData.url;
-                                if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                                if (finalImgUrl.startsWith('data:')) {
+                                    // An uploaded file has no original web address, so its ImgBB copy is shown
+                                    finalImgUrl = upData.url;
+                                    if (row.querySelector('.multiImageUrl')) row.querySelector('.multiImageUrl').value = finalImgUrl;
+                                } else {
+                                    imageBackupUrl = upData.url;
+                                }
                             }
                         }
                     } catch (upErr) {
@@ -2553,6 +2559,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     summary: row.querySelector('.multiPostSummary')?.value || '',
                     link: link || inputUrl,
                     imageUrl: finalImgUrl,
+                    imageBackupUrl,
                     platform: row.querySelector('.multiPostPlatform')?.value || 'website',
                     author: 'Admin',
                     category: category,

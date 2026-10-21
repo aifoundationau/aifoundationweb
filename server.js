@@ -279,6 +279,19 @@ async function uploadToImgBB(imageInput) {
     }
 }
 
+// Keep the original thumbnail as imageUrl (the one displayed) and record an ImgBB copy of it as imageBackupUrl.
+// Images already on ImgBB need no copy; an uploaded file (base64) has no original web address, so its ImgBB copy is shown
+async function withImgBBBackup(imageUrl, imageBackupUrl) {
+    if (!imageUrl || imageUrl === 'assets/logo.png' || imageUrl.includes('i.ibb.co')) {
+        return { imageUrl, imageBackupUrl: '' };
+    }
+    const backupUrl = imageBackupUrl || await uploadToImgBB(imageUrl);
+    if (!backupUrl || !backupUrl.includes('i.ibb.co')) {
+        return { imageUrl, imageBackupUrl: '' };
+    }
+    return imageUrl.startsWith('data:') ? { imageUrl: backupUrl, imageBackupUrl: '' } : { imageUrl, imageBackupUrl: backupUrl };
+}
+
 function detectPlatform(url) {
     const lower = url.toLowerCase();
     if (lower.includes('linkedin.com')) return 'linkedin';
@@ -357,11 +370,8 @@ app.get('/api/community', (req, res) => {
 });
 
 app.post('/api/community', requireAdmin, async (req, res) => {
-    const { title, summary, link, imageUrl, imageBase64, platform, id, firestoreSynced } = req.body;
-    let imgUrl = imageUrl || imageBase64 || '';
-    if (imgUrl) {
-        imgUrl = await uploadToImgBB(imgUrl);
-    }
+    const { title, summary, link, imageUrl, imageBase64, imageBackupUrl, platform, id, firestoreSynced } = req.body;
+    const images = await withImgBBBackup(imageUrl || imageBase64 || '', imageBackupUrl);
     const posts = getCommunityPosts();
     const newPost = {
         id: id || ('comm_' + Date.now()),
@@ -369,7 +379,8 @@ app.post('/api/community', requireAdmin, async (req, res) => {
         summary: summary || '',
         platform: platform || 'linkedin',
         link: link || '',
-        imageUrl: imgUrl,
+        imageUrl: images.imageUrl,
+        imageBackupUrl: images.imageBackupUrl,
         date: req.body.date || new Date().toISOString()
     };
     const idx = posts.findIndex(p => p.id === newPost.id || (p.link && p.link === newPost.link));
@@ -406,18 +417,15 @@ app.delete('/api/community/:id', requireAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
-// TECH API (Images uploaded to ImgBB)
+// TECH API (original thumbnails shown, ImgBB backup copies kept)
 app.get('/api/tech', (req, res) => {
     const posts = getTechPosts();
     res.json(posts.sort((a, b) => new Date(b.date) - new Date(a.date)));
 });
 
 app.post('/api/tech', requireAdmin, async (req, res) => {
-    const { title, summary, link, imageUrl, imageBase64, platform, id, firestoreSynced } = req.body;
-    let imgUrl = imageUrl || imageBase64 || '';
-    if (imgUrl) {
-        imgUrl = await uploadToImgBB(imgUrl);
-    }
+    const { title, summary, link, imageUrl, imageBase64, imageBackupUrl, platform, id, firestoreSynced } = req.body;
+    const images = await withImgBBBackup(imageUrl || imageBase64 || '', imageBackupUrl);
     const posts = getTechPosts();
     const newPost = {
         id: id || ('tech_' + Date.now()),
@@ -425,7 +433,8 @@ app.post('/api/tech', requireAdmin, async (req, res) => {
         summary: summary || '',
         platform: platform || 'linkedin',
         link: link || '',
-        imageUrl: imgUrl,
+        imageUrl: images.imageUrl,
+        imageBackupUrl: images.imageBackupUrl,
         date: req.body.date || new Date().toISOString()
     };
     const idx = posts.findIndex(p => p.id === newPost.id || (p.link && p.link === newPost.link));
@@ -462,28 +471,26 @@ app.delete('/api/tech/:id', requireAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
-// PROJECTS API (Images uploaded to ImgBB)
+// PROJECTS API (original thumbnails shown, ImgBB backup copies kept)
 app.get('/api/projects', (req, res) => {
     const projects = getProjects();
     res.json(projects.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
 });
 
 app.post('/api/projects', requireAdmin, async (req, res) => {
-    const { title, summary, link, imageUrl, imageBase64, platform, author, id, firestoreSynced } = req.body;
+    const { title, summary, link, imageUrl, imageBase64, imageBackupUrl, platform, author, id, firestoreSynced } = req.body;
     if (!title || !link) {
         return res.status(400).json({ error: 'Title and link are required' });
     }
-    let imgUrl = imageUrl || imageBase64 || 'assets/logo.png';
-    if (imgUrl && imgUrl !== 'assets/logo.png') {
-        imgUrl = await uploadToImgBB(imgUrl);
-    }
+    const images = await withImgBBBackup(imageUrl || imageBase64 || 'assets/logo.png', imageBackupUrl);
     const projects = getProjects();
     const newProject = {
         id: id || ('proj_' + Date.now()),
         title: title.trim(),
         summary: (summary || '').trim(),
         link: link.trim(),
-        imageUrl: imgUrl,
+        imageUrl: images.imageUrl,
+        imageBackupUrl: images.imageBackupUrl,
         platform: platform || detectPlatform(link),
         author: author || 'AI Foundation Australia',
         date: req.body.date || new Date().toISOString()
@@ -578,6 +585,8 @@ app.post('/api/extract-metadata', requireAdmin, async (req, res) => {
         // Remove HTML entities
         summary = summary.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
         title = title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+        // og:image URLs carry "&amp;" as well; LinkedIn's CDN returns 403 unless they are plain "&"
+        imageUrl = imageUrl.replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
         
         res.json({
             title: title || 'Update from link',
