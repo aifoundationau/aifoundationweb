@@ -17,8 +17,7 @@ service cloud.firestore {
         request.auth.uid in ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'] ||
         (request.auth.token.email_verified == true && request.auth.token.email in [
           'support@aifoundation.net.au',
-          'davidrobertson.info@gmail.com',
-          'david@aifoundation.com.au'
+          'davidrobertson.info@gmail.com'
         ])
       );
     }

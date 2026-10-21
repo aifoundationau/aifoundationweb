@@ -129,12 +129,12 @@ service cloud.firestore {
     match /chat_interactions/{msgId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null && (
-        request.auth.token.email in ['support@aifoundation.net.au', 'davidrobertson.info@gmail.com', 'david@aifoundation.com.au'] ||
+        request.auth.token.email in ['support@aifoundation.net.au', 'davidrobertson.info@gmail.com'] ||
         request.auth.uid == resource.data.senderUid ||
         request.auth.uid == resource.data.recipientUid
       );
       allow update, delete: if request.auth != null && (
-        request.auth.token.email in ['support@aifoundation.net.au', 'davidrobertson.info@gmail.com', 'david@aifoundation.com.au']
+        request.auth.token.email in ['support@aifoundation.net.au', 'davidrobertson.info@gmail.com']
       );
     }
 
@@ -161,7 +161,7 @@ contributors across your tenants, transition to this strict RBAC system.
 Role 1: 'super_admin'
   - Access: Full access to all collections across all tenants.
   - Can change user roles, delete databases, access financial ledgers.
-  - Example emails: support@aifoundation.net.au, david@aifoundation.com.au.
+  - Example emails: support@aifoundation.net.au, davidrobertson.info@gmail.com.
 
 Role 2: 'admin'
   - Access: Manage, publish, edit, and delete any content tagged with their business.
@@ -220,7 +220,7 @@ service cloud.firestore {
     function isSuperAdminEmail() {
       return isAuthenticated() && (
         request.auth.token.email == 'support@aifoundation.net.au' ||
-        request.auth.token.email == 'david@aifoundation.com.au'
+        request.auth.token.email == 'davidrobertson.info@gmail.com'
       );
     }
 

@@ -60,7 +60,8 @@ app.use((req, res, next) => {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     // Clickjacking: only this site and AI Foundation portals may frame these pages
     res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.aifoundation.net.au; object-src 'none'; base-uri 'self'");
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://js.stripe.com")');
+    // geolocation=(self): the location bar (site-locale.js) can ask for the visitor's position on this site only
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=(self "https://js.stripe.com")');
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

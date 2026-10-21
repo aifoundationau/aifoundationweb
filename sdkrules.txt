@@ -1,0 +1,369 @@
+================================================================================
+SDKRULES - FIREBASE SUPERADMIN & ROLE PERMISSIONS (APPLY TO EVERY PROJECT)
+Prompt for an AI coding agent. Paste this whole file into the agent while it is
+working inside the project's repository.
+Owner: AI Foundation Australia (support@aifoundation.net.au)
+Last verified: 2026-10-21
+================================================================================
+
+YOUR TASK
+--------------------------------------------------------------------------------
+Make this project follow the three rules below, using the Firebase Admin SDK on
+the server. Work through the steps in order. Inspect first and report what you
+find before you change anything. Adapt everything to this project's language,
+framework, file layout and coding style. The snippets at the end are reference
+patterns, not files to paste blindly.
+
+
+THE RULES
+--------------------------------------------------------------------------------
+RULE 1. There are exactly TWO SuperAdmins, on every project, permanently.
+
+    Email                            UID (Firebase project "ai-foundation-firebase")
+    support@aifoundation.net.au      L5euSJAfNKdDOX6mT0qmrCGjUA53
+    davidrobertson.info@gmail.com    ZK79FRQoVlYhsgvMibhi81dRUWj2
+
+  - A user is a SuperAdmin ONLY if their UID is in this list, OR their email is
+    in this list AND Firebase says email_verified == true. An unverified email
+    must never count.
+  - No screen, API, script, rule or database value may create a third
+    SuperAdmin or demote one of these two. "superadmin" is never an assignable
+    role.
+  - Remove every other hard-coded SuperAdmin email or UID you find, and list
+    what you removed in your report.
+  - UIDs are per Firebase project. If this project uses a Firebase project other
+    than "ai-foundation-firebase", look up the two UIDs in that project with the
+    Admin SDK (getUserByEmail) and use those instead. If an account does not
+    exist there yet, match on verified email only and say so in your report.
+
+RULE 2. Only a SuperAdmin can give other users permissions.
+  - Every other user gets a role for THIS app. Default set:
+        admin      - full admin panel and content control, but cannot change roles
+        editor     - can create and edit content, upload images; cannot delete
+                     content, see payments/transactions, or change roles
+        supporter  - default for every signed-in user; no admin access
+    If the project already has its own role names (for example an LMS with
+    "trainer" and "student"), keep them, but the same rule applies: only a
+    SuperAdmin can assign them.
+  - Admins, editors and everyone else can never change any role, including
+    their own.
+  - Role changes happen on the server through the Firebase Admin SDK, after
+    verifying the caller's Firebase ID token and confirming they are one of the
+    two SuperAdmins. Never trust a role, uid or email sent in a request body.
+
+RULE 3. Roles are stored per app, because several apps share one Firebase project.
+  - Store this app's role at:   users/{uid}.appRoles.<APP_TAG>
+    where APP_TAG is this app's tenant tag. Known tags:
+        aifoundation, itsasimplejob, pro-lms, rto-ai
+    Find the tag in the project (often TRANSACTION_TAG / BUSINESS_ID / "tag").
+    If the project has none, ask the user which tag to use.
+  - Example document:  users/abc123 -> { appRoles: { "aifoundation": "editor",
+                                                     "pro-lms": "trainer" } }
+    Being an admin on one app must never make someone an admin on another app.
+  - Do not use the shared top-level "role" field, admin email lists or custom
+    claims to grant this app's permissions (see Steps 8 and 9).
+
+
+STEP 1 - INSPECT AND REPORT (make no changes yet)
+--------------------------------------------------------------------------------
+Find and summarise for the user:
+  a. The Firebase project ID (client config, .env, .firebaserc, firebase.json).
+  b. The server language/framework, and whether firebase-admin is installed.
+  c. Every place that decides who is SuperAdmin/admin: search client, server,
+     firestore.rules and storage.rules for: superadmin, super_admin, isAdmin,
+     isSuperAdmin, role, admin_emails, hard-coded emails and UIDs.
+  d. How roles are stored today (custom claims, users.role, users.status,
+     system_settings/admin_emails, admins/admin_emails, other).
+  e. This app's tenant tag (Rule 3).
+  f. Whether firestore.rules is deployed from this repo, and whether other apps
+     share the same Firebase project (Step 7 warning).
+Then continue. Stop and ask the user only if something conflicts with the rules,
+for example code that relies on a third SuperAdmin, or roles stored somewhere
+you can't migrate safely.
+
+
+STEP 2 - FIREBASE ADMIN SDK SETUP (server only)
+--------------------------------------------------------------------------------
+  - Install the official Admin SDK for the server language:
+        Node.js:  npm install firebase-admin
+        Python:   pip install firebase-admin
+  - Credentials come from environment variables, never from source code:
+        FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
+    (FIREBASE_PRIVATE_KEY keeps its "\n" sequences; convert them to real
+    newlines when loading). GOOGLE_APPLICATION_CREDENTIALS pointing to a JSON
+    key file stored OUTSIDE the repo is also acceptable.
+  - If the variables are missing, stop and tell the user which ones to set and
+    where (.env locally, the hosting dashboard such as Vercel in production).
+    Never ask the user to paste a private key into the chat.
+  - Never commit, print or log the key. Make sure .gitignore contains:
+        .env
+        *serviceAccount*.json
+        *-firebase-adminsdk-*.json
+  - Initialise the Admin SDK once, lazily, in a server-only module. It must
+    never be imported into browser code.
+  - Check it works: call getUserByEmail() for the two SuperAdmins and print only
+    uid and emailVerified. Print no other user data.
+
+
+STEP 3 - ONE SOURCE OF TRUTH FOR THE TWO SUPERADMINS
+--------------------------------------------------------------------------------
+  - Create one constants module (e.g. config/superadmins.js) that exports
+    SUPERADMIN_UIDS, SUPERADMIN_EMAILS and an isSuperAdmin(decodedToken) helper
+    implementing Rule 1. All server code imports it. Delete duplicate lists.
+  - The browser may keep a copy ONLY to show or hide UI. It is never trusted.
+  - firestore.rules and storage.rules cannot import files, so they repeat the
+    same values with the comment "MUST MATCH config/superadmins.js". Add a test
+    that fails if the rules files and the constants module ever differ.
+
+
+STEP 4 - SERVER AUTHORISATION
+--------------------------------------------------------------------------------
+  - Every protected API request verifies the Firebase ID token with the Admin
+    SDK (getAuth().verifyIdToken(token)). Role-management endpoints use
+    verifyIdToken(token, true) so revoked sessions are rejected.
+  - Resolve the caller's role on the server:
+        1. Rule 1 match                   -> "superadmin"
+        2. users/{uid}.appRoles.<APP_TAG> -> that role, if it is a valid role
+                                             for this app
+        3. otherwise                      -> "supporter"
+    A short in-memory cache (30 seconds or less) is fine. Clear it for a user
+    whenever their role changes.
+  - Provide guards such as requireSuperAdmin, requireAdmin, requireEditor (or
+    the project's equivalents) and apply them to every protected route:
+        role management               -> SuperAdmin only
+        delete content, payments, PII -> admin or SuperAdmin
+        create/edit content, uploads  -> editor, admin or SuperAdmin
+  - Profile sync on sign-in may write name, photo, phone, etc. It must never
+    write appRoles, role, status, isSuperAdmin or any other permission field
+    from client input, and must not reset an assigned role.
+
+
+STEP 5 - SUPERADMIN ROLE-MANAGEMENT API
+--------------------------------------------------------------------------------
+  GET  /api/admin/users          (SuperAdmin only)
+    - List registered Firebase Auth accounts with the Admin SDK listUsers(),
+      following pageToken until done. Join each account with
+      users/{uid}.appRoles.<APP_TAG>.
+    - Return per user: uid, email, displayName, emailVerified, disabled,
+      createdAt, lastSignInAt, role, and isSuperAdmin (those rows are locked).
+
+  POST /api/admin/users/role     (SuperAdmin only)   body: { uid | email, role }
+    - role must be one of this app's assignable roles. Reject "superadmin".
+    - Find the account with getUser(uid) or getUserByEmail(email). If it is not
+      registered, return 404: "No Firebase account uses that email. Ask them to
+      sign in to the site once, then try again."
+    - Refuse to change either of the two SuperAdmins.
+    - Write ONLY this app's key, leaving other apps' roles untouched:
+        users/{uid} <- { appRoles: { <APP_TAG>: role },
+                         roleUpdatedAt: <ISO time>, roleUpdatedBy: <SuperAdmin email> }
+      (Admin SDK: set(..., { merge: true }) deep-merges maps, so other keys in
+      appRoles survive. This also works for tags with hyphens, like "pro-lms".)
+    - Clear the role cache for that uid. Return the saved role.
+    - Never write audit records to a publicly readable collection.
+
+
+STEP 6 - SUPERADMIN "USER ROLES" SCREEN
+--------------------------------------------------------------------------------
+  - Add a "User Roles" page or tab, shown only to the two SuperAdmins:
+      * a table of registered accounts (name, email, last sign-in, current role)
+        with a role dropdown and Save button per row
+      * an "Assign role by email" form
+      * SuperAdmin rows are shown but locked
+  - Match the project's existing admin UI. Escape all user-supplied text before
+    inserting it into HTML.
+  - Show or hide other admin screens by role (editors see content screens
+    only). The server still enforces everything, as described in Step 4.
+
+
+STEP 7 - FIRESTORE SECURITY RULES
+--------------------------------------------------------------------------------
+  WARNING: one Firebase project has ONE Firestore ruleset. If several apps share
+  the Firebase project, deploying this repo's firestore.rules REPLACES the rules
+  for every app. Before any deploy:
+    1. Copy the currently published rules (Firebase Console > Firestore
+       Database > Rules).
+    2. Merge this app's changes into them, keeping the other apps' rules intact.
+    3. Show the user the diff.
+    4. Deploy only after the user says yes
+       (firebase deploy --only firestore:rules, or paste into the console).
+
+  Required behaviour (adapt to the project's collections; replace
+  "aifoundation" with this app's APP_TAG):
+
+    function isSignedIn() { return request.auth != null; }
+
+    // MUST MATCH config/superadmins.js - exactly two SuperAdmins on every project
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        request.auth.uid in ['L5euSJAfNKdDOX6mT0qmrCGjUA53', 'ZK79FRQoVlYhsgvMibhi81dRUWj2'] ||
+        (request.auth.token.email_verified == true &&
+         request.auth.token.email in ['support@aifoundation.net.au', 'davidrobertson.info@gmail.com'])
+      );
+    }
+
+    // This app's role, assigned only by a SuperAdmin
+    function hasAppRole(roles) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.get('appRoles', {}).get('aifoundation', 'supporter') in roles;
+    }
+    function isAdmin()  { return isSuperAdmin() || hasAppRole(['admin']); }
+    function isEditor() { return isAdmin() || hasAppRole(['editor']); }
+
+    // Fields that grant permissions; owners can never set or change them
+    function permissionFields() {
+      return ['appRoles', 'role', 'status', 'classification', 'isSuperAdmin', 'isAdmin', 'roles'];
+    }
+
+    match /users/{userId} {
+      allow read: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      // On create, allow permission fields only at their default values
+      // (e.g. role == 'supporter') if the existing client writes them
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+                       !request.resource.data.keys().hasAny(['appRoles', 'isSuperAdmin', 'isAdmin']);
+      allow update: if (isSignedIn() && request.auth.uid == userId &&
+                        !request.resource.data.diff(resource.data).affectedKeys().hasAny(permissionFields()))
+                    || (isSuperAdmin() &&
+                        !request.resource.data.get('appRoles', {}).values().hasAny(['superadmin']));
+      allow delete: if isSuperAdmin();
+    }
+
+    Content:   read as the app needs; create/update: isEditor(); delete: isAdmin()
+    Payments, transactions, PII, admin settings: isAdmin() or stricter; client
+    writes denied where the server writes them.
+
+  Never leave a catch-all rule that lets any signed-in user write the users
+  collection or permission fields.
+
+
+STEP 8 - CUSTOM CLAIMS (once per Firebase project, not once per app)
+--------------------------------------------------------------------------------
+  - In "ai-foundation-firebase", both SuperAdmins already have these claims:
+        { "role": "superadmin", "isSuperAdmin": true, "roles": ["superadmin"],
+          "dept": "..." }
+  - Custom claims are shared by every app on the Firebase project, and
+    setCustomUserClaims() REPLACES all claims. Always read the existing claims
+    and merge. Never drop keys you didn't add (such as "dept").
+  - Claims are a label only. Authorisation always uses the Rule 1 list. Do not
+    store per-app roles in claims: claims are shared across apps, limited to
+    1000 bytes, and only take effect when the user's token refreshes.
+  - Create scripts/check-superadmin-claims (in the server language):
+      * Default run is read-only: confirm both SuperAdmins carry the superadmin
+        markers, and list any OTHER account that has role == "superadmin",
+        isSuperAdmin == true, or "superadmin" in roles. Print uid and email
+        only.
+      * With --fix, and only after the user confirms: add missing markers to
+        the two SuperAdmins (merged), and remove the superadmin markers from
+        any other account while keeping its other claims.
+
+
+STEP 9 - MIGRATE EXISTING ROLES
+--------------------------------------------------------------------------------
+  - Dry run first: list the users whose current data (legacy users.role,
+    users.status, system_settings/admin_emails, admins/admin_emails, other)
+    gives them admin or editor access in THIS app today. Show the list to the
+    user.
+  - After the user confirms, write appRoles.<APP_TAG> for each one (Step 5
+    format), then stop granting this app's access from the legacy sources.
+  - Leave legacy field values in place, because other apps may still read them.
+    Just stop using them for this app's permissions, and stop overwriting
+    users.role on sign-in.
+  - Never write production data without the user's confirmation.
+
+
+STEP 10 - TESTS
+--------------------------------------------------------------------------------
+  Firestore rules (Rules API "projects/<id>:test", the emulator, or the Rules
+  Playground). Nothing gets deployed for tests. Cover at least:
+    ALLOW  SuperAdmin matched by UID
+    ALLOW  SuperAdmin matched by verified email
+    DENY   SuperAdmin email with email_verified == false
+    DENY   user writes appRoles/role/isSuperAdmin on their own profile
+    DENY   admin or editor changes anyone's role
+    DENY   SuperAdmin sets any appRoles value to "superadmin"
+    ALLOW  SuperAdmin sets appRoles.<APP_TAG> = "editor" on another user
+    ALLOW  editor creates/updates content; DENY editor deletes content
+    DENY   editor reads transactions/payments
+    DENY   admin role on another app's tag gives access in this app
+  Server checks:
+    401 without a token; 403 for non-SuperAdmins on /api/admin/users*;
+    400 for role "superadmin"; 400 when targeting a SuperAdmin;
+    404 for an unregistered email; profile sync cannot change a role.
+  Run what you can and include the real output in your report. If a test
+  cannot run, for example because a permission or credential is missing, say so.
+
+
+STEP 11 - REPORT TO THE USER
+--------------------------------------------------------------------------------
+  - Files changed and why.
+  - Every SuperAdmin entry removed (Rule 1).
+  - Environment variables that must be set, and where.
+  - Commands the user still has to run, with the reason for each (rules
+    deploy, claims script --fix, role migration).
+  - Test results with output; anything skipped or not done.
+
+
+SAFETY RULES FOR THE AGENT
+--------------------------------------------------------------------------------
+  - Never ask for, print, log, commit or paste a private key or service
+    account file.
+  - Read or print personal data only when a step needs it (uid, email).
+  - Ask the user before: deploying rules, changing custom claims, writing or
+    migrating production data, deleting anything.
+
+
+REFERENCE SNIPPETS (Node.js - adapt to the project)
+--------------------------------------------------------------------------------
+// config/superadmins.js  (MUST MATCH firestore.rules / storage.rules)
+const SUPERADMIN_UIDS = ['L5euSJAfNKdDOX6mT0qmrCGjUA53', 'ZK79FRQoVlYhsgvMibhi81dRUWj2'];
+const SUPERADMIN_EMAILS = ['support@aifoundation.net.au', 'davidrobertson.info@gmail.com'];
+
+function isSuperAdmin(token) {
+    if (!token) return false;
+    if (SUPERADMIN_UIDS.includes(token.uid || token.sub)) return true;
+    const email = String(token.email || '').toLowerCase().trim();
+    return token.email_verified === true && SUPERADMIN_EMAILS.includes(email);
+}
+module.exports = { SUPERADMIN_UIDS, SUPERADMIN_EMAILS, isSuperAdmin };
+
+// firebase-admin.js  (server only, initialised once)
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore } = require('firebase-admin/firestore');
+
+function adminApp() {
+    if (getApps().length) return getApps()[0];
+    return initializeApp({
+        credential: cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
+        })
+    });
+}
+const adminAuth = () => getAuth(adminApp());
+const adminDb = () => getFirestore(adminApp());
+module.exports = { adminAuth, adminDb };
+
+// Assign this app's role (SuperAdmin-only endpoint, after the checks in Step 5)
+await adminDb().collection('users').doc(uid).set({
+    appRoles: { [APP_TAG]: role },
+    roleUpdatedAt: new Date().toISOString(),
+    roleUpdatedBy: req.user.email
+}, { merge: true });
+
+// Merge SuperAdmin markers into existing custom claims (check script, --fix only)
+const user = await adminAuth().getUserByEmail(email);
+const claims = user.customClaims || {};
+const roles = Array.isArray(claims.roles) ? claims.roles : [];
+await adminAuth().setCustomUserClaims(user.uid, {
+    ...claims,
+    role: 'superadmin',
+    isSuperAdmin: true,
+    roles: Array.from(new Set([...roles, 'superadmin']))
+});
+
+================================================================================
+END OF SDKRULES
+================================================================================

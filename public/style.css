@@ -4151,6 +4151,1176 @@ body.admin-touch-device .footer-portal-btn,
   display: none !important;
 }
 
+/* ==========================================================================
+   Location, Weather & Display Settings (site-locale.js)
+   A thin bar fixed to the bottom of every page, and the centred panel it opens.
+   The panel never scrolls: compact and two-column layouts keep it inside the screen.
+   ========================================================================== */
+:root {
+  --locale-bar-height: 26px;
+  --locale-accent: #0066ff;
+  --locale-accent-dark: #004ecc;
+  --locale-text: #0f172a;
+  --locale-muted: #64748b;
+  --locale-border: #e2e8f0;
+  --locale-surface: #f8fafc;
+  /* Hourly chart series: slots 2 (orange) and 1 (blue) of the validated chart palette, checked on white */
+  --locale-series-temp: #eb6834;
+  --locale-series-rain: #2a78d6;
+}
+
+body.has-locale-bar {
+  padding-bottom: calc(var(--locale-bar-height) + env(safe-area-inset-bottom, 0px));
+}
+
+.locale-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: calc(var(--locale-bar-height) + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  padding: 0 12px env(safe-area-inset-bottom, 0px);
+  border: 0;
+  border-top: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #475569;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.locale-bar:hover {
+  background: #ffffff;
+  color: var(--locale-accent-dark);
+}
+
+.locale-bar:focus-visible {
+  outline: 2px solid var(--locale-accent);
+  outline-offset: -3px;
+}
+
+.locale-bar [hidden] {
+  display: none !important;
+}
+
+.locale-bar > * {
+  flex-shrink: 0;
+}
+
+.locale-bar i {
+  color: var(--locale-accent);
+  font-size: 0.7rem;
+}
+
+.locale-bar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.locale-bar .locale-bar-place-wrap {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.locale-bar-place {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locale-bar-muted {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.locale-bar-sep {
+  color: #cbd5e1;
+}
+
+.locale-bar .locale-bar-caret {
+  margin-left: 2px;
+  color: #94a3b8;
+  font-size: 0.55rem;
+}
+
+@media (max-width: 640px) {
+  .locale-bar .locale-bar-date,
+  .locale-bar .locale-bar-approx {
+    display: none !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .locale-bar {
+    gap: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .locale-bar .locale-bar-tz,
+  .locale-bar .locale-bar-caret {
+    display: none !important;
+  }
+}
+
+@media print {
+  .locale-bar,
+  .locale-overlay {
+    display: none !important;
+  }
+
+  body.has-locale-bar {
+    padding-bottom: 0;
+  }
+}
+
+/* Centred panel */
+html.locale-panel-open,
+html.locale-panel-open body {
+  overflow: hidden;
+}
+
+.locale-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: localeFadeIn 0.18s ease-out;
+}
+
+.locale-overlay[hidden],
+.locale-panel [hidden] {
+  display: none !important;
+}
+
+.locale-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 16px 18px 12px;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(226, 232, 240, 0.9);
+  color: var(--locale-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  animation: localePanelIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.locale-panel button,
+.locale-panel input,
+.locale-panel select {
+  font-family: inherit;
+}
+
+.locale-panel :focus-visible {
+  outline: 2px solid var(--locale-accent);
+  outline-offset: 2px;
+}
+
+@keyframes localeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes localePanelIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locale-overlay,
+  .locale-panel {
+    animation: none;
+  }
+}
+
+.locale-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "head close" "tabs tabs";
+  align-items: center;
+  gap: 12px 10px;
+}
+
+.locale-head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.locale-head-icon {
+  flex: 0 0 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(0, 102, 255, 0.1);
+  color: var(--locale-accent);
+}
+
+.locale-head-text {
+  min-width: 0;
+}
+
+.locale-head-text h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locale-head-text p {
+  margin: 2px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: var(--locale-muted);
+}
+
+.locale-close {
+  grid-area: close;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.locale-close:hover {
+  background: var(--locale-border);
+  color: var(--locale-text);
+}
+
+.locale-tabs {
+  grid-area: tabs;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+
+.locale-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.locale-tabs button:hover {
+  color: var(--locale-text);
+}
+
+.locale-tabs button[aria-selected="true"] {
+  background: #ffffff;
+  color: var(--locale-accent-dark);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.locale-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* Now: clock and weather */
+.locale-clock {
+  text-align: center;
+}
+
+.locale-clock-time {
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.locale-clock-date {
+  margin-top: 2px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.locale-clock-zone {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  color: var(--locale-muted);
+}
+
+.locale-weather {
+  padding: 12px;
+  border: 1px solid var(--locale-border);
+  border-radius: 14px;
+  background: var(--locale-surface);
+}
+
+.locale-weather-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.locale-weather-main > i {
+  flex: 0 0 2.2rem;
+  font-size: 1.9rem;
+  text-align: center;
+  color: var(--locale-accent);
+}
+
+.locale-weather-temp {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.locale-weather-temp strong {
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.locale-weather-temp span {
+  font-size: 0.8rem;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locale-weather-range {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.locale-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.locale-stats div {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #eef2f7;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.locale-stats dt {
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--locale-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locale-stats dd {
+  margin: 1px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locale-weather-updated {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.locale-weather-links {
+  display: inline-flex;
+  gap: 12px;
+}
+
+.locale-weather-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  font-size: 0.84rem;
+  color: #475569;
+}
+
+.locale-weather-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.locale-weather-notice {
+  margin: 0;
+  text-align: center;
+  font-size: 0.84rem;
+  color: #475569;
+}
+
+/* Buttons and links */
+.locale-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--locale-text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.locale-btn:hover {
+  background: var(--locale-surface);
+  border-color: #94a3b8;
+}
+
+.locale-btn-primary {
+  background: var(--locale-accent);
+  border-color: var(--locale-accent);
+  color: #ffffff;
+}
+
+.locale-btn-primary:hover {
+  background: var(--locale-accent-dark);
+  border-color: var(--locale-accent-dark);
+}
+
+.locale-btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.locale-btn-block {
+  width: 100%;
+}
+
+.locale-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--locale-accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.locale-link:hover {
+  text-decoration: underline;
+}
+
+/* Location: device location, or suburb + state */
+.locale-loc-device,
+.locale-loc-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.locale-loc-device {
+  gap: 6px;
+}
+
+.locale-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--locale-muted);
+}
+
+.locale-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.locale-divider::before,
+.locale-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--locale-border);
+}
+
+.locale-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.locale-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.locale-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+}
+
+.locale-field > span,
+.locale-segment legend {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.locale-field-grow {
+  flex: 1;
+}
+
+.locale-field-state {
+  flex: 0 0 118px;
+}
+
+.locale-field input,
+.locale-field select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--locale-text);
+  font-size: 0.86rem;
+}
+
+.locale-field input:focus,
+.locale-field select:focus {
+  outline: none;
+  border-color: var(--locale-accent);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.15);
+}
+
+.locale-matches {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.locale-match {
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--locale-border);
+  border-radius: 10px;
+  background: var(--locale-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.locale-match:hover {
+  border-color: var(--locale-accent);
+  background: #eff6ff;
+}
+
+.locale-match strong,
+.locale-match span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locale-match strong {
+  font-size: 0.82rem;
+  color: var(--locale-text);
+}
+
+.locale-match span {
+  font-size: 0.7rem;
+  color: var(--locale-muted);
+}
+
+.locale-status {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+/* An empty status stays in the accessibility tree (so updates are announced) but takes no space */
+.locale-status:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.locale-status[data-tone="error"] {
+  color: #b91c1c;
+}
+
+.locale-status[data-tone="ok"] {
+  color: #047857;
+}
+
+.locale-forget {
+  align-self: center;
+  color: var(--locale-muted);
+}
+
+.locale-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* While choosing between same-named suburbs, the other location options step aside */
+.locale-pane-location.is-choosing .locale-loc-device,
+.locale-pane-location.is-choosing .locale-divider,
+.locale-pane-location.is-choosing .locale-forget {
+  display: none;
+}
+
+/* Settings: date format, time format, temperature, time zone */
+.locale-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin: 0;
+}
+
+.locale-setting-date,
+.locale-setting-zone,
+.locale-preview {
+  grid-column: 1 / -1;
+}
+
+.locale-segment {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.locale-segment legend {
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.locale-segment-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+
+.locale-segment-options label {
+  position: relative;
+}
+
+.locale-segment-options input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.locale-segment-options span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.locale-segment-options input:checked + span {
+  background: #ffffff;
+  color: var(--locale-accent-dark);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.locale-segment-options input:focus-visible + span {
+  outline: 2px solid var(--locale-accent);
+  outline-offset: 1px;
+}
+
+.locale-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.8rem;
+}
+
+.locale-preview .locale-reset {
+  margin-left: auto;
+  color: var(--locale-muted);
+}
+
+/* Hourly: temperature line above chance-of-rain columns, on one shared time axis */
+.locale-hourly-summary {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.locale-hourly {
+  position: relative;
+  margin: 0;
+}
+
+.locale-hourly-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 6px;
+  font-size: 0.7rem;
+  color: var(--locale-muted);
+}
+
+.locale-hourly-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.locale-key {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.locale-key-line {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.locale-key-bar {
+  width: 6px;
+  height: 10px;
+  border-radius: 3px 3px 0 0;
+}
+
+.locale-key-temp {
+  background: var(--locale-series-temp);
+}
+
+.locale-key-rain {
+  background: var(--locale-series-rain);
+}
+
+.locale-hourly-chart {
+  --hourly-icons-h: 18px;
+  --hourly-temp-h: 78px;
+  --hourly-gap-h: 8px;
+  --hourly-rain-h: 34px;
+  position: relative;
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.locale-hourly-chart:focus {
+  outline: none;
+}
+
+.locale-hourly-chart:focus-visible {
+  outline: 2px solid var(--locale-accent);
+  outline-offset: 4px;
+}
+
+.locale-hourly-icons {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--hourly-icons-h);
+  pointer-events: none;
+}
+
+.locale-hourly-icons i {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.78rem;
+  color: var(--locale-muted);
+}
+
+.locale-hourly-svg {
+  display: block;
+  overflow: visible;
+}
+
+.locale-hourly-svg .locale-grid {
+  stroke: var(--locale-border);
+  stroke-width: 1;
+}
+
+.locale-hourly-svg .locale-baseline {
+  stroke: #cbd5e1;
+  stroke-width: 1;
+}
+
+.locale-hourly-svg .locale-tick {
+  fill: var(--locale-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.locale-hourly-svg .locale-direct-label {
+  fill: var(--locale-text);
+  font-size: 10.5px;
+  font-weight: 600;
+  /* A surface-coloured halo keeps the label legible where it meets the line */
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.locale-temp-line {
+  fill: none;
+  stroke: var(--locale-series-temp);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.locale-temp-area {
+  fill: var(--locale-series-temp);
+  opacity: 0.1;
+}
+
+.locale-temp-dot {
+  fill: var(--locale-series-temp);
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.locale-rain-bar {
+  fill: var(--locale-series-rain);
+}
+
+.locale-crosshair {
+  stroke: #94a3b8;
+  stroke-width: 1;
+}
+
+.locale-hourly-tip {
+  position: absolute;
+  z-index: 1;
+  padding: 7px 9px;
+  border: 1px solid var(--locale-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #475569;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.locale-tip-time {
+  margin-bottom: 3px;
+  font-weight: 600;
+  color: var(--locale-text);
+}
+
+.locale-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.locale-tip-row strong {
+  min-width: 34px;
+  font-size: 0.78rem;
+  color: var(--locale-text);
+}
+
+.locale-tip-condition {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.locale-tip-condition i {
+  width: 12px;
+  text-align: center;
+  color: var(--locale-muted);
+}
+
+.locale-foot {
+  margin: 0;
+  text-align: center;
+  font-size: 0.66rem;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+.locale-foot a {
+  color: inherit;
+}
+
+/* Phones: 16px text stops iOS zooming into the form when it's focused */
+@media (max-width: 640px) {
+  .locale-field input,
+  .locale-field select {
+    font-size: 16px;
+  }
+}
+
+/* Narrow screens: the four tabs stack their icon above a smaller label */
+@media (max-width: 480px) {
+  .locale-tabs button {
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 2px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Shorter screens: tighten spacing so the panel still fits without scrolling */
+@media (max-height: 640px) {
+  .locale-panel {
+    gap: 10px;
+    padding: 12px 14px 10px;
+  }
+
+  .locale-top {
+    row-gap: 10px;
+  }
+
+  .locale-pane,
+  .locale-loc-manual {
+    gap: 10px;
+  }
+
+  .locale-clock-time {
+    font-size: 1.75rem;
+  }
+
+  .locale-weather {
+    padding: 10px;
+  }
+
+  .locale-stats {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .locale-stats div {
+    padding: 4px 7px;
+  }
+
+  .locale-hint {
+    display: none;
+  }
+
+  .locale-hourly-chart {
+    --hourly-temp-h: 64px;
+    --hourly-rain-h: 28px;
+  }
+}
+
+@media (max-height: 520px) {
+  .locale-clock-zone,
+  .locale-weather-updated {
+    display: none;
+  }
+}
+
+/* Short, wide screens (phones on their side): header and tabs share a row, panes use columns */
+@media (max-height: 500px) and (min-width: 600px) {
+  .locale-panel {
+    width: min(720px, 100%);
+  }
+
+  .locale-top {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 340px) auto;
+    grid-template-areas: "head tabs close";
+  }
+
+  .locale-tabs button {
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 2px;
+    font-size: 0.7rem;
+  }
+
+  .locale-hourly-chart {
+    --hourly-icons-h: 16px;
+    --hourly-temp-h: 64px;
+    --hourly-gap-h: 6px;
+    --hourly-rain-h: 24px;
+  }
+
+  /* No room for the sentence here; the chart labels the high and low, and screen readers still get it */
+  .locale-hourly-summary {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .locale-pane-now {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: center;
+  }
+
+  .locale-pane-location {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .locale-loc-device,
+  .locale-loc-manual {
+    flex: 1;
+  }
+
+  .locale-divider {
+    display: none;
+  }
+
+  .locale-pane-location.is-choosing .locale-matches {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .locale-settings {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .locale-setting-date,
+  .locale-setting-zone,
+  .locale-preview {
+    grid-column: span 2;
+  }
+
+  .locale-foot {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Narrow phones: weather details become a two-column list so values are never cut off */
+@media (max-width: 400px) {
+  .locale-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px 14px;
+  }
+
+  .locale-stats div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .locale-stats dt {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .locale-stats dd {
+    margin: 0;
+    font-size: 0.78rem;
+  }
+}
+
 
 
 

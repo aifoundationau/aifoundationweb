@@ -1230,7 +1230,9 @@ const postObserver = new IntersectionObserver((entries) => {
             else if (diff < 86400) rel = `${Math.floor(diff / 3600)}h ago`;
             else rel = `${Math.floor(diff / 86400)}d ago`;
 
-            const dateStr = d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            const dateStr = window.SitePrefs
+                ? window.SitePrefs.formatDateTime(d)
+                : d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
             return `<span style="font-weight: 600; color: #0f172a;">${dateStr}</span> <span style="font-size: 0.74rem; color: #94a3b8; display: block;">${rel}</span>`;
         } catch (e) {
             return String(iso);
@@ -1407,18 +1409,15 @@ const postObserver = new IntersectionObserver((entries) => {
         if (!ts) return '';
         const d = new Date(ts);
         if (isNaN(d.getTime())) return '';
+        if (window.SitePrefs) return window.SitePrefs.formatTime(d) + ' • ' + window.SitePrefs.formatDate(d);
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
 
     function formatRetentionUntilDate(isoDate) {
-        if (!isoDate) {
-            const d = new Date();
-            d.setFullYear(d.getFullYear() + 7);
-            return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
-        }
-        const d = new Date(isoDate);
+        const d = isoDate ? new Date(isoDate) : new Date();
+        if (!isoDate) d.setFullYear(d.getFullYear() + 7);
         if (isNaN(d.getTime())) return '7 Years';
-        return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
+        return window.SitePrefs ? window.SitePrefs.formatDate(d) : d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
     // Open Supporter Chat Modal behind Login
@@ -1911,11 +1910,21 @@ const postObserver = new IntersectionObserver((entries) => {
 
     function formatPostDate(d) {
         if (!d) return 'Recent';
-        if (typeof d.toDate === 'function') return d.toDate().toLocaleDateString();
-        if (d.seconds) return new Date(d.seconds * 1000).toLocaleDateString();
-        const parsed = new Date(d);
-        return isNaN(parsed.getTime()) ? 'Recent' : parsed.toLocaleDateString();
+        const parsed = typeof d.toDate === 'function' ? d.toDate() : new Date(d.seconds ? d.seconds * 1000 : d);
+        if (isNaN(parsed.getTime())) return 'Recent';
+        // Visitor's chosen date format and time zone from the location bar (site-locale.js)
+        return window.SitePrefs ? window.SitePrefs.formatDate(parsed) : parsed.toLocaleDateString();
     }
+
+    // Re-render dates when the visitor changes their date format or time zone in the location bar
+    window.addEventListener('sitepreferenceschange', () => {
+        if (allPosts.length) renderPosts();
+        if (allProjects.length) renderProjects();
+        if (allTechPosts.length) renderTechPosts();
+        if (allCommunityPosts.length) renderCommunityPosts();
+        const managePosts = document.getElementById('admin-manage-posts');
+        if (managePosts && managePosts.style.display === 'block') renderAdminAllPosts();
+    });
 
     const DELETED_IDS_KEY = 'aifoundation_deleted_items';
     const DELETED_KEYS_KEY = 'aifoundation_deleted_keys';
@@ -2070,7 +2079,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     <div class="post-actions">
                         ${generateShareButtonsHtml(post.title, post.link, post.summary)}
                         <div class="post-footer">
-                            <span>${new Date(post.date).toLocaleDateString()}</span>
+                            <span>${formatPostDate(post.date)}</span>
                             ${post.link ? `<a href="${safeUrl(post.link)}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
                         </div>
                     </div>
@@ -2127,7 +2136,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     <div class="post-actions">
                         ${generateShareButtonsHtml(post.title, post.link, post.summary)}
                         <div class="post-footer">
-                            <span>${new Date(post.date).toLocaleDateString()}</span>
+                            <span>${formatPostDate(post.date)}</span>
                             ${post.link ? `<a href="${safeUrl(post.link)}" target="_blank" rel="noopener noreferrer">View Post ↗</a>` : ''}
                         </div>
                     </div>
@@ -2833,7 +2842,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <span style="font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:4px; background:${item._bg}; color:${item._color};">${item._label.toUpperCase()}</span>
                         <span style="font-size:0.8rem; color:#64748b; font-weight:500; text-transform:uppercase;">${escapeHtml(item.platform || 'web')}</span>
-                        <span style="font-size:0.8rem; color:#94a3b8;">• ${item.date ? new Date(item.date).toLocaleDateString() : 'Recent'}</span>
+                        <span style="font-size:0.8rem; color:#94a3b8;">• ${formatPostDate(item.date)}</span>
                     </div>
                     <strong style="font-size:0.95rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
                 </div>

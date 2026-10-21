@@ -404,5 +404,5 @@ OPEN ITEMS (found, not yet fixed) - next in order of priority
   H. /api/extract-metadata fetches any URL server-side (SSRF). Now admin-only (#1), but it
      should block private/internal addresses.
   I. Hard-coded SuperAdmin UIDs/emails are duplicated in firestore.rules, firebase-service.js
-     and firebase-client.js, and the lists differ (david@aifoundation.com.au is only in the rules).
+     and firebase-client.js.
      Move them to one place (Firebase custom claims recommended).

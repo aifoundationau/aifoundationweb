@@ -230,7 +230,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `updatedAt` | String (Timestamp) | Server Generation | Audit | Required. ISO 8601 UTC timestamp string. | Firestore timestamp/string. |
 
 #### Domain 9 Multi-Tenant Invariants
-- **Invariant 9.1 (SuperAdmin Multi-Tenant Aggregation)**: SuperAdmin accounts (`support@aifoundation.net.au`, `davidrobertson.info@gmail.com`, `david@aifoundation.com.au`) must be able to read and review all messages sent to SuperAdmin from all tenants in the shared Firebase database (`ai-foundation-firebase`).
+- **Invariant 9.1 (SuperAdmin Multi-Tenant Aggregation)**: SuperAdmin accounts (`support@aifoundation.net.au`, `davidrobertson.info@gmail.com`) must be able to read and review all messages sent to SuperAdmin from all tenants in the shared Firebase database (`ai-foundation-firebase`).
 - **Invariant 9.2 (Tenant Tag Confidentiality)**: Each message must have a tenant tag attached identifying its source application. This tag is confidential and readable **strictly by SuperAdmin**. APIs serving standard supporters must omit the tag and prevent cross-tenant message discovery.
 - **Invariant 9.3 (Supporter Conversation Isolation)**: Regular supporters may only read and write messages within their own individual conversation thread (`conv_${uid}`).
 
