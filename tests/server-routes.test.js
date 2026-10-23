@@ -66,7 +66,7 @@ test('GET /api/services/prices lists every service and is never cached', async (
     assert.equal(body.country, '');
     assert.deepEqual(Object.keys(body.prices), PRICE_GROUPS.map(s => s.id));
     assert.deepEqual(Object.keys(body.prices['ai-agent-hosting']), ['setup', 'monthly']);
-    assert.deepEqual(Object.keys(body.prices.tokens), ['per10']);
+    assert.deepEqual(Object.keys(body.prices.tokens), ['perToken']);
     assert.ok(!('updatedBy' in body), 'the admin email is never public');
 });
 

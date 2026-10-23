@@ -252,7 +252,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `tag`, `businessId`, `businessName`, `source` | String | Server Injection | Partition Key | Constants from Invariant Rule 1. | Firestore root fields. |
-| `prices` | Map | Admin Panel / `PUT /api/services/prices` | Public | `{ [serviceId]: { [part]: { usd, aud } } }`. Service IDs: `30-day-roadmap`, `regulatory-roadmap`, `stack-selection`, `ai-agent-hosting`, plus `tokens` (Domain 11). Part: `price`, or `setup` and `monthly` for `ai-agent-hosting`, or `per10` (price per 10 tokens) for `tokens`. Each amount is `null` (blank) or a number from 0.01 to 1,000,000 with at most 2 decimal places. | Firestore map. |
+| `prices` | Map | Admin Panel / `PUT /api/services/prices` | Public | `{ [serviceId]: { [part]: { usd, aud } } }`. Service IDs: `30-day-roadmap`, `regulatory-roadmap`, `stack-selection`, `ai-agent-hosting`, plus `tokens` (Domain 11). Part: `price`, or `setup` and `monthly` for `ai-agent-hosting`, or `perToken` (price of one token) for `tokens`. Each amount is `null` (blank) or a number from 0.01 to 1,000,000 with at most 2 decimal places. | Firestore map. |
 | `updatedAt` | String (Timestamp) | Server Generation | Audit | ISO 8601 UTC timestamp of the last save. | Firestore timestamp. |
 | `updatedBy` | String (Email) | Verified ID token | PII | Email of the admin who saved. Never returned by the public API or written to the local copy. | Firestore root field. |
 | Return: `country` | String | `x-vercel-ip-country` request header | Public | ISO 3166-1 alpha-2 code, or `''` when unknown. Not stored; the response is sent with `Cache-Control: private, no-store`. | In-memory transient. |
@@ -302,8 +302,8 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `pendingCheckouts` | Array (String) | Server | Operational | Stripe Checkout Session IDs (`cs_*`) started but not yet credited. Removed when credited, expired, or unpaid after 7 days. | `aifoundation_token_checkouts/{uid}`. |
 
 #### Purchase Rules
-- The token box starts at 10. Each + adds 10 and each - takes 10 off, with no upper limit; buyers can also type any whole number of 10 or more. (One request is capped at 1,000,000,000 tokens to catch typing mistakes.)
-- The price is the admin's price per 10 tokens (Domain 10, `tokens.per10`), chosen by the Domain 10 display rule (AUD in Australia when set, otherwise USD). The total is rounded to the cent and must be from 0.50 to 999,999.99, Stripe's limits for one card payment.
+- Tokens are bought 10 at a time. The token box starts at 10; each + adds 10 and each - takes 10 off, with no upper limit. Buyers can also type any multiple of 10 (other amounts are rounded up to the next 10). One request is capped at 1,000,000,000 tokens to catch typing mistakes.
+- The price is the admin's price per token (Domain 10, `tokens.perToken`), chosen by the Domain 10 display rule (AUD in Australia when set, otherwise USD). The total is tokens × price per token, rounded to the cent. It must be from 0.50 to 999,999.99, Stripe's limits for one card payment.
 - The server works out every amount; the browser only sends the number of tokens.
 - Tokens are credited only after Stripe reports the checkout as `paid`, in one atomic commit that creates the `purchase_<sessionId>` ledger entry (which must not exist yet) and increments `token_balance`.
 - No token checkout is started while balances can't be reached or the buyer has no profile, so a payment is never taken that can't be credited.

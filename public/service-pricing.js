@@ -25,12 +25,12 @@
         }
     ];
 
-    // Token pricing: one price per 10 tokens, saved with the service prices and edited in the same form
+    // Token pricing: the price of one token, saved with the service prices and edited in the same form
     const TOKENS = {
         id: 'tokens',
         name: 'Tokens',
-        note: 'Price per 10 tokens. In Buy Tokens, buyers start at 10 tokens and add 10 at a time, or type any amount.',
-        parts: [{ key: 'per10', label: 'Price per 10 tokens' }]
+        note: 'Price per token. In Buy Tokens, people buy 10 at a time (10, 20, 30 and so on), with no upper limit.',
+        parts: [{ key: 'perToken', label: 'Price per token' }]
     };
 
     // Every card in Services & Pricing, in the order shown
@@ -44,8 +44,9 @@
     const MAX_AMOUNT = 1000000;
 
     // Token boxes (Buy Tokens and the SuperAdmin's Token Accounts) start at 10 and the + and - buttons change them by 10.
-    // There is no upper limit; max only guards against typing mistakes (a billion tokens in one go)
-    const TOKEN_LIMITS = { min: 10, max: 1000000000, step: 10, pricedPer: 10 };
+    // Tokens are bought 10 at a time (step) and priced per token (pricedPer). There is no upper limit; max only guards
+    // against typing mistakes (a billion tokens in one go)
+    const TOKEN_LIMITS = { min: 10, max: 1000000000, step: 10, pricedPer: 1 };
 
     // Stripe's smallest and largest card payment, in USD and in AUD
     const MIN_CARD_PAYMENT = 0.5;
@@ -135,9 +136,10 @@
         return Number.isFinite(parseAmount(aud)) ? aud : null;
     }
 
-    // A number of tokens as a whole number, or NaN when it isn't one from min (TOKEN_LIMITS.min unless given) to TOKEN_LIMITS.max.
+    // A number of tokens as a whole number, or NaN when it isn't one from min (TOKEN_LIMITS.min unless given) to
+    // TOKEN_LIMITS.max, or isn't a multiple of multipleOf (purchases pass TOKEN_LIMITS.step: tokens are bought 10 at a time).
     // Accepts numbers and text such as "300" or "1,500"
-    function parseTokenQuantity(value, { min = TOKEN_LIMITS.min } = {}) {
+    function parseTokenQuantity(value, { min = TOKEN_LIMITS.min, multipleOf = 1 } = {}) {
         let quantity;
         if (typeof value === 'number') {
             quantity = value;
@@ -146,14 +148,15 @@
         } else {
             return NaN;
         }
-        return Number.isInteger(quantity) && quantity >= min && quantity <= TOKEN_LIMITS.max ? quantity : NaN;
+        const valid = Number.isInteger(quantity) && quantity >= min && quantity <= TOKEN_LIMITS.max && quantity % multipleOf === 0;
+        return valid ? quantity : NaN;
     }
 
-    // What a number of tokens costs at a price per 10 tokens ({ currency, amount }), rounded to the cent
-    function tokenTotal(pricePer10, quantity) {
-        if (!pricePer10 || !Number.isFinite(pricePer10.amount) || !Number.isInteger(quantity)) return null;
-        const cents = Math.round(Math.round(pricePer10.amount * 100) * quantity / TOKEN_LIMITS.pricedPer);
-        return { currency: pricePer10.currency, amount: cents / 100 };
+    // What a number of tokens costs at the price per token ({ currency, amount }), rounded to the cent
+    function tokenTotal(pricePerToken, quantity) {
+        if (!pricePerToken || !Number.isFinite(pricePerToken.amount) || !Number.isInteger(quantity)) return null;
+        const cents = Math.round(Math.round(pricePerToken.amount * 100) * quantity / TOKEN_LIMITS.pricedPer);
+        return { currency: pricePerToken.currency, amount: cents / 100 };
     }
 
     const api = {

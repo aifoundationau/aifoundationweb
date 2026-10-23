@@ -13,7 +13,7 @@ const BLANK_PRICES = {
     'regulatory-roadmap': { price: { usd: null, aud: null } },
     'stack-selection': { price: { usd: null, aud: null } },
     'ai-agent-hosting': { setup: { usd: null, aud: null }, monthly: { usd: null, aud: null } },
-    tokens: { per10: { usd: null, aud: null } }
+    tokens: { perToken: { usd: null, aud: null } }
 };
 
 test('the four services, with a setup and a monthly price for AI Agent Hosting', () => {
@@ -21,10 +21,10 @@ test('the four services, with a setup and a monthly price for AI Agent Hosting',
     assert.deepEqual(pricing.SERVICES.map(s => s.parts.map(p => p.key)), [['price'], ['price'], ['price'], ['setup', 'monthly']]);
 });
 
-test('Services & Pricing has a card per service, then token pricing (one price per 10 tokens)', () => {
+test('Services & Pricing has a card per service, then token pricing (a price per token, bought 10 at a time)', () => {
     assert.deepEqual(pricing.PRICE_GROUPS.map(s => s.id), [...pricing.SERVICES.map(s => s.id), 'tokens']);
-    assert.deepEqual(pricing.TOKENS.parts.map(p => p.key), ['per10']);
-    assert.deepEqual(pricing.TOKEN_LIMITS, { min: 10, max: 1000000000, step: 10, pricedPer: 10 });
+    assert.deepEqual(pricing.TOKENS.parts.map(p => p.key), ['perToken']);
+    assert.deepEqual(pricing.TOKEN_LIMITS, { min: 10, max: 1000000000, step: 10, pricedPer: 1 });
     assert.equal(pricing.MIN_CARD_PAYMENT, 0.5);
     assert.equal(pricing.MAX_CARD_PAYMENT, 999999.99);
 });
@@ -64,14 +64,14 @@ test('cleanPrices: every service and part is filled in; unknown keys are dropped
         'regulatory-roadmap': { price: { usd: null, aud: null } },
         'stack-selection': { price: { usd: 900, aud: null } },
         'ai-agent-hosting': { setup: { usd: 2000, aud: null }, monthly: { usd: 300, aud: 450.5 } },
-        tokens: { per10: { usd: null, aud: null } }
+        tokens: { perToken: { usd: null, aud: null } }
     });
 });
 
 test('cleanPrices: token prices are checked like service prices', () => {
-    const { prices, errors } = pricing.cleanPrices({ tokens: { per10: { usd: '1.00', aud: '0' } } });
-    assert.deepEqual(prices.tokens, { per10: { usd: 1, aud: null } });
-    assert.deepEqual(errors.map(e => [e.serviceId, e.part, e.currency]), [['tokens', 'per10', 'aud']]);
+    const { prices, errors } = pricing.cleanPrices({ tokens: { perToken: { usd: '1.00', aud: '0' } } });
+    assert.deepEqual(prices.tokens, { perToken: { usd: 1, aud: null } });
+    assert.deepEqual(errors.map(e => [e.serviceId, e.part, e.currency]), [['tokens', 'perToken', 'aud']]);
     assert.match(errors[0].message, /^Tokens: the AUD price/);
 });
 
@@ -147,13 +147,19 @@ test('parseTokenQuantity: a lower minimum can be given (spending and grants allo
     assert.ok(Number.isNaN(pricing.parseTokenQuantity('0', { min: 1 })));
 });
 
-test('tokenTotal: price per 10 tokens times the amount, rounded to the cent', () => {
-    const aud = { currency: 'AUD', amount: 1.43 };
-    assert.deepEqual(pricing.tokenTotal(aud, 10), { currency: 'AUD', amount: 1.43 });
-    assert.deepEqual(pricing.tokenTotal(aud, 30), { currency: 'AUD', amount: 4.29 });
-    assert.deepEqual(pricing.tokenTotal(aud, 15), { currency: 'AUD', amount: 2.15 });
-    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 1 }, 5000), { currency: 'USD', amount: 500 });
-    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 0.1 }, 30), { currency: 'USD', amount: 0.3 });
+test('parseTokenQuantity: purchases must be a multiple of 10 (tokens are bought 10 at a time)', () => {
+    const tens = { multipleOf: pricing.TOKEN_LIMITS.step };
+    for (const value of ['10', 20, '1,000', 5000]) assert.equal(pricing.parseTokenQuantity(value, tens), Number(String(value).replace(/,/g, '')));
+    for (const value of ['15', 25, '1,005', 9]) assert.ok(Number.isNaN(pricing.parseTokenQuantity(value, tens)), String(value));
+});
+
+test('tokenTotal: price per token times the number of tokens, rounded to the cent', () => {
+    const aud = { currency: 'AUD', amount: 0.14 };
+    assert.deepEqual(pricing.tokenTotal(aud, 10), { currency: 'AUD', amount: 1.4 });
+    assert.deepEqual(pricing.tokenTotal(aud, 30), { currency: 'AUD', amount: 4.2 });
+    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 0.1 }, 10), { currency: 'USD', amount: 1 });
+    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 0.01 }, 5000), { currency: 'USD', amount: 50 });
+    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 1.99 }, 1000000), { currency: 'USD', amount: 1990000 });
     assert.equal(pricing.tokenTotal(null, 100), null);
     assert.equal(pricing.tokenTotal(aud, NaN), null);
 });

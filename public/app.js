@@ -2275,10 +2275,12 @@ const postObserver = new IntersectionObserver((entries) => {
 
     // ==========================================
     // TOKEN BOXES (Buy Tokens and Token Accounts)
-    // The - / amount / + controls. The amount starts at 10 and each press adds or takes 10 (TOKEN_LIMITS in
-    // service-pricing.js), with no upper limit; any whole number can be typed too. onChange runs after every change
+    // The - / amount / + controls. The amount starts at 10 and each press moves it to the next or previous 10
+    // (TOKEN_LIMITS in service-pricing.js), with no upper limit. Any whole number can be typed; with wholeSteps
+    // (Buy Tokens: tokens are bought 10 at a time) it's rounded up to a multiple of 10 on leaving the box.
+    // onChange runs after every change
     // ==========================================
-    function setupTokenStepper({ input, less, more, onChange }) {
+    function setupTokenStepper({ input, less, more, onChange, wholeSteps = false }) {
         const limits = () => window.ServicePricing.TOKEN_LIMITS;
         const typed = () => parseInt(String(input.value).replace(/\D/g, ''), 10);
 
@@ -2293,7 +2295,9 @@ const postObserver = new IntersectionObserver((entries) => {
             const { min, max, step: by } = limits();
             const value = typed();
             const current = Number.isFinite(value) ? value : 0;
-            input.value = String(Math.min(max, Math.max(min, current + direction * by)));
+            // 15 goes up to 20 and down to 10, so the amount lands on a multiple of 10
+            const next = direction > 0 ? Math.floor(current / by) * by + by : Math.ceil(current / by) * by - by;
+            input.value = String(Math.min(max, Math.max(min, next)));
             refresh();
         }
 
@@ -2304,9 +2308,10 @@ const postObserver = new IntersectionObserver((entries) => {
         });
         // Leaving the box keeps the amount within the limits
         input.addEventListener('blur', () => {
-            const { min, max } = limits();
+            const { min, max, step: by } = limits();
             const value = typed();
-            input.value = String(Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min);
+            const rounded = wholeSteps && Number.isFinite(value) ? Math.ceil(value / by) * by : value;
+            input.value = String(Number.isFinite(rounded) ? Math.min(max, Math.max(min, rounded)) : min);
             refresh();
         });
         less.addEventListener('click', () => step(-1));
@@ -2318,8 +2323,8 @@ const postObserver = new IntersectionObserver((entries) => {
     // ==========================================
     // BUY TOKENS (SuperAdmin and supporter panels)
     // GET /api/tokens gives the balance (users/{uid}.token_balance, shared by all the owner's apps) and this visitor's
-    // price per 10 tokens (set in Services & Pricing). Paying goes through Stripe Checkout; when Stripe sends the buyer
-    // back, the payment is confirmed and credited
+    // price per token (set in Services & Pricing); tokens are bought 10 at a time. Paying goes through Stripe Checkout;
+    // when Stripe sends the buyer back, the payment is confirmed and credited
     // ==========================================
     const buyTokensBalance = document.getElementById('buyTokensBalance');
     const buyTokensAmount = document.getElementById('buyTokensAmount');
@@ -2341,12 +2346,11 @@ const postObserver = new IntersectionObserver((entries) => {
     // Total and Pay button for the amount in the box
     function renderBuyTokensTotal() {
         const pricing = window.ServicePricing;
-        const { min, pricedPer } = pricing.TOKEN_LIMITS;
-        const quantity = pricing.parseTokenQuantity(buyTokensAmount.value);
+        const quantity = pricing.parseTokenQuantity(buyTokensAmount.value, { multipleOf: pricing.TOKEN_LIMITS.step });
         const price = buyTokensData && buyTokensData.price;
         buyTokensPayBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pay with Card';
         if (Number.isNaN(quantity)) {
-            buyTokensTotal.textContent = `Enter a whole number of tokens, at least ${min}.`;
+            buyTokensTotal.textContent = 'Tokens are bought 10 at a time: enter 10, 20, 30 and so on.';
             buyTokensPayBtn.disabled = true;
             return;
         }
@@ -2362,7 +2366,7 @@ const postObserver = new IntersectionObserver((entries) => {
         else if (total.amount > maxPayment) problem = `One card payment can be at most ${total.currency} $999,999.99, so please choose fewer tokens.`;
         buyTokensTotal.innerHTML = `
             <strong>${escapeHtml(pricing.formatPrice(total))}</strong> for ${quantity.toLocaleString('en-AU')} tokens
-            <span class="buy-tokens-rate">${escapeHtml(pricing.formatPrice(price))} per ${pricedPer} tokens</span>
+            <span class="buy-tokens-rate">${escapeHtml(pricing.formatPrice(price))} per token</span>
             ${problem ? `<span class="buy-tokens-rate">${escapeHtml(problem)}</span>` : ''}`;
         buyTokensPayBtn.innerHTML = `<i class="fa-solid fa-credit-card"></i> Pay ${escapeHtml(pricing.formatPrice(total))}`;
         buyTokensPayBtn.disabled = buyTokensBusy || Boolean(problem) || !buyTokensData.canPay ||
@@ -2433,11 +2437,12 @@ const postObserver = new IntersectionObserver((entries) => {
             input: buyTokensAmount,
             less: document.getElementById('buyTokensLess'),
             more: document.getElementById('buyTokensMore'),
-            onChange: renderBuyTokensTotal
+            onChange: renderBuyTokensTotal,
+            wholeSteps: true
         });
 
         buyTokensPayBtn.addEventListener('click', async () => {
-            const quantity = window.ServicePricing.parseTokenQuantity(buyTokensAmount.value);
+            const quantity = window.ServicePricing.parseTokenQuantity(buyTokensAmount.value, { multipleOf: window.ServicePricing.TOKEN_LIMITS.step });
             if (Number.isNaN(quantity) || buyTokensBusy) return;
             buyTokensBusy = true;
             buyTokensPayBtn.disabled = true;
