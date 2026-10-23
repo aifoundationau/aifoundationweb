@@ -1,0 +1,599 @@
+================================================================================
+TOKEN SETUP GUIDE
+Add the shared AI Foundation token system to a new web app, from A to B
+Written 23 October 2026 from the working system on www.aifoundation.net.au
+================================================================================
+
+HOW TO USE THIS GUIDE
+1. Create the new app's folder and open it in Antigravity.
+2. Paste the prompt in PART 1 into Antigravity, then paste this whole file under it.
+3. Steps marked [AGENT] are for Antigravity. Steps marked [YOU] are done by you in a
+   website or dashboard; Antigravity must stop and tell you when one is due.
+4. All the code is in ready-made, tested files (PART 3). Antigravity copies them; it
+   does not rewrite them.
+
+CONTENTS
+  PART 1  Prompt to paste into Antigravity
+  PART 2  How the token system works
+  PART 3  The code files (with links)
+  PART 4  Step-by-step instructions (A to B)
+  PART 5  Spending tokens in your app (code examples)
+  PART 6  Rules Antigravity must never break
+  PART 7  Troubleshooting
+  PART 8  All links
+
+
+================================================================================
+PART 1: PROMPT TO PASTE INTO ANTIGRAVITY
+================================================================================
+
+------------------------------ copy from here ------------------------------
+You are adding the shared token system to this web app. Follow the TOKEN SETUP
+GUIDE pasted below exactly.
+
+- My app's tag is: ________  (lower case letters, numbers, - or _ ; e.g. myapp)
+- My app's name is: ________ (e.g. My App)
+- This is a NEW app / an EXISTING app (delete one).
+
+1. Copy the code files listed in PART 3 from
+   E:\Antigravity Projects\ai-foundation\token-kit\
+   (or from the GitHub links in PART 3) into this project at the paths given.
+   Do not rewrite or "improve" them. Only make the changes Step 8 describes.
+2. Do every [AGENT] step in PART 4, in order. When you reach a [YOU] step, stop,
+   tell me exactly what to do (with the link), and wait until I say it is done.
+3. Obey every rule in PART 6 at all times. Tokens are money.
+4. When you finish, run `npm test` and `npm run check:startup` and show me the
+   real output. Do not say it works unless both pass.
+5. Do not commit or push unless I ask.
+------------------------------- copy to here -------------------------------
+
+
+================================================================================
+PART 2: HOW THE TOKEN SYSTEM WORKS (read before changing anything)
+================================================================================
+
+All the owner's apps share ONE Firebase project (ai-foundation-firebase) and
+ONE token balance per person. Tokens bought in any app can be spent in any app.
+
+BALANCE   users/{uid}.token_balance  (a whole number) on the person's shared
+          profile. The LMS already uses this field. Only servers change it.
+
+LEDGER    token_ledger/{entryId}: one entry for every change to a balance,
+          written in the SAME atomic Firestore commit as the change. The entry
+          ID is the change's own key, so the same change can never happen twice:
+            purchase_<Stripe checkout session ID>
+            grant_<request ID made once per SuperAdmin click>
+            spend_<app tag>_<the app's own purchase ID>
+
+PRICE     One price for every app, set by the owner in the AI Foundation admin
+          panel: Services & Pricing -> Tokens -> "Price per token".
+          Stored in system_settings/aifoundation_service_prices, field
+          prices.tokens.perToken = { usd, aud }.
+          - USD $1 per token when the USD box is blank.
+          - Visitors in Australia pay the AUD price when one is set (typing a USD
+            price fills the AUD box at today's rate, to the cent, e.g. 1.43).
+            Everyone else pays USD.
+          - Token prices keep their cents. (Other prices on the site are whole
+            dollars.)
+
+BUYING    Tokens are bought 10 at a time: the box starts at 10, + adds 10, - takes
+          10 off, no upper limit (one request is capped at 1,000,000,000 to catch
+          typing mistakes). Typed amounts must be multiples of 10 (15 rounds up to
+          20). Payment is Stripe Checkout. The SERVER works out the price; the
+          browser only says how many tokens. Card total must be 0.50 to
+          999,999.99 (Stripe's limits).
+          Tokens are added only after Stripe says the checkout is "paid": when
+          Stripe sends the buyer back (POST /api/tokens/confirm), or, if they
+          closed the tab, the next time they open Buy Tokens (unpaid checkouts are
+          listed in token_checkouts/{appTag}_{uid} and rechecked).
+
+SPENDING  POST /api/tokens/spend, or the token store's spendTokens() in your own
+          server code. It never takes more than the balance (it reads the balance
+          and only saves the lower amount if nothing changed it in between), and
+          sending the same app + reference again never takes tokens twice.
+
+TOP-UPS   SuperAdmins (only the two below) see "Token Accounts": every account in
+          every app with its balance, and an add-tokens box (starts at 10, + adds
+          10, no upper limit). Each top-up is a ledger entry.
+
+PROFILE   Tokens live on the shared profile, so the app creates it on first
+          sign-in (POST /api/profile/sync, called automatically by
+          firebase-client.js). Existing profiles keep their balance and role.
+
+RULES     firestore.rules is ONE file for the whole Firebase project (all apps).
+          It lives in the AI Foundation project:
+          E:\Antigravity Projects\ai-foundation\firestore.rules
+          Never create or deploy a firestore.rules from the new app: deploying
+          replaces the rules for every app.
+
+FIXED VALUES (identical in every app; never change them)
+  Firebase project ID ..... ai-foundation-firebase
+  Balance ................. users/{uid}.token_balance (integer)
+  Ledger .................. token_ledger/{entryId} (IDs above)
+  Pending checkouts ....... token_checkouts/{appTag}_{uid}
+  Token price ............. system_settings/aifoundation_service_prices,
+                            prices.tokens.perToken {usd, aud}; default USD 1
+  Token limits ............ min 10, step 10, priced per 1 token
+  SuperAdmin UIDs ......... ZK79FRQoVlYhsgvMibhi81dRUWj2, L5euSJAfNKdDOX6mT0qmrCGjUA53
+  SuperAdmin emails ....... davidrobertson.info@gmail.com, support@aifoundation.net.au
+  Owner's domain .......... aifoundation.net.au
+                            (aifoundation.com.au is NOT the owner's: never use it)
+  App tags already in use . aifoundation, lms, rto-ai, pt, itsasimplejob, pro-lms
+                            (choose a different one for the new app)
+
+
+================================================================================
+PART 3: THE CODE FILES (copy these into the new app)
+================================================================================
+
+All files are in the token-kit folder of the AI Foundation project. They are
+tested together (28 tests) and run as a complete small app.
+
+  Local folder ... E:\Antigravity Projects\ai-foundation\token-kit\
+  GitHub folder .. https://github.com/aifoundationau/aifoundationweb/tree/main/token-kit
+  Raw files ...... https://raw.githubusercontent.com/aifoundationau/aifoundationweb/main/token-kit/<path>
+  (The GitHub links work once the token-kit folder has been pushed to GitHub.)
+
+Copy each file to the SAME path in the new app.
+
+SERVER
+ 1. lib/firestore-rest.js
+    Firestore over its REST API with the service account: read, list, and atomic
+    commits with "must (not) exist" and "unchanged since read" checks.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\lib\firestore-rest.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/lib/firestore-rest.js
+
+ 2. lib/auth.js
+    Checks the Firebase ID token on /api requests; sets req.user; SuperAdmin list.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\lib\auth.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/lib/auth.js
+
+ 3. lib/token-balances.js
+    The token store: balance, ledger, profile, buying, spending, top-ups.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\lib\token-balances.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/lib/token-balances.js
+
+ 4. lib/token-routes.js
+    The whole token API, added to an Express app with mountTokenRoutes(app, ...):
+      GET  /api/tokens              balance, price, limits (signed in)
+      POST /api/tokens/checkout     { tokens } -> Stripe Checkout URL
+      POST /api/tokens/confirm      { sessionId } -> adds the tokens once paid
+      POST /api/tokens/spend        { tokens, app, reference, description }
+      GET  /api/tokens/accounts     every account and balance (SuperAdmin)
+      POST /api/tokens/grant        { uid, tokens, requestId, note } (SuperAdmin)
+      POST /api/profile/sync        creates the shared profile on first sign-in
+      GET  /api/exchange-rates/usd-aud  today's rate (SuperAdmin; optional)
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\lib\token-routes.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/lib/token-routes.js
+
+ 5. lib/exchange-rates.js
+    USD to AUD rate from Frankfurter, kept for an hour (only needed if the app has
+    its own USD/AUD price boxes).
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\lib\exchange-rates.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/lib/exchange-rates.js
+
+ 6. server.js
+    A complete minimal server (NEW app: copy it; EXISTING app: see Step 8).
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\server.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/server.js
+
+BROWSER (folder public/)
+ 7. public/token-pricing.js
+    Token limits, price rule and totals, shared by browser and server. Must stay
+    identical in every app.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\public\token-pricing.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/public/token-pricing.js
+
+ 8. public/firebase-client.js
+    Google sign-in with the shared project; adds the ID token to every /api/
+    request; creates the profile on sign-in. Firebase JS SDK 11.4.0.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\public\firebase-client.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/public/firebase-client.js
+
+ 9. public/tokens-ui.js
+    Buy Tokens (stepper, total, Stripe, return from Stripe) and Token Accounts.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\public\tokens-ui.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/public/tokens-ui.js
+
+10. public/tokens.html
+    The page markup: sign-in prompt, Buy Tokens, Token Accounts, and the script
+    order. Copy its sections into any page.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\public\tokens.html
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/public/tokens.html
+
+11. public/tokens.css
+    Styles. Change the --tokens-* colour variables at the top to match the app.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\public\tokens.css
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/public/tokens.css
+
+CHECKS AND SETTINGS
+12. scripts/check-startup.js
+    Starts the server with no environment variables, as Vercel does. Prints
+    STARTUP OK or STARTUP FAILED. Run before every push.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\scripts\check-startup.js
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/scripts/check-startup.js
+
+13. tests/token-pricing.test.js, tests/token-balances.test.js, tests/token-routes.test.js
+    The 28 tests (fake Firestore; nothing real is touched).
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\tests\
+    GitHub: https://github.com/aifoundationau/aifoundationweb/tree/main/token-kit/tests
+
+14. package.json
+    Dependencies (express 5, stripe 23, dotenv 18) and the scripts start, test,
+    check:startup.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\package.json
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/package.json
+
+15. .env.example
+    Every environment variable, with notes.
+    Local:  E:\Antigravity Projects\ai-foundation\token-kit\.env.example
+    GitHub: https://github.com/aifoundationau/aifoundationweb/blob/main/token-kit/.env.example
+
+REFERENCE (in the AI Foundation project; read, don't copy)
+  - Data contract for tokens (Domain 11):
+    E:\Antigravity Projects\ai-foundation\data-contracts.md
+  - The shared Firestore rules:
+    E:\Antigravity Projects\ai-foundation\firestore.rules
+  - Deployment rules for AI agents:
+    E:\Antigravity Projects\ai-foundation\AI_DEPLOYMENT_RULES.md
+
+
+================================================================================
+PART 4: STEP-BY-STEP INSTRUCTIONS (A to B)
+================================================================================
+
+STEP 1 [YOU] Check you have the tools and access
+  - Node.js 20 or newer: https://nodejs.org
+      node -v
+  - Git: https://git-scm.com
+  - Firebase CLI (for rules, Step 7):
+      npm install -g firebase-tools
+      firebase login
+  - Access to the Firebase project:
+      https://console.firebase.google.com/project/ai-foundation-firebase/overview
+  - Stripe dashboard (same account as AI Foundation): https://dashboard.stripe.com
+  - Vercel account: https://vercel.com
+  - Choose the app tag (e.g. myapp) and name (e.g. My App). The tag must not be
+    one already in use (PART 2, Fixed values).
+
+STEP 2 [AGENT] Create the project (NEW app only; skip for an existing app)
+  In PowerShell, in the new app's folder:
+      git init
+      npm init -y
+      npm install express@^5.2.1 stripe@^23.0.0 dotenv@^18.0.4
+  Create .gitignore containing:
+      .env
+      node_modules/
+
+STEP 3 [AGENT] Copy the code files (PART 3)
+  Option A, from this computer (PowerShell, in the new app's folder):
+      $kit = "E:\Antigravity Projects\ai-foundation\token-kit"
+      Copy-Item -Recurse -Force "$kit\lib", "$kit\scripts", "$kit\tests" .\
+      New-Item -ItemType Directory -Force .\public | Out-Null
+      Copy-Item "$kit\public\*" .\public\
+      Copy-Item "$kit\.env.example" .\
+      # NEW app only (an EXISTING app merges these by hand in Step 8):
+      Copy-Item "$kit\server.js", "$kit\package.json" .\
+  Option B, from GitHub (after token-kit is pushed):
+      npx degit aifoundationau/aifoundationweb/token-kit token-kit
+    then copy the files out of the downloaded token-kit folder as in Option A.
+  An existing app: never overwrite its own files (server.js, package.json,
+  public/index.html...). If a file name already exists, stop and ask.
+
+STEP 4 [AGENT] Install and run the tests before any keys exist
+      npm install
+      npm test                  (expect: pass 28, fail 0)
+      npm run check:startup     (expect: STARTUP OK)
+
+STEP 5 [YOU] Environment variables
+  a) Local: copy .env.example to .env (never commit .env). Fill in:
+       APP_TAG, APP_NAME ............ your choice from Step 1
+       STRIPE_SECRET_KEY ............ the TEST key (sk_test_...) from
+                                      https://dashboard.stripe.com/test/apikeys
+                                      (or AI Foundation's .env)
+       FIREBASE_API_KEY, FIREBASE_APP_ID, FIREBASE_MESSAGING_SENDER_ID
+                                      from Firebase -> Project settings -> General ->
+                                      Your apps (reuse AI Foundation's web app, or
+                                      "Add app" -> Web for this site):
+                                      https://console.firebase.google.com/project/ai-foundation-firebase/settings/general
+       FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
+                                      the service account. Copy them from AI
+                                      Foundation's .env (same project), or make a key:
+                                      Project settings -> Service accounts ->
+                                      Generate new private key:
+                                      https://console.firebase.google.com/project/ai-foundation-firebase/settings/serviceaccounts/adminsdk
+                                      Keep the key secret. Paste the whole key on
+                                      one line with \n for line breaks, in quotes.
+       TOKEN_API_ORIGINS ............ leave empty (see Step 13)
+  b) Vercel (after Step 11 creates the project): Project -> Settings ->
+     Environment Variables, add every name from .env. Tick "Sensitive" for
+     STRIPE_SECRET_KEY and FIREBASE_PRIVATE_KEY. Docs:
+     https://vercel.com/docs/environment-variables
+     New variables only reach the live site after a new deployment.
+
+STEP 6 [YOU] Firebase sign-in settings
+  Firebase console -> Authentication -> Settings -> Authorized domains:
+  https://console.firebase.google.com/project/ai-foundation-firebase/authentication/settings
+  - Add the app's exact web addresses (without https://), e.g. myapp.vercel.app
+    and the custom domain such as myapp.aifoundation.net.au. localhost is
+    already there.
+  - Never add a whole hosting domain such as plain vercel.app: Firebase treats it
+    as every *.vercel.app site, so anyone could sign your users into your project.
+  - Google sign-in must be enabled (Authentication -> Sign-in method -> Google).
+    It already is for the shared project.
+
+STEP 7 [YOU] Firestore rules (once; done from the AI Foundation folder, never the new app)
+  The rules must protect token_checkouts. This was added to
+  E:\Antigravity Projects\ai-foundation\firestore.rules on 23 Oct 2026. Check the
+  file contains 'token_checkouts' in isProtectedCollection and a
+  "match /token_checkouts/{docId}" block, then deploy it:
+      cd "E:\Antigravity Projects\ai-foundation"
+      firebase login --reauth
+      firebase deploy --only firestore:rules --project ai-foundation-firebase
+  Success looks like: "released rules firestore.rules to cloud.firestore" and
+  "Deploy complete!". Any line starting "Error:" means it did NOT deploy.
+  If PowerShell says "running scripts is disabled", use firebase.cmd instead.
+  Without the terminal: open firestore.rules, copy everything, then Firebase
+  console -> Firestore Database -> Rules, paste over everything, Publish:
+  https://console.firebase.google.com/project/ai-foundation-firebase/firestore/databases/-default-/rules
+  Only redeploy when firestore.rules changes; it covers every app at once.
+
+STEP 8 [AGENT] Wire the files into the app
+  NEW app: nothing to do; server.js and public/tokens.html already work.
+  EXISTING Express app:
+  a) In its server file, right after app.use(express.json(...)):
+         const { mountTokenRoutes } = require('./lib/token-routes');
+         mountTokenRoutes(app, { appTag: process.env.APP_TAG, appName: process.env.APP_NAME });
+     Also add the GET /api/firebase/config route from token-kit/server.js if the
+     app doesn't have one.
+  b) Merge package.json: add the dependencies and the "test" and
+     "check:startup" scripts from token-kit/package.json (point check:startup at
+     the app's real server file).
+  c) Put the Buy Tokens and Token Accounts <section> blocks from
+     public/tokens.html into the app's account or settings page, keeping every
+     id unchanged. Load, in this order, before </body>:
+         <script src="token-pricing.js?v=1"></script>
+         <script type="module" src="firebase-client.js?v=1"></script>
+         <script src="tokens-ui.js?v=1" defer></script>
+     and <link rel="stylesheet" href="tokens.css?v=1"> in <head>.
+     If the app already has its own Firebase sign-in, keep ONE sign-in only: make
+     sure it (1) sends "Authorization: Bearer <ID token>" on /api/ requests,
+     (2) calls POST /api/profile/sync after sign-in, and (3) fires the
+     'appAuthChanged' event with { detail: { user } } and sets
+     window.appAuthState = { user } (tokens-ui.js listens for these).
+  d) Raise the ?v= numbers whenever a .js or .css file changes, so browsers load
+     the new copy.
+
+STEP 9 [AGENT] Run the checks
+      npm test                  (all pass)
+      npm run check:startup     (STARTUP OK)
+      npm start                 then open http://localhost:3000/tokens.html
+
+STEP 10 [YOU] Test locally with Stripe TEST mode (no real money)
+  a) Sign in with Google on http://localhost:3000/tokens.html.
+  b) Buy 10 tokens. On the Stripe page use card 4242 4242 4242 4242, any future
+     date, any CVC, any postcode. Test cards: https://docs.stripe.com/testing
+  c) Back on the page: "Payment received: 10 tokens added to your balance".
+  d) Check in Firestore (https://console.firebase.google.com/project/ai-foundation-firebase/firestore/databases/-default-/data):
+       users/<your uid>  token_balance went up by 10
+       token_ledger      a purchase_cs_test_... entry, change 10, tag = your app tag
+  e) As a SuperAdmin: Token Accounts lists every account; pick one, add 10.
+  f) Spend test, in the browser console on the signed-in page:
+       fetch('/api/tokens/spend', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ tokens: 10, app: 'myapp', reference: 'test-1' }) })
+         .then(r => r.json()).then(console.log)
+     Run it twice: the second answer is "already-spent" and the balance doesn't
+     drop again.
+  g) Local note: the price shown is USD (Vercel tells the server the visitor's
+     country; on localhost it's unknown).
+
+STEP 11 [YOU] Put the app online (Vercel)
+  a) Push the app to its own GitHub repository (ask Antigravity to commit; you
+     approve the push).
+  b) https://vercel.com/new -> import the repository -> Deploy.
+  c) Add the environment variables (Step 5b), then Deployments -> Redeploy.
+  d) Add the Vercel address (and any custom domain) to Firebase authorized
+     domains (Step 6).
+  e) Vercel CLI (optional): run `vercel login` with no email (email login was
+     removed in Feb 2026), or use a token from https://vercel.com/account/tokens.
+
+STEP 12 [YOU] Go live with real payments
+  a) In Vercel, change STRIPE_SECRET_KEY to the live key (sk_live_...) from
+     https://dashboard.stripe.com/apikeys, then redeploy.
+  b) Buy 10 tokens once with a real card; refund it in
+     https://dashboard.stripe.com/payments if you like. (A refund doesn't take
+     the tokens back automatically.)
+  c) Prices: change the token price only in the AI Foundation admin panel
+     (Services & Pricing -> Tokens). Every app uses it at once.
+
+STEP 13 [YOU, optional] Let another app use this app's token API from its pages
+  Only needed when a page on a DIFFERENT site calls this app's /api/tokens or
+  /api/tokens/spend from the browser. List those sites, comma separated, in
+  TOKEN_API_ORIGINS, e.g.
+      TOKEN_API_ORIGINS=https://pt.aifoundation.net.au,https://lms.example.com
+  (https://, no trailing slash, no paths). Server-to-server calls don't need it.
+
+
+================================================================================
+PART 5: SPENDING TOKENS IN YOUR APP (code examples)
+================================================================================
+
+Spend on the SERVER when tokens pay for something, so the price can't be changed
+in the browser. The browser route POST /api/tokens/spend lets the signed-in user
+choose the amount; use it only where the user decides the amount.
+
+Server route (in the app's server file):
+
+  const { attachUser, requireAuth } = require('./lib/auth');
+  const { createTokenStore } = require('./lib/token-balances');
+
+  // Made on first use, so a missing APP_TAG can't crash the server at startup
+  let tokenStore = null;
+  function tokens() {
+      if (!tokenStore) tokenStore = createTokenStore({ appTag: process.env.APP_TAG, appName: process.env.APP_NAME });
+      return tokenStore;
+  }
+
+  const COURSE_PRICE_TOKENS = 50;
+
+  app.post('/api/courses/:id/buy', attachUser, requireAuth, async (req, res) => {
+      try {
+          const result = await tokens().spendTokens({
+              uid: req.user.uid,
+              tokens: COURSE_PRICE_TOKENS,
+              app: process.env.APP_TAG,
+              // The purchase's own ID: sending it again never takes tokens twice
+              reference: `course-${req.params.id}-${req.user.uid}`,
+              description: `Course ${req.params.id}`
+          });
+          if (result.status === 'insufficient') {
+              return res.status(409).json({ error: 'Not enough tokens.', balance: result.balance });
+          }
+          // 'spent' or 'already-spent': give the user what they paid for here
+          res.json({ ok: true, balance: result.balance });
+      } catch (e) {
+          console.error('[Course purchase]', e);
+          res.status(500).json({ error: 'Tokens could not be spent just now, and none were taken.' });
+      }
+  });
+
+Browser (where the user chooses the amount):
+
+  const res = await fetch('/api/tokens/spend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokens: 20, app: 'myapp', reference: 'tip-' + crypto.randomUUID(), description: 'Tip' })
+  });
+  const data = await res.json();
+  // 200: { status: 'spent' | 'already-spent', spent, balance }
+  // 409: { error: 'Not enough tokens.', balance }
+
+Reading the balance: GET /api/tokens -> { balance, price, limits, canPay, isSuperAdmin, ... }
+
+Rules for references: up to 100 characters from A-Z a-z 0-9 _ . : -
+App tag in spends: the app's own tag (lower case).
+
+
+================================================================================
+PART 6: RULES ANTIGRAVITY MUST NEVER BREAK
+================================================================================
+
+ 1. Nothing at the top level of a server file may throw when an environment
+    variable is missing. Create clients (Stripe, token store) inside functions on
+    first use. Missing settings pause one feature (answer 503); they never take
+    the site down. Check with `npm run check:startup` before every push.
+ 2. Tokens are money. Change token_balance ONLY through lib/token-balances.js
+    (ledger entry + balance change in one atomic commit; spends never below 0).
+    Never write token_balance with a plain write, and never from a browser.
+ 3. The server works out every price. Never take an amount of money from the
+    browser.
+ 4. firestore.rules is shared by every app and lives only in
+    E:\Antigravity Projects\ai-foundation\firestore.rules. Never create or deploy
+    rules from the new app. New Firestore collections must be added to
+    isProtectedCollection there, or any signed-in user can read and write them.
+ 5. Do not change who is SuperAdmin unless the owner asks. The two SuperAdmins
+    are in lib/auth.js and must match firestore.rules. The owner's domain is
+    aifoundation.net.au; aifoundation.com.au is NOT theirs: never add it, or any
+    address on it, anywhere.
+ 6. Keep public/token-pricing.js identical to AI Foundation's token rules (start
+    10, step 10, price per token, USD $1 default, cents kept).
+ 7. Authorized sign-in domains: exact hostnames only, never plain vercel.app.
+ 8. New environment variables: add the name (never the value) to .env.example,
+    and tell the owner to add it in Vercel, marking secrets Sensitive. Never
+    commit .env or paste real keys into code.
+ 9. Before saying a change is done: run `npm test` and `npm run check:startup`
+    and report the real output.
+10. Do not commit or push unless the owner asks.
+
+
+================================================================================
+PART 7: TROUBLESHOOTING
+================================================================================
+
+Live site shows "500 FUNCTION_INVOCATION_FAILED"
+  The server crashed while starting. Run `npm run check:startup`; it shows the
+  error. Usually code at the top level needing a missing environment variable.
+
+"Your account isn't fully set up yet"
+  The shared profile wasn't created. Sign out and in again (that calls
+  /api/profile/sync). If it keeps happening, the FIREBASE_CLIENT_EMAIL /
+  FIREBASE_PRIVATE_KEY values are wrong or missing.
+
+"Token balances can't be reached right now" / balance "Unavailable right now"
+  The server can't sign in to Firestore. Check FIREBASE_CLIENT_EMAIL and
+  FIREBASE_PRIVATE_KEY (whole key, \n for line breaks), then redeploy.
+
+"Tokens are not set up on this server yet (APP_TAG is missing)"
+  Set APP_TAG in .env / Vercel, then restart or redeploy.
+
+"Card payments are not set up yet"
+  STRIPE_SECRET_KEY is missing.
+
+Sign-in popup error "auth/unauthorized-domain"
+  Add the site's exact address to Firebase authorized domains (Step 6).
+
+Paid, but no tokens
+  Open the token page again while signed in: unpaid checkouts are rechecked and
+  credited. Each purchase is in Stripe (metadata kind=tokens, uid, tokens) and,
+  once credited, in token_ledger as purchase_<session ID>.
+
+Firebase CLI: "Your credentials are no longer valid"
+  Run `firebase login --reauth`, or paste the rules in the console (Step 7).
+
+Rules deploy said "complete" but nothing changed
+  Run it from the AI Foundation folder with --project ai-foundation-firebase, or
+  publish in the console. Check: console -> Firestore -> Rules shows today's
+  date.
+
+Vercel CLI keeps asking for an email that never arrives
+  Email login was removed (Feb 2026). Run `vercel login` with no email and
+  approve in the browser, or use a token: https://vercel.com/account/tokens
+
+Changes don't show in the browser
+  Raise the ?v= number on the changed .js/.css file, then reload with Ctrl+F5.
+
+
+================================================================================
+PART 8: ALL LINKS
+================================================================================
+
+Code (token-kit)
+  Local ........... E:\Antigravity Projects\ai-foundation\token-kit\
+  GitHub .......... https://github.com/aifoundationau/aifoundationweb/tree/main/token-kit
+  Raw files ....... https://raw.githubusercontent.com/aifoundationau/aifoundationweb/main/token-kit/<path>
+
+Firebase (project ai-foundation-firebase)
+  Overview ........ https://console.firebase.google.com/project/ai-foundation-firebase/overview
+  Authorized domains / sign-in
+                    https://console.firebase.google.com/project/ai-foundation-firebase/authentication/settings
+  Web app config .. https://console.firebase.google.com/project/ai-foundation-firebase/settings/general
+  Service accounts  https://console.firebase.google.com/project/ai-foundation-firebase/settings/serviceaccounts/adminsdk
+  Firestore data .. https://console.firebase.google.com/project/ai-foundation-firebase/firestore/databases/-default-/data
+  Firestore rules . https://console.firebase.google.com/project/ai-foundation-firebase/firestore/databases/-default-/rules
+  Firebase CLI .... https://firebase.google.com/docs/cli
+
+Stripe
+  Test API keys ... https://dashboard.stripe.com/test/apikeys
+  Live API keys ... https://dashboard.stripe.com/apikeys
+  Payments ........ https://dashboard.stripe.com/payments
+  Test cards ...... https://docs.stripe.com/testing
+  Checkout docs ... https://docs.stripe.com/payments/checkout
+
+Vercel
+  New project ..... https://vercel.com/new
+  Env variables ... https://vercel.com/docs/environment-variables
+  Access tokens ... https://vercel.com/account/tokens
+  CLI login change  https://vercel.com/changelog/new-vercel-cli-login-flow
+
+Exchange rates
+  Frankfurter ..... https://frankfurter.dev
+  USD to AUD ...... https://api.frankfurter.dev/v2/rate/USD/AUD
+
+Tools
+  Node.js ......... https://nodejs.org
+  Git ............. https://git-scm.com
+
+The working original
+  Website ......... https://www.aifoundation.net.au
+  Admin panel ..... Services & Pricing (token price), Buy Tokens, Token Accounts
+================================================================================

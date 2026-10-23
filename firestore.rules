@@ -36,7 +36,7 @@ service cloud.firestore {
     function isProtectedCollection(name) {
       return name in ['users', 'transactions', 'stripe_transactions', 'paypal_transactions',
                       'chat_interactions', 'system_settings', 'admins', 'content',
-                      'token_ledger', 'aifoundation_token_checkouts'];
+                      'token_ledger', 'aifoundation_token_checkouts', 'token_checkouts'];
     }
 
     // Profile fields that grant privileges or hold value; users can never set or change these themselves.
@@ -108,6 +108,11 @@ service cloud.firestore {
     // Token checkouts not paid yet (Buy Tokens): server only, readable by the owner and admins
     match /aifoundation_token_checkouts/{userId} {
       allow read: if isOwner(userId) || isAdmin();
+      allow write: if false;
+    }
+    // The same for the owner's other apps (token-kit), one document per app and user: {appTag}_{uid}
+    match /token_checkouts/{docId} {
+      allow read: if (isAuthenticated() && resource.data.uid == request.auth.uid) || isAdmin();
       allow write: if false;
     }
 

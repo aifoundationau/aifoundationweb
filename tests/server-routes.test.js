@@ -155,6 +155,17 @@ test('Buy Tokens is in both panels and Token Accounts in the SuperAdmin panel on
     }
 });
 
+test('the admin panel Sign Out asks first, then signs out with the function firebase-client.js really exposes', () => {
+    const app = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
+    const client = fs.readFileSync(path.join(root, 'public', 'firebase-client.js'), 'utf8');
+    assert.match(app, /panelSignOutBtn\.addEventListener\('click', async \(\) => \{\s*if \(await confirmSignOut\(\)\) await signOutOfSite\(\);/);
+    assert.match(app, /Yes, log out/);
+    assert.match(app, /No, stay logged in/);
+    assert.match(app, /window\.firebaseService\.signOutGoogle\(\)/);
+    assert.doesNotMatch(app, /firebaseService\??\.signOut(?!Google)\b/, 'window.firebaseService has signOutGoogle, not signOut');
+    assert.match(client, /^\s*signOutGoogle,$/m, 'firebase-client.js exposes signOutGoogle');
+});
+
 test('the original Services page addresses open Services 2', async () => {
     for (const urlPath of ['/services', '/services.html', '/Services', '/services/']) {
         const res = await get(urlPath, { redirect: 'manual' });

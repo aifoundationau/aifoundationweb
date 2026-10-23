@@ -270,7 +270,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 #### Target Storage & Endpoints
 - Balance: `users/{uid}.token_balance` (integer), on the user profile every app shares. The LMS already uses this field. Only servers change it (service account); `firestore.rules` lists it in `privilegedFields`, so users can't change it themselves, and a new profile can only start with `token_balance` 0 or unset.
 - Ledger: `token_ledger/{entryId}`, one entry per balance change, written in the same atomic commit as the change. Readable by the user it belongs to and admins; no browser writes.
-- Pending checkouts: `aifoundation_token_checkouts/{uid}` (`pendingCheckouts`), Buy Tokens checkouts not paid yet. Server only.
+- Pending checkouts: `aifoundation_token_checkouts/{uid}` (`pendingCheckouts`), Buy Tokens checkouts not paid yet. Server only. The owner's other apps (built from `token-kit/`, see `tokensetupguide.txt`) keep theirs in `token_checkouts/{appTag}_{uid}`, also server only.
 - Billing records: each purchase is also recorded in `transactions` / `stripe_transactions` (Domain 1) with `paymentType: 'tokens'`.
 - API (all need a signed-in user's Firebase ID token):
   - `GET /api/tokens`: balance and this visitor's price. It also credits checkouts paid since the user last looked.
