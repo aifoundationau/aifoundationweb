@@ -35,17 +35,24 @@ test('parseAmount: blank boxes are null', () => {
     }
 });
 
-test('parseAmount: plain, comma-grouped and $-prefixed amounts', () => {
-    const cases = [['1500', 1500], ['1,500', 1500], ['$1,499.95', 1499.95], [' 250.5 ', 250.5], ['0.01', 0.01],
-        ['1,000,000', 1000000], [1500, 1500], [19.99, 19.99]];
+test('parseAmount: plain, comma-grouped and $-prefixed amounts, in whole dollars', () => {
+    const cases = [['1500', 1500], ['1,500', 1500], ['1,000,000', 1000000], [1500, 1500], ['1', 1]];
+    for (const [value, expected] of cases) {
+        assert.equal(pricing.parseAmount(value), expected, JSON.stringify(value));
+    }
+});
+
+test('parseAmount: decimals are rounded to the nearest dollar', () => {
+    const cases = [['$1,499.95', 1500], ['1499.49', 1499], [' 250.5 ', 251], ['12.345', 12], ['0.5', 1],
+        [19.99, 20], [1.234, 1], ['1000000.4', 1000000]];
     for (const [value, expected] of cases) {
         assert.equal(pricing.parseAmount(value), expected, JSON.stringify(value));
     }
 });
 
 test('parseAmount: anything that is not a price is NaN', () => {
-    const cases = ['0', '-5', '12.345', '1e3', 'abc', '1,50', '1500.', '1 500', 'AUD 100', '1000000.01',
-        0, -1, NaN, Infinity, 1.234, true, {}, []];
+    const cases = ['0', '0.4', '-5', '1e3', 'abc', '1,50', '1500.', '1 500', 'AUD 100', '1000000.5',
+        0, 0.49, -1, NaN, Infinity, true, {}, []];
     for (const value of cases) {
         assert.ok(Number.isNaN(pricing.parseAmount(value)), JSON.stringify(value));
     }
@@ -63,7 +70,7 @@ test('cleanPrices: every service and part is filled in; unknown keys are dropped
         '30-day-roadmap': { price: { usd: 1500, aud: 2300 } },
         'regulatory-roadmap': { price: { usd: null, aud: null } },
         'stack-selection': { price: { usd: 900, aud: null } },
-        'ai-agent-hosting': { setup: { usd: 2000, aud: null }, monthly: { usd: 300, aud: 450.5 } },
+        'ai-agent-hosting': { setup: { usd: 2000, aud: null }, monthly: { usd: 300, aud: 451 } },
         tokens: { perToken: { usd: null, aud: null } }
     });
 });
@@ -120,13 +127,15 @@ test('formatPrice: currency code, thousands separators, cents only when present'
     assert.equal(pricing.formatPrice(null), '');
 });
 
-test('convertUsdToAud: the AUD box amount, rounded to the cent', () => {
-    assert.equal(pricing.convertUsdToAud('2200', 1.4261), 3137.42);
+test('convertUsdToAud: the AUD box amount, rounded to the nearest dollar', () => {
+    assert.equal(pricing.convertUsdToAud('2200', 1.4261), 3137);
+    assert.equal(pricing.convertUsdToAud('1100', 1.4261), 1569);
     assert.equal(pricing.convertUsdToAud('1,500', 1.5), 2250);
-    assert.equal(pricing.convertUsdToAud(1, 1.4261), 1.43);
-    assert.equal(pricing.convertUsdToAud('0.01', 1.4261), 0.01);
-    for (const [usd, rate] of [['', 1.4], ['abc', 1.4], ['-5', 1.4], ['100', 0], ['100', NaN], ['100', undefined],
-        ['0.01', 0.3], ['1000000', 1.4]]) {
+    assert.equal(pricing.convertUsdToAud(1, 1.4261), 1);
+    assert.equal(pricing.convertUsdToAud(2, 1.4261), 3);
+    assert.equal(pricing.convertUsdToAud('1499.95', 1.4261), 2139, 'the USD price is rounded first (1500)');
+    for (const [usd, rate] of [['', 1.4], ['abc', 1.4], ['-5', 1.4], ['0.4', 1.4], ['100', 0], ['100', NaN], ['100', undefined],
+        ['1', 0.3], ['1000000', 1.4]]) {
         assert.equal(pricing.convertUsdToAud(usd, rate), null, `${usd} at ${rate}`);
     }
 });
@@ -158,19 +167,20 @@ test('tokenPricePart: a token costs USD $1 until the admin sets a USD price; AUD
     for (const prices of [undefined, null, {}, { tokens: {} }, pricing.cleanPrices({}).prices]) {
         assert.deepEqual(pricing.tokenPricePart(prices), { usd: 1, aud: null }, JSON.stringify(prices));
     }
-    assert.deepEqual(pricing.tokenPricePart({ tokens: { perToken: { usd: 2.5, aud: null } } }), { usd: 2.5, aud: null });
-    assert.deepEqual(pricing.tokenPricePart({ tokens: { perToken: { usd: null, aud: 1.5 } } }), { usd: 1, aud: 1.5 });
+    assert.deepEqual(pricing.tokenPricePart({ tokens: { perToken: { usd: 2, aud: null } } }), { usd: 2, aud: null });
+    assert.deepEqual(pricing.tokenPricePart({ tokens: { perToken: { usd: null, aud: 2 } } }), { usd: 1, aud: 2 });
+    assert.deepEqual(pricing.tokenPricePart({ tokens: { perToken: { usd: 2.6, aud: 1.4 } } }), { usd: 3, aud: 1 }, 'whole dollars');
     assert.deepEqual(pricing.resolvePrice(pricing.tokenPricePart({}), 'AU'), { currency: 'USD', amount: 1 }, 'no AUD price: Australians pay USD $1');
     assert.deepEqual(pricing.resolvePrice(pricing.tokenPricePart({}), 'US'), { currency: 'USD', amount: 1 });
 });
 
-test('tokenTotal: price per token times the number of tokens, rounded to the cent', () => {
-    const aud = { currency: 'AUD', amount: 0.14 };
-    assert.deepEqual(pricing.tokenTotal(aud, 10), { currency: 'AUD', amount: 1.4 });
-    assert.deepEqual(pricing.tokenTotal(aud, 30), { currency: 'AUD', amount: 4.2 });
-    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 0.1 }, 10), { currency: 'USD', amount: 1 });
-    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 0.01 }, 5000), { currency: 'USD', amount: 50 });
-    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 1.99 }, 1000000), { currency: 'USD', amount: 1990000 });
+test('tokenTotal: price per token times the number of tokens, in whole dollars', () => {
+    const aud = { currency: 'AUD', amount: 2 };
+    assert.deepEqual(pricing.tokenTotal(aud, 10), { currency: 'AUD', amount: 20 });
+    assert.deepEqual(pricing.tokenTotal(aud, 30), { currency: 'AUD', amount: 60 });
+    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 1 }, 10), { currency: 'USD', amount: 10 });
+    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 1 }, 5000), { currency: 'USD', amount: 5000 });
+    assert.deepEqual(pricing.tokenTotal({ currency: 'USD', amount: 3 }, 100000), { currency: 'USD', amount: 300000 });
     assert.equal(pricing.tokenTotal(null, 100), null);
     assert.equal(pricing.tokenTotal(aud, NaN), null);
 });

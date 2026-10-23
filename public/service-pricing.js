@@ -5,6 +5,7 @@
  *
  * Admins enter each price in USD and AUD (two separate boxes). Visitors in Australia see the AUD price,
  * or the USD price when the AUD box is blank. Everyone else always sees the USD price.
+ * Prices are whole dollars: decimals are rounded to the nearest dollar.
  * Token prices (Buy Tokens in the admin panel) follow the same rule, and the token box limits live here too.
  */
 (function (root) {
@@ -54,8 +55,9 @@
     const MIN_CARD_PAYMENT = 0.5;
     const MAX_CARD_PAYMENT = 999999.99;
 
-    // A price box value as a number (rounded to cents), null when the box is blank, or NaN when it isn't a price.
-    // Accepts numbers and text such as "1500", "1,500" or "$1,499.95"; must be above 0 and at most MAX_AMOUNT
+    // A price box value as a whole number of dollars, null when the box is blank, or NaN when it isn't a price.
+    // Accepts numbers and text such as "1500", "1,500" or "$1,499.95"; decimals are rounded to the nearest dollar
+    // (1,499.95 is 1,500), and the result must be from 1 to MAX_AMOUNT
     function parseAmount(value) {
         if (value === null || value === undefined) return null;
         let amount;
@@ -64,15 +66,14 @@
         } else if (typeof value === 'string') {
             const text = value.trim().replace(/^\$\s*/, '');
             if (!text) return null;
-            if (!/^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?$/.test(text)) return NaN;
+            if (!/^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/.test(text)) return NaN;
             amount = Number(text.replace(/,/g, ''));
         } else {
             return NaN;
         }
-        if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT) return NaN;
-        const cents = Math.round(amount * 100);
-        if (Math.abs(cents - amount * 100) > 1e-6) return NaN;
-        return cents / 100;
+        if (!Number.isFinite(amount)) return NaN;
+        const dollars = Math.round(amount);
+        return dollars >= 1 && dollars <= MAX_AMOUNT ? dollars : NaN;
     }
 
     // Prices in a fixed shape, { [serviceId]: { [partKey]: { usd, aud } } } with every amount a number or null,
@@ -97,7 +98,7 @@
                             serviceId: service.id,
                             part: part.key,
                             currency: currency.key,
-                            message: `${label}: the ${currency.code} price must be a number from 0.01 to 1,000,000 with up to 2 decimal places, or left blank.`
+                            message: `${label}: the ${currency.code} price must be a whole number from 1 to 1,000,000, or left blank.`
                         });
                     }
                 });
@@ -129,13 +130,13 @@
         return `${price.currency} $${amount}`;
     }
 
-    // The AUD box's amount for a USD price at an exchange rate (AUD per USD), rounded to the cent.
+    // The AUD box's amount for a USD price at an exchange rate (AUD per USD), rounded to the nearest dollar.
     // null when the USD box isn't a price or the converted amount isn't a valid price
     function convertUsdToAud(usd, rate) {
         const amount = parseAmount(usd);
         if (!Number.isFinite(amount) || !(rate > 0)) return null;
-        const aud = Math.round(amount * rate * 100) / 100;
-        return Number.isFinite(parseAmount(aud)) ? aud : null;
+        const aud = parseAmount(amount * rate);
+        return Number.isFinite(aud) ? aud : null;
     }
 
     // A number of tokens as a whole number, or NaN when it isn't one from min (TOKEN_LIMITS.min unless given) to
@@ -163,11 +164,10 @@
         return { usd: Number.isFinite(usd) ? usd : DEFAULT_TOKEN_PRICE.usd, aud: Number.isFinite(aud) ? aud : null };
     }
 
-    // What a number of tokens costs at the price per token ({ currency, amount }), rounded to the cent
+    // What a number of tokens costs at the price per token ({ currency, amount }), in whole dollars like every price
     function tokenTotal(pricePerToken, quantity) {
         if (!pricePerToken || !Number.isFinite(pricePerToken.amount) || !Number.isInteger(quantity)) return null;
-        const cents = Math.round(Math.round(pricePerToken.amount * 100) * quantity / TOKEN_LIMITS.pricedPer);
-        return { currency: pricePerToken.currency, amount: cents / 100 };
+        return { currency: pricePerToken.currency, amount: Math.round(pricePerToken.amount * quantity / TOKEN_LIMITS.pricedPer) };
     }
 
     const api = {

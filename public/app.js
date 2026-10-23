@@ -2132,10 +2132,9 @@ const postObserver = new IntersectionObserver((entries) => {
         return new Error(String(data.error || `HTTP ${res.status}`).replace(/\.$/, ''));
     }
 
-    // Box text for a saved amount: "1500", or "1499.95" when it has cents
+    // Box text for a saved amount: whole dollars, e.g. "1500"
     function servicePriceBoxValue(amount) {
-        if (typeof amount !== 'number') return '';
-        return Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+        return typeof amount === 'number' ? String(Math.round(amount)) : '';
     }
 
     function renderAdminServicePricesForm(prices) {
@@ -2174,7 +2173,7 @@ const postObserver = new IntersectionObserver((entries) => {
             usdAudRate = { rate: data.rate, date: data.date };
             const day = new Date(`${data.date}T00:00:00Z`);
             const dayText = isNaN(day.getTime()) ? '' : `, ${day.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
-            servicePricesRate.textContent = `Typing a USD price fills in its AUD box at today's rate: 1 USD = ${data.rate} AUD (Frankfurter${dayText}). You can still change the AUD amount.`;
+            servicePricesRate.textContent = `Typing a USD price fills in its AUD box at today's rate, rounded to the nearest dollar: 1 USD = ${data.rate} AUD (Frankfurter${dayText}). You can still change the AUD amount.`;
         } catch (e) {
             usdAudRate = null;
             servicePricesRate.textContent = 'Today\'s exchange rate could not be fetched, so AUD boxes won\'t fill in by themselves. Enter AUD prices yourself.';
@@ -2217,6 +2216,13 @@ const postObserver = new IntersectionObserver((entries) => {
             audInput.value = servicePriceBoxValue(aud);
             audInput.closest('.service-prices-field').classList.remove('is-invalid');
         });
+
+        // Prices are whole dollars: leaving a box shows its amount rounded to the nearest dollar (1,499.95 becomes 1500)
+        servicePricesRows.addEventListener('focusout', (e) => {
+            if (!e.target.matches('input[data-service]')) return;
+            const amount = window.ServicePricing.parseAmount(e.target.value);
+            if (Number.isFinite(amount)) e.target.value = servicePriceBoxValue(amount);
+        });
     }
 
     if (servicePricesForm) {
@@ -2239,7 +2245,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 prices[service][part][currency] = invalid ? null : amount;
             });
             if (firstInvalid) {
-                setServicePricesStatus('Check the highlighted boxes: enter amounts like 1500 or 1,499.95 (above 0, up to 1,000,000), or leave a box blank.', 'error');
+                setServicePricesStatus('Check the highlighted boxes: enter whole-dollar amounts like 1500 or 1,500 (from 1 to 1,000,000), or leave a box blank.', 'error');
                 firstInvalid.focus();
                 return;
             }
