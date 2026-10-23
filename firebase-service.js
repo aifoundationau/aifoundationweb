@@ -246,6 +246,40 @@ async function getDocument(collectionId, documentId) {
 }
 
 /**
+ * Read every document in a collection, following Firestore's pages (one request returns at most a page).
+ * Returns [{ id, fields }] with plain values, or null when Firestore can't be reached or a page fails
+ */
+async function listDocuments(collectionId, { pageSize = 300, maxPages = 40 } = {}) {
+    const token = await getAccessToken();
+    if (!token) return null;
+
+    const docs = [];
+    let pageToken = '';
+    try {
+        for (let page = 0; page < maxPages; page++) {
+            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionId}?pageSize=${pageSize}` +
+                (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '');
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) {
+                console.warn(`[Firebase] Listing ${collectionId} failed (HTTP ${res.status})`);
+                return null;
+            }
+            const data = await res.json();
+            for (const d of data.documents || []) {
+                docs.push({ id: d.name.split('/').pop(), fields: fromFirestoreFields(d.fields || {}) });
+            }
+            pageToken = data.nextPageToken || '';
+            if (!pageToken) return docs;
+        }
+        console.warn(`[Firebase] Listing ${collectionId} stopped after ${maxPages} pages (${docs.length} documents)`);
+        return docs;
+    } catch (err) {
+        console.error(`[Firebase] Error listing ${collectionId}:`, err.message);
+        return null;
+    }
+}
+
+/**
  * Delete document from Cloud Firestore
  */
 async function deleteDocument(collectionId, documentId) {
@@ -716,24 +750,17 @@ async function getChatMessages(conversationId, options = {}) {
     const isSuperAdmin = Boolean(options.isSuperAdmin);
     const requesterUid = options.requesterUid ? String(options.requesterUid).trim() : null;
 
-    const token = await getAccessToken();
-    if (!token) return [];
-
     try {
-        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/chat_interactions?pageSize=100`;
-        const res = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return [];
-
-        const data = await res.json();
-        const docs = data.documents || [];
+        const docs = await listDocuments('chat_interactions');
+        if (!docs) return [];
         const messages = [];
 
-        for (const d of docs) {
-            const fields = fromFirestoreFields(d.fields || {});
+        for (const { id, fields } of docs) {
+            // This site's chat format only (other apps' messages and AI assistant logs share the collection)
+            if (typeof fields.userMessage !== 'string' || fields.assistantResponse !== undefined) continue;
+
             // Filter by conversationId
-            const isMatch = (fields.conversationId === conversationId) || 
+            const isMatch = (fields.conversationId === conversationId) ||
                             (conversationId.startsWith('conv_') && fields.senderUid === conversationId.replace('conv_', '')) ||
                             (conversationId.startsWith('conv_') && fields.recipientUid === conversationId.replace('conv_', ''));
             
@@ -746,7 +773,7 @@ async function getChatMessages(conversationId, options = {}) {
             }
 
             const msgObj = {
-                id: d.name.split('/').pop(),
+                id,
                 ...fields
             };
 
@@ -778,22 +805,12 @@ async function getChatMessages(conversationId, options = {}) {
  * Each conversation has its tenant tag attached for SuperAdmin inspection.
  */
 async function getChatConversations(options = {}) {
-    const token = await getAccessToken();
-    if (!token) return [];
-
     try {
-        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/chat_interactions?pageSize=100`;
-        const res = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return [];
-
-        const data = await res.json();
-        const docs = data.documents || [];
+        const docs = await listDocuments('chat_interactions');
+        if (!docs) return [];
         const convMap = new Map();
 
-        for (const d of docs) {
-            const fields = fromFirestoreFields(d.fields || {});
+        for (const { fields } of docs) {
             if (!fields.conversationId) continue;
 
             // Multi-tenant: SuperAdmin reads messages from all tenants
@@ -1002,5 +1019,6 @@ module.exports = {
     SUPERADMIN_UIDS,
     SUPERADMIN_EMAILS,
     writeDocument,
-    deleteDocument
+    deleteDocument,
+    listDocuments
 };

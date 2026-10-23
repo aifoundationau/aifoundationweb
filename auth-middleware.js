@@ -64,8 +64,8 @@ async function verifyIdToken(idToken) {
 }
 
 /**
- * Attach req.user ({ uid, email, emailVerified, name, picture, isAdmin }) when a valid token is present.
- * Requests without a token continue as anonymous (req.user = null).
+ * Attach req.user ({ uid, email, emailVerified, name, picture, isAdmin, isSuperAdmin }) when a valid token
+ * is present. Requests without a token continue as anonymous (req.user = null).
  */
 async function attachUser(req, res, next) {
     req.user = null;
@@ -85,7 +85,9 @@ async function attachUser(req, res, next) {
             emailVerified,
             name: claims.name || '',
             picture: claims.picture || '',
-            isAdmin: Boolean(isAdmin)
+            isAdmin: Boolean(isAdmin),
+            // Only the two SuperAdmins: matched by UID, or by email once Google has verified it
+            isSuperAdmin: firebaseService.isSuperAdminUser(claims.sub, emailVerified ? email : '')
         };
         next();
     } catch (e) {
@@ -105,4 +107,10 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-module.exports = { verifyIdToken, attachUser, requireAuth, requireAdmin };
+function requireSuperAdmin(req, res, next) {
+    if (!req.user) return res.status(401).json({ error: 'Sign-in required.' });
+    if (!req.user.isSuperAdmin) return res.status(403).json({ error: 'SuperAdmin access required.' });
+    next();
+}
+
+module.exports = { verifyIdToken, attachUser, requireAuth, requireAdmin, requireSuperAdmin };

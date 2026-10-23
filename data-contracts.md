@@ -215,7 +215,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `senderUid` | String | Authenticated Session | Identity | Required. Authenticated sender Firebase UID. | Firestore root field. |
 | `senderEmail` | String (Email) | Authenticated Session | PII | Required. Valid RFC 5322 email. Lowercased. | Firestore root field. |
 | `senderName` | String | Authenticated Session | Public Identity | Required. Trimmed, HTML-sanitized display name. | Firestore root field. |
-| `senderRole` | String Enum | Authenticated Session | Role | Enum: `['supporter', 'super_admin']`. | Firestore root field. |
+| `senderRole` | String Enum | Authenticated Session | Role | Enum: `['supporter', 'superadmin']` (older records may say `'super_admin'`). `'superadmin'` only for the two SuperAdmins; everyone else, site admins included, is `'supporter'`. | Firestore root field. |
 | `recipientUid` | String | Session / Route Target | Identity | Target recipient identifier (`'superadmin'` or supporter UID). | Firestore root field. |
 | `recipientEmail` | String (Email) | Session / Route Target | PII | Target recipient email address. | Firestore root field. |
 | `recipientName` | String | Session / Route Target | Identity | Target recipient display name. | Firestore root field. |
@@ -233,6 +233,35 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 - **Invariant 9.1 (SuperAdmin Multi-Tenant Aggregation)**: SuperAdmin accounts (`support@aifoundation.net.au`, `davidrobertson.info@gmail.com`) must be able to read and review all messages sent to SuperAdmin from all tenants in the shared Firebase database (`ai-foundation-firebase`).
 - **Invariant 9.2 (Tenant Tag Confidentiality)**: Each message must have a tenant tag attached identifying its source application. This tag is confidential and readable **strictly by SuperAdmin**. APIs serving standard supporters must omit the tag and prevent cross-tenant message discovery.
 - **Invariant 9.3 (Supporter Conversation Isolation)**: Regular supporters may only read and write messages within their own individual conversation thread (`conv_${uid}`).
+- **Invariant 9.4 (Message Box)**: `GET /api/message-box` (`message-box.js`, the two SuperAdmins only) reads every `chat_interactions` document and keeps those sent to or by a SuperAdmin, matched by `recipientUid`, `recipientEmail`, `participants` or the sender. Each tenant's format is converted to one shape: this site uses `conversationId` / `userMessage`, the LMS (`tag: 'lms'`) uses `threadId` / `body` / `subject` / `participants`, and other apps' common field names are read too. AI assistant logs (documents with `assistantResponse`) are not messages to the SuperAdmin and are left out. Every conversation carries its tenant tag.
+- **Invariant 9.5 (Tenant Tag Integrity)**: Messages written by this app always get `tag`, `businessId` and `source` `'aifoundation'` from the server, never from the request, so the Message Box shows each message's real source app. This app replies only into its own conversations (`conv_${uid}`); other tenants' threads are read in the Message Box and answered in their own app.
+- **Invariant 9.6 (Who Can Message the SuperAdmin)**: Anyone signed in, including site admins who aren't SuperAdmins, writes to the SuperAdmin in their own conversation. Only the two SuperAdmins reply into other users' conversations.
+
+---
+
+### Domain 10: Service Pricing (Services 2)
+
+#### Target Storage & Endpoints
+- Firestore: `system_settings/aifoundation_service_prices` (one document). `firestore.rules` allows browser access to `system_settings` for SuperAdmins only, so the server reads and writes it with the service account.
+- Local copy: `data/service-prices.json` (`prices` and `updatedAt` only). Used when Firestore can't be reached.
+- API: `GET /api/services/prices` (public), `PUT /api/services/prices` (admin only; replaces every price).
+- Shared rules: `public/service-pricing.js` (service list, price validation, currency choice), used by the server and the browser.
+- Admin UI: Admin Panel > Services & Pricing.
+
+#### Data Fields Specification
+| Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `tag`, `businessId`, `businessName`, `source` | String | Server Injection | Partition Key | Constants from Invariant Rule 1. | Firestore root fields. |
+| `prices` | Map | Admin Panel / `PUT /api/services/prices` | Public | `{ [serviceId]: { [part]: { usd, aud } } }`. Service IDs: `30-day-roadmap`, `regulatory-roadmap`, `stack-selection`, `ai-agent-hosting`. Part: `price`, or `setup` and `monthly` for `ai-agent-hosting`. Each amount is `null` (blank) or a number from 0.01 to 1,000,000 with at most 2 decimal places. | Firestore map. |
+| `updatedAt` | String (Timestamp) | Server Generation | Audit | ISO 8601 UTC timestamp of the last save. | Firestore timestamp. |
+| `updatedBy` | String (Email) | Verified ID token | PII | Email of the admin who saved. Never returned by the public API or written to the local copy. | Firestore root field. |
+| Return: `country` | String | `x-vercel-ip-country` request header | Public | ISO 3166-1 alpha-2 code, or `''` when unknown. Not stored; the response is sent with `Cache-Control: private, no-store`. | In-memory transient. |
+
+#### Display Rule
+- Visitors whose country is `AU` see the AUD price. When the AUD box is blank they see the USD price.
+- All other visitors see the USD price. AUD prices are never shown outside Australia.
+- With no price to show, the service card says "Price on request".
+- When the server can't tell the country (local development), the browser uses the location bar's place.
 
 ---
 

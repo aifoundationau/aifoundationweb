@@ -16,7 +16,10 @@ const https = require('https');
 const http = require('http');
 console.log('[Server Startup] 3. Loading firebase service...');
 const firebaseService = require('./firebase-service');
-const { attachUser, requireAuth, requireAdmin } = require('./auth-middleware');
+const { attachUser, requireAuth, requireAdmin, requireSuperAdmin } = require('./auth-middleware');
+const servicePricing = require('./public/service-pricing');
+const { createServicePriceStore } = require('./service-prices');
+const { loadMessageBox } = require('./message-box');
 console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
@@ -51,6 +54,7 @@ const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
 const COMM_DATA_FILE = path.join(__dirname, 'data', 'community.json');
 const TECH_DATA_FILE = path.join(__dirname, 'data', 'tech.json');
 const PROJECTS_DATA_FILE = path.join(__dirname, 'data', 'projects.json');
+const servicePrices = createServicePriceStore();
 
 app.disable('x-powered-by');
 
@@ -72,6 +76,12 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' }));
 // Every /api request: verify the Firebase ID token (if sent) and expose it as req.user
 app.use('/api', attachUser);
+// The original Services page (public/services.html) is kept but hidden for now: its addresses open Services 2
+// on the home page instead. On Vercel /services.html is served without reaching this app, so services.html
+// also redirects itself. To show the original page again, remove this redirect and the one in services.html
+app.get(['/services', '/services.html'], (req, res) => {
+    res.redirect(302, '/#services2');
+});
 app.use(express.static(path.join(__dirname, 'public'), {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
@@ -531,12 +541,54 @@ app.delete('/api/projects/:id', requireAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
+// SERVICE PRICES API (Services 2)
+// Admins enter prices in USD and AUD; the browser shows AUD to visitors in Australia and USD to everyone else
+// (rule in public/service-pricing.js). Visitor's country from Vercel's IP geolocation, '' when unknown (local)
+function visitorCountry(req) {
+    const code = String(req.headers['x-vercel-ip-country'] || '').trim().toUpperCase();
+    return /^[A-Z]{2}$/.test(code) ? code : '';
+}
+
+app.get('/api/services/prices', async (req, res) => {
+    try {
+        const saved = await servicePrices.read();
+        // The answer depends on the visitor's country, so it must never be cached and shared
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json({ country: visitorCountry(req), prices: saved.prices, updatedAt: saved.updatedAt });
+    } catch (e) {
+        console.error('[Service Prices] Read error:', e);
+        sendServerError(res, e);
+    }
+});
+
+// Replaces every price (blank boxes are saved as null)
+app.put('/api/services/prices', requireAdmin, async (req, res) => {
+    const input = req.body && req.body.prices;
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+        return res.status(400).json({ error: 'prices is required.' });
+    }
+    const { prices, errors } = servicePricing.cleanPrices(input);
+    if (errors.length) {
+        return res.status(400).json({ error: errors[0].message, errors });
+    }
+    try {
+        const saved = await servicePrices.save(prices, req.user.email);
+        if (!saved.firestore && !saved.file) {
+            return res.status(503).json({ error: 'The database could not be reached, so the prices were not saved. Please try again.' });
+        }
+        res.json({ success: true, prices, updatedAt: saved.updatedAt, savedToDatabase: saved.firestore });
+    } catch (e) {
+        console.error('[Service Prices] Save error:', e);
+        sendServerError(res, e);
+    }
+});
+
 // PROJECTS PAGE ROUTE
 app.get('/projects', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'projects.html'));
 });
 
-// SERVICES PAGE ROUTE
+// SERVICES PAGE ROUTE (not reached while the redirect above express.static hides the original page)
 app.get('/services', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'services.html'));
 });
@@ -1120,10 +1172,6 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
             conversationId,
             userMessage,
             message,
-            tag,
-            businessId,
-            businessName,
-            source,
             hasUploads
         } = req.body;
 
@@ -1142,14 +1190,18 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
         const senderEmail = req.user.email;
         const senderName = req.user.name || req.body.senderName || '';
         const senderPhoto = req.user.picture || '';
-        const senderRole = req.user.isAdmin ? 'superadmin' : 'supporter';
+        const senderRole = req.user.isSuperAdmin ? 'superadmin' : 'supporter';
 
-        // Supporters can only message the SuperAdmin inside their own conversation
-        if (!req.user.isAdmin) {
+        // Anyone signed in (supporters and site admins alike) messages the SuperAdmin in their own conversation.
+        // Only the two SuperAdmins reply into other people's conversations, and only this site's ones
+        // (other apps' threads are read in the Message Box and answered in their own app)
+        if (!req.user.isSuperAdmin) {
             recipientUid = 'superadmin';
             recipientEmail = 'support@aifoundation.net.au';
             recipientName = 'SuperAdmin';
             conversationId = `conv_${senderUid}`;
+        } else if (!/^conv_[A-Za-z0-9_-]+$/.test(String(conversationId || ''))) {
+            return res.status(400).json({ error: 'Replies can only be sent to AI Foundation conversations.' });
         }
 
         const result = await firebaseService.sendChatMessage({
@@ -1163,10 +1215,12 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
             recipientName: recipientName || 'SuperAdmin',
             conversationId: conversationId || `conv_${senderUid}`,
             userMessage: msgText,
-            tag: tag,
-            businessId: businessId,
-            businessName: businessName,
-            source: source
+            // Messages written by this site always carry its own tenant tag (data-contracts.md, Invariant Rule 1),
+            // whatever the request says, so the Message Box shows where each message really came from
+            tag: 'aifoundation',
+            businessId: 'aifoundation',
+            businessName: 'AI Foundation',
+            source: 'aifoundation'
         });
 
         if (!result.success) {
@@ -1191,7 +1245,8 @@ app.get('/api/chat/messages', requireAuth, async (req, res) => {
         const { conversationId, limit = 100 } = req.query;
         const uid = req.user.uid;
         const email = req.user.email;
-        const isSuperAdmin = req.user.isAdmin;
+        // Only the two SuperAdmins read other people's conversations and see tenant tags (Invariant 9.2)
+        const isSuperAdmin = req.user.isSuperAdmin;
 
         // Supporters may only read their own conversation
         const convId = isSuperAdmin ? (conversationId || `conv_${uid}`) : `conv_${uid}`;
@@ -1217,8 +1272,24 @@ app.get('/api/chat/messages', requireAuth, async (req, res) => {
     }
 });
 
+// MESSAGE BOX: every conversation with the SuperAdmin from all tenant apps, each tagged with its tenant
+// (message-box.js). SuperAdmin only, because it spans every app's users (data-contracts.md, Invariants 9.1-9.2)
+app.get('/api/message-box', requireSuperAdmin, async (req, res) => {
+    try {
+        const box = await loadMessageBox();
+        res.setHeader('Cache-Control', 'private, no-store');
+        if (!box) {
+            return res.status(503).json({ error: 'The message database could not be reached. Please try again.' });
+        }
+        res.json(box);
+    } catch (e) {
+        console.error('[Message Box] Error:', e);
+        sendServerError(res, e);
+    }
+});
+
 // Retrieve list of supporter conversations (Admin / SuperAdmin inbox across all tenants)
-app.get('/api/chat/conversations', requireAdmin, async (req, res) => {
+app.get('/api/chat/conversations', requireSuperAdmin, async (req, res) => {
     try {
         const conversations = await firebaseService.getChatConversations();
         res.json({

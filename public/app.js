@@ -134,7 +134,8 @@ const postObserver = new IntersectionObserver((entries) => {
     const menuUploadImageBtn = document.getElementById('menuUploadImageBtn');
     const menuManagePostsBtn = document.getElementById('menuManagePostsBtn');
     const menuDatabaseActivityBtn = document.getElementById('menuDatabaseActivityBtn');
-    
+    const menuServicePricesBtn = document.getElementById('menuServicePricesBtn');
+
     // Supporter Register Details Modal Elements
     const userDetailsModal = document.getElementById('userDetailsModal');
     const closeUserDetailsBtn = document.getElementById('closeUserDetailsBtn');
@@ -188,10 +189,11 @@ const postObserver = new IntersectionObserver((entries) => {
     const SUPER_ADMIN_TABS = [
         { id: 'admin-register-details', icon: 'fa-solid fa-id-card', title: 'Register Your Details' },
         { id: 'admin-settings-overview', icon: 'fa-solid fa-sliders', title: 'Settings & Admin Panel' },
-        { id: 'admin-supporter-chat', icon: 'fa-solid fa-comments', title: 'Supporter Messages' },
+        { id: 'admin-supporter-chat', icon: 'fa-solid fa-comments', title: 'Message Box' },
         { id: 'admin-upload-post', icon: 'fa-solid fa-upload', title: 'Upload Content' },
         { id: 'admin-upload-image', icon: 'fa-solid fa-cloud-arrow-up', title: 'Upload Image' },
         { id: 'admin-manage-posts', icon: 'fa-solid fa-list-check', title: 'Manage Posts' },
+        { id: 'admin-services-pricing', icon: 'fa-solid fa-tags', title: 'Services & Pricing' },
         { id: 'admin-database-activity', icon: 'fa-solid fa-database', title: 'Database Activity' }
     ];
 
@@ -201,12 +203,54 @@ const postObserver = new IntersectionObserver((entries) => {
         { id: 'supporter-tab-donate', icon: 'fa-solid fa-heart', title: 'Donation Option', iconColor: '#ef4444' }
     ];
 
+    // Administration & Settings menu order: the sections clicked most in this browser come first, and
+    // sections with equal clicks (or none yet) are alphabetical. Re-sorted each time the panel opens,
+    // so items never move while being clicked
+    const ADMIN_TAB_USE_KEY = 'aifoundation_admin_tab_clicks';
+
+    function getAdminTabUse() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(ADMIN_TAB_USE_KEY) || '{}');
+            return stored && typeof stored === 'object' ? stored : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function recordAdminTabUse(targetId) {
+        if (!SUPER_ADMIN_TABS.some(tab => tab.id === targetId)) return;
+        try {
+            const counts = getAdminTabUse();
+            counts[targetId] = (Number(counts[targetId]) || 0) + 1;
+            localStorage.setItem(ADMIN_TAB_USE_KEY, JSON.stringify(counts));
+        } catch (e) {
+            // Private browsing or blocked storage: the menu stays alphabetical
+        }
+    }
+
+    function sortedAdminTabs() {
+        const counts = getAdminTabUse();
+        const uses = tab => Number(counts[tab.id]) || 0;
+        return [...SUPER_ADMIN_TABS].sort((a, b) => uses(b) - uses(a) || a.title.localeCompare(b.title));
+    }
+
+    function sortAdminSidebar() {
+        const list = document.getElementById('adminSuperTabs');
+        if (!list) return;
+        const order = sortedAdminTabs().map(tab => tab.id);
+        [...list.querySelectorAll('.sidebar-item')]
+            .sort((a, b) => order.indexOf(a.dataset.target) - order.indexOf(b.dataset.target))
+            .forEach(item => list.appendChild(item));
+    }
+
     // Mobile Collapsible Top Menu Helpers
     function renderMobileMenuItems(isSuperAdmin) {
         const list = document.getElementById('adminMobileItemsList');
         if (!list) return;
 
-        const tabs = isSuperAdmin ? SUPER_ADMIN_TABS : SUPPORTER_TABS;
+        // Only tabs this page has (the hidden original services.html has no Services & Pricing tab)
+        const tabs = (isSuperAdmin ? sortedAdminTabs() : SUPPORTER_TABS).filter(tab => document.getElementById(tab.id));
+        list.dataset.menu = isSuperAdmin ? 'admin' : 'supporter';
         list.innerHTML = tabs.map(tab => `
             <li class="admin-mobile-menu-item" data-target="${tab.id}">
                 <div class="admin-mobile-item-left">
@@ -357,10 +401,10 @@ const postObserver = new IntersectionObserver((entries) => {
             mobileSelect.value = targetId;
         }
 
-        // Show matching content pane
+        // Show matching content pane (a tab can ask for another display type with data-display, e.g. flex)
         const adminTabContents = document.querySelectorAll('.admin-tab-content');
         adminTabContents.forEach(content => {
-            content.style.display = content.id === targetId ? 'block' : 'none';
+            content.style.display = content.id === targetId ? (content.dataset.display || 'block') : 'none';
         });
 
         const currentUser = window.firebaseService?.getCurrentUser?.();
@@ -371,7 +415,9 @@ const postObserver = new IntersectionObserver((entries) => {
         } else if (targetId === 'admin-database-activity') {
             if (typeof loadDatabaseRecentInputs === 'function') loadDatabaseRecentInputs();
         } else if (targetId === 'admin-supporter-chat') {
-            if (typeof loadAdminChatConversations === 'function') loadAdminChatConversations();
+            if (typeof loadMessageBox === 'function') loadMessageBox();
+        } else if (targetId === 'admin-services-pricing') {
+            if (typeof loadAdminServicePrices === 'function') loadAdminServicePrices();
         } else if (targetId === 'supporter-tab-chat') {
             if (currentUser && typeof loadSupporterChatMessages === 'function') {
                 loadSupporterChatMessages(currentUser.uid);
@@ -536,16 +582,18 @@ const postObserver = new IntersectionObserver((entries) => {
                 panelFooterRoleBadge.innerHTML = '<i class="fa-solid fa-crown"></i> SuperAdmin';
             }
 
+            sortAdminSidebar();
             renderMobileMenuItems(true);
 
             if (mobileSelect) {
                 mobileSelect.innerHTML = `
                     <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
                     <option value="admin-settings-overview">Settings &amp; Admin Panel</option>
-                    <option value="admin-supporter-chat">Supporter Messages</option>
+                    <option value="admin-supporter-chat">Message Box</option>
                     <option value="admin-upload-post">Upload Content</option>
                     <option value="admin-upload-image">Upload Image</option>
                     <option value="admin-manage-posts">Manage Posts</option>
+                    <option value="admin-services-pricing">Services &amp; Pricing</option>
                     <option value="admin-database-activity">Database Activity</option>
                 `;
             }
@@ -632,6 +680,7 @@ const postObserver = new IntersectionObserver((entries) => {
             if (item) {
                 const targetId = item.getAttribute('data-target');
                 if (targetId) {
+                    if (adminMobileItemsList.dataset.menu === 'admin') recordAdminTabUse(targetId);
                     switchAdminTab(targetId);
                 }
             }
@@ -657,6 +706,7 @@ const postObserver = new IntersectionObserver((entries) => {
             const item = e.target.closest('.sidebar-item');
             if (item) {
                 const targetId = item.getAttribute('data-target');
+                if (targetId && item.closest('#adminSuperTabs')) recordAdminTabUse(targetId);
                 if (targetId) switchAdminTab(targetId);
             }
         });
@@ -696,7 +746,10 @@ const postObserver = new IntersectionObserver((entries) => {
     document.querySelectorAll('.admin-overview-card').forEach(card => {
         card.addEventListener('click', () => {
             const jumpTarget = card.getAttribute('data-jump');
-            if (jumpTarget) switchAdminTab(jumpTarget);
+            if (jumpTarget) {
+                recordAdminTabUse(jumpTarget);
+                switchAdminTab(jumpTarget);
+            }
         });
     });
 
@@ -767,6 +820,25 @@ const postObserver = new IntersectionObserver((entries) => {
                 closeAdminPanel();
             }
         });
+        // The page behind stays still while the panel is open. Several places show and hide the panel,
+        // so follow its display style rather than each open/close call
+        new MutationObserver(() => {
+            document.documentElement.classList.toggle('admin-panel-open', adminModal.style.display === 'flex');
+        }).observe(adminModal, { attributes: true, attributeFilter: ['style'] });
+
+        // The panel's scrollbars are hidden, so fade its bottom edge while there's more to scroll to.
+        // Re-checked on scroll, resize, tab switches, list updates and image loads
+        const adminContentPane = adminModal.querySelector('.admin-panel-content-pane');
+        if (adminContentPane) {
+            const updateScrollCue = () => {
+                const moreBelow = adminContentPane.scrollHeight - adminContentPane.scrollTop - adminContentPane.clientHeight > 4;
+                adminContentPane.classList.toggle('has-more-below', moreBelow);
+            };
+            adminContentPane.addEventListener('scroll', updateScrollCue, { passive: true });
+            adminContentPane.addEventListener('load', updateScrollCue, true);
+            new ResizeObserver(updateScrollCue).observe(adminContentPane);
+            new MutationObserver(updateScrollCue).observe(adminContentPane, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+        }
     }
 
     // Wire up Supporter Register Details Modal Actions
@@ -938,6 +1010,9 @@ const postObserver = new IntersectionObserver((entries) => {
     }
     if (menuDatabaseActivityBtn) {
         menuDatabaseActivityBtn.addEventListener('click', () => openAdminSettings('admin-database-activity'));
+    }
+    if (menuServicePricesBtn) {
+        menuServicePricesBtn.addEventListener('click', () => openAdminSettings('admin-services-pricing'));
     }
 
 
@@ -1382,8 +1457,6 @@ const postObserver = new IntersectionObserver((entries) => {
     const chatStatusAlert = document.getElementById('chatStatusAlert');
 
     let supporterChatPollTimer = null;
-    let currentAdminActiveConvId = null;
-    let currentAdminActiveSupporter = null;
 
     function escapeHtmlChat(str) {
         if (!str) return '';
@@ -1654,223 +1727,285 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     // =========================================================================
-    // Admin Supporter Chat Inbox (SuperAdmin Panel Tab)
+    // Message Box (SuperAdmin panel tab): every conversation with the SuperAdmin from all tenant apps, each
+    // tagged with the app it came from (GET /api/message-box). Search and the app filter run in the browser.
+    // Admins who aren't SuperAdmins get their own conversation with the SuperAdmin here instead
     // =========================================================================
     const adminThreadsList = document.getElementById('adminThreadsList');
     const adminThreadCount = document.getElementById('adminThreadCount');
     const adminNoThreadSelected = document.getElementById('adminNoThreadSelected');
     const adminThreadConversationView = document.getElementById('adminThreadConversationView');
-    const adminThreadAvatar = document.getElementById('adminThreadAvatar');
     const adminThreadUserName = document.getElementById('adminThreadUserName');
     const adminThreadUserEmail = document.getElementById('adminThreadUserEmail');
+    const adminThreadTenantBadge = document.getElementById('adminThreadTenantBadge');
+    const messageBoxThreadSubject = document.getElementById('messageBoxThreadSubject');
     const adminThreadFeed = document.getElementById('adminThreadFeed');
     const adminReplyForm = document.getElementById('adminReplyForm');
     const adminReplyInput = document.getElementById('adminReplyInput');
     const adminSendReplyBtn = document.getElementById('adminSendReplyBtn');
     const adminRefreshChatBtn = document.getElementById('adminRefreshChatBtn');
+    const messageBoxToolbar = document.getElementById('messageBoxToolbar');
+    const messageBoxSearch = document.getElementById('messageBoxSearch');
+    const messageBoxTenants = document.getElementById('messageBoxTenants');
+    const messageBoxReadOnlyNote = document.getElementById('messageBoxReadOnlyNote');
+    const messageBoxLayout = document.querySelector('#admin-supporter-chat .admin-chat-layout');
+    const messageBoxReplyBanner = adminReplyForm ? adminReplyForm.parentElement.querySelector('.chat-constraints-banner') : null;
+    const messageBoxRetentionTag = document.querySelector('#admin-supporter-chat .admin-thread-retention-tag');
 
-    async function loadAdminChatConversations() {
-        if (!adminThreadsList) return;
+    let messageBoxConversations = [];
+    let messageBoxTenantList = [];
+    let messageBoxTenant = 'all';
+    let messageBoxActiveKey = null;
+    let messageBoxPersonal = false;
 
-        try {
-            const currentUser = window.firebaseService?.getCurrentUser?.();
-            const authParams = currentUser ? `?uid=${encodeURIComponent(currentUser.uid)}&email=${encodeURIComponent(currentUser.email || '')}` : '';
-            const res = await fetch(`/api/chat/conversations${authParams}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            const conversations = data.conversations || [];
-
-            if (adminThreadCount) adminThreadCount.textContent = conversations.length;
-
-            if (conversations.length === 0) {
-                adminThreadsList.innerHTML = `
-                    <div style="padding: 24px 12px; text-align: center; color: #94a3b8; font-size: 0.85rem;">
-                        <i class="fa-solid fa-inbox" style="font-size: 1.8rem; color: #cbd5e1; margin-bottom: 8px; display: block;"></i>
-                        No supporter messages yet.
-                    </div>
-                `;
-                if (!currentAdminActiveConvId) {
-                    if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'flex';
-                    if (adminThreadConversationView) adminThreadConversationView.style.display = 'none';
-                }
-                return;
-            }
-
-            adminThreadsList.innerHTML = conversations.map(c => {
-                const isActive = c.conversationId === currentAdminActiveConvId;
-                const activeClass = isActive ? 'admin-thread-item active' : 'admin-thread-item';
-                const timeStr = formatChatTimestamp(c.lastMessageAt);
-                const tenantTag = c.tag || 'aifoundation';
-
-                return `
-                    <div class="${activeClass}" data-conv-id="${escapeHtml(c.conversationId)}" data-supporter-uid="${escapeHtml(c.supporterUid)}" data-supporter-name="${escapeHtmlChat(c.supporterName)}" data-supporter-email="${escapeHtmlChat(c.supporterEmail)}" data-tenant-tag="${escapeHtmlChat(tenantTag)}">
-                        <div class="admin-thread-top">
-                            <span class="admin-thread-name">${escapeHtmlChat(c.supporterName)}</span>
-                            <span class="admin-thread-time">${timeStr}</span>
-                        </div>
-                        <div class="admin-thread-email-row">
-                            <span class="admin-thread-email">${escapeHtmlChat(c.supporterEmail)}</span>
-                            <span class="tenant-badge tag-${escapeHtmlChat(tenantTag)}" title="Tenant: ${escapeHtmlChat(tenantTag)} (SuperAdmin only)">
-                                <i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tenantTag)}
-                            </span>
-                        </div>
-                        <div class="admin-thread-preview">${escapeHtmlChat(c.lastMessage)}</div>
-                    </div>
-                `;
-            }).join('');
-
-            // Wire up click handlers on thread items
-            adminThreadsList.querySelectorAll('.admin-thread-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const convId = item.dataset.convId;
-                    const supporterUid = item.dataset.supporterUid;
-                    const supporterName = item.dataset.supporterName;
-                    const supporterEmail = item.dataset.supporterEmail;
-                    const tag = item.dataset.tenantTag || 'aifoundation';
-
-                    selectAdminThread(convId, { supporterUid, supporterName, supporterEmail, tag });
-                });
-            });
-
-            // If an active thread is selected, refresh its messages
-            if (currentAdminActiveConvId) {
-                await loadAdminThreadMessages(currentAdminActiveConvId, true);
-            }
-
-        } catch (err) {
-            console.warn('[Admin Chat Conversations] Notice:', err.message);
-        }
+    // Tenant badge, coloured per app (style.css); apps without their own colour get the neutral badge
+    function tenantBadgeHtml(tag) {
+        const cssTag = String(tag || 'unknown').toLowerCase().replace(/[^a-z0-9-]/g, '');
+        return `<span class="tenant-badge tag-${cssTag}" title="From the ${escapeHtmlChat(tag)} app"><i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tag)}</span>`;
     }
 
-    async function selectAdminThread(convId, supporterInfo) {
-        currentAdminActiveConvId = convId;
-        currentAdminActiveSupporter = supporterInfo;
+    function messageBoxPersonName(c) {
+        return c.counterpart.name || c.counterpart.email || 'Unknown sender';
+    }
 
-        // Highlight selected thread item
-        if (adminThreadsList) {
-            adminThreadsList.querySelectorAll('.admin-thread-item').forEach(el => {
-                el.classList.toggle('active', el.dataset.convId === convId);
-            });
+    // Shown when its app matches the filter and every search word appears in its app, sender, subject or messages
+    function messageBoxMatches(c, words) {
+        if (messageBoxTenant !== 'all' && c.tenant !== messageBoxTenant) return false;
+        const haystack = [c.tenant, c.counterpart.name, c.counterpart.email, c.subject,
+            ...c.messages.map(m => `${m.senderName} ${m.subject} ${m.text}`)].join(' ').toLowerCase();
+        return words.every(word => haystack.includes(word));
+    }
+
+    function renderMessageBoxTenants() {
+        if (!messageBoxTenants) return;
+        const chip = (tag, label, count) => `
+            <button type="button" class="message-box-chip${messageBoxTenant === tag ? ' active' : ''}" data-tenant="${escapeHtmlChat(tag)}" aria-pressed="${messageBoxTenant === tag}">
+                ${label} <span class="message-box-chip-count">${count}</span>
+            </button>`;
+        messageBoxTenants.innerHTML = chip('all', 'All apps', messageBoxConversations.length) +
+            messageBoxTenantList.map(t => chip(t.tag, escapeHtmlChat(t.tag), t.conversations)).join('');
+    }
+
+    function renderMessageBoxList() {
+        if (!adminThreadsList) return;
+        const words = (messageBoxSearch ? messageBoxSearch.value : '').toLowerCase().split(/\s+/).filter(Boolean);
+        const shown = messageBoxConversations.filter(c => messageBoxMatches(c, words));
+        if (adminThreadCount) {
+            adminThreadCount.textContent = shown.length === messageBoxConversations.length
+                ? String(shown.length) : `${shown.length} of ${messageBoxConversations.length}`;
         }
+        if (!shown.length) {
+            adminThreadsList.innerHTML = `
+                <div class="message-box-empty">
+                    <i class="fa-solid fa-inbox"></i>
+                    ${messageBoxConversations.length ? 'No conversations match.' : 'No messages yet.'}
+                </div>`;
+            return;
+        }
+        adminThreadsList.innerHTML = shown.map(c => `
+            <div class="admin-thread-item${c.key === messageBoxActiveKey ? ' active' : ''}" data-key="${escapeHtmlChat(c.key)}" role="button" tabindex="0">
+                <div class="admin-thread-top">
+                    <span class="admin-thread-name">${escapeHtmlChat(messageBoxPersonName(c))}</span>
+                    <span class="admin-thread-time">${formatChatTimestamp(c.lastMessageAt)}</span>
+                </div>
+                <div class="admin-thread-email-row">
+                    <span class="admin-thread-email">${escapeHtmlChat(c.counterpart.email)}</span>
+                    ${tenantBadgeHtml(c.tenant)}
+                </div>
+                ${c.subject ? `<div class="admin-thread-subject">${escapeHtmlChat(c.subject)}</div>` : ''}
+                <div class="admin-thread-preview">${c.lastFromSuperAdmin ? '<strong>You:</strong> ' : ''}${escapeHtmlChat(c.preview)}</div>
+            </div>`).join('');
+    }
 
+    // items: [{ mine, senderName, role, subject, text, createdAt }], oldest first
+    function renderMessageBoxFeed(items, tenant) {
+        if (!adminThreadFeed) return;
+        const cssTag = String(tenant || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+        adminThreadFeed.innerHTML = items.map(m => `
+            <div class="chat-message-row ${m.mine ? 'sent' : 'received'}">
+                <div class="chat-avatar-icon"${m.role ? ' style="background: #004ecc;"' : ''}><i class="fa-solid ${m.role ? 'fa-shield-halved' : 'fa-user'}"></i></div>
+                <div class="chat-bubble">
+                    <div class="chat-bubble-sender">
+                        <span>${escapeHtmlChat(m.mine ? 'You' : (m.senderName || 'Sender'))}</span>
+                        ${m.role ? `<span class="role-tag">${escapeHtmlChat(m.role)}</span>` : ''}
+                        ${tenant ? `<span class="chat-tenant-tag-badge tag-${cssTag}"><i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tenant)}</span>` : ''}
+                    </div>
+                    ${m.subject ? `<div class="chat-bubble-subject">${escapeHtmlChat(m.subject)}</div>` : ''}
+                    <div class="chat-bubble-text">${renderMessageWithLinks(m.text)}</div>
+                    <div class="chat-bubble-footer"><span>${formatChatTimestamp(m.createdAt)}</span></div>
+                </div>
+            </div>`).join('');
+        adminThreadFeed.scrollTop = adminThreadFeed.scrollHeight;
+    }
+
+    // Only this site's conversations take a reply here; other apps' threads say where to answer instead
+    function setMessageBoxReplyState(c) {
+        const canReply = messageBoxPersonal || Boolean(c && c.replyable);
+        if (adminReplyForm) adminReplyForm.style.display = canReply ? '' : 'none';
+        if (messageBoxReplyBanner) messageBoxReplyBanner.style.display = canReply ? '' : 'none';
+        if (!messageBoxReadOnlyNote) return;
+        messageBoxReadOnlyNote.style.display = canReply ? 'none' : 'block';
+        if (canReply || !c) return;
+        const email = c.counterpart.email;
+        const mailto = email ? `mailto:${email}${c.subject ? `?subject=${encodeURIComponent(`Re: ${c.subject}`)}` : ''}` : '';
+        messageBoxReadOnlyNote.innerHTML = `<i class="fa-solid fa-circle-info"></i> This conversation belongs to the <strong>${escapeHtmlChat(c.tenant)}</strong> app, so reply there` +
+            (email ? `, or by email to <a href="${escapeHtmlChat(mailto)}">${escapeHtmlChat(email)}</a>.` : '.');
+    }
+
+    function openMessageBoxConversation(key) {
+        const c = messageBoxConversations.find(conv => conv.key === key);
+        if (!c) return;
+        messageBoxActiveKey = key;
+        if (adminThreadsList) {
+            adminThreadsList.querySelectorAll('.admin-thread-item').forEach(el => el.classList.toggle('active', el.dataset.key === key));
+        }
         if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'none';
         if (adminThreadConversationView) adminThreadConversationView.style.display = 'flex';
-
-        if (adminThreadUserName) adminThreadUserName.textContent = supporterInfo.supporterName || 'Supporter';
-        if (adminThreadUserEmail) adminThreadUserEmail.textContent = supporterInfo.supporterEmail || '';
-
-        // Display tenant badge in SuperAdmin thread header
-        const headerBadge = document.getElementById('adminThreadTenantBadge');
-        if (headerBadge) {
-            const tag = supporterInfo.tag || 'aifoundation';
-            headerBadge.innerHTML = `<i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tag)}`;
-            headerBadge.className = `tenant-badge tag-${escapeHtmlChat(tag)}`;
-            headerBadge.style.display = 'inline-flex';
+        if (adminThreadUserName) adminThreadUserName.textContent = messageBoxPersonName(c);
+        if (adminThreadUserEmail) adminThreadUserEmail.textContent = c.counterpart.email || '';
+        if (adminThreadTenantBadge) adminThreadTenantBadge.innerHTML = tenantBadgeHtml(c.tenant);
+        // The 7-year retention is this site's policy; other apps keep their own records
+        if (messageBoxRetentionTag) messageBoxRetentionTag.style.display = c.tenant === 'aifoundation' ? '' : 'none';
+        if (messageBoxThreadSubject) {
+            messageBoxThreadSubject.textContent = c.subject;
+            messageBoxThreadSubject.hidden = !c.subject;
         }
-
-        await loadAdminThreadMessages(convId);
+        renderMessageBoxFeed(c.messages.map(m => ({ ...m, mine: m.fromSuperAdmin, role: m.fromSuperAdmin ? 'SuperAdmin' : '' })), c.tenant);
+        setMessageBoxReplyState(c);
     }
 
-    async function loadAdminThreadMessages(convId, isBackground = false) {
-        if (!convId || !adminThreadFeed) return;
+    function setMessageBoxPersonal(personal) {
+        messageBoxPersonal = personal;
+        if (messageBoxLayout) messageBoxLayout.classList.toggle('is-personal', personal);
+        if (messageBoxToolbar) messageBoxToolbar.hidden = personal;
+        const intro = document.getElementById('messageBoxIntro');
+        if (intro && personal) intro.textContent = 'Your conversation with the SuperAdmin. Write below and the SuperAdmin will reply here.';
+        if (adminReplyInput) {
+            adminReplyInput.placeholder = personal
+                ? 'Write to the SuperAdmin... (links allowed, no file uploads)'
+                : 'Reply as SuperAdmin... (links allowed, no file uploads)';
+        }
+    }
 
+    // Signed in but not a SuperAdmin (e.g. a site admin): their own conversation with the SuperAdmin
+    async function loadPersonalMessageBox() {
+        setMessageBoxPersonal(true);
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        const uid = currentUser ? currentUser.uid : '';
         try {
-            const currentUser = window.firebaseService?.getCurrentUser?.();
-            const authParams = currentUser ? `&uid=${encodeURIComponent(currentUser.uid)}&email=${encodeURIComponent(currentUser.email || '')}` : '';
-            const res = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(convId)}${authParams}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            const messages = data.messages || [];
-
-            adminThreadFeed.innerHTML = messages.map(msg => {
-                const isAdminSender = msg.senderRole === 'super_admin' || msg.senderRole === 'admin';
-                const rowClass = isAdminSender ? 'chat-message-row sent' : 'chat-message-row received';
-                const senderTitle = isAdminSender ? 'SuperAdmin (You)' : (msg.senderName || 'Supporter');
-                const avatarIcon = isAdminSender ? '<div class="chat-avatar-icon" style="background: #004ecc;"><i class="fa-solid fa-shield-halved"></i></div>' : '<div class="chat-avatar-icon"><i class="fa-solid fa-user"></i></div>';
-                const retentionDateStr = formatRetentionUntilDate(msg.retainedUntil);
-                const tag = msg.tag || (currentAdminActiveSupporter?.tag) || 'aifoundation';
-
-                return `
-                    <div class="${rowClass}">
-                        ${avatarIcon}
-                        <div class="chat-bubble">
-                            <div class="chat-bubble-sender">
-                                <span>${escapeHtml(senderTitle)}</span>
-                                <span class="role-tag">${escapeHtml(msg.senderRole || (isAdminSender ? 'Admin' : 'Supporter'))}</span>
-                                <span class="chat-tenant-tag-badge tag-${escapeHtmlChat(tag)}" title="Tenant Tag (SuperAdmin Only)">
-                                    <i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tag)}
-                                </span>
-                            </div>
-                            <div class="chat-bubble-text">${renderMessageWithLinks(msg.userMessage)}</div>
-                            <div class="chat-bubble-footer">
-                                <span>${formatChatTimestamp(msg.createdAt || msg.timestamp)}</span>
-                                <span class="retention-tag-mini">
-                                    <i class="fa-solid fa-clock-rotate-left"></i> Retained 7 yrs (until ${retentionDateStr})
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Scroll feed to bottom
-            adminThreadFeed.scrollTop = adminThreadFeed.scrollHeight;
-
+            const res = await fetch('/api/chat/messages');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'none';
+            if (adminThreadConversationView) adminThreadConversationView.style.display = 'flex';
+            if (adminThreadUserName) adminThreadUserName.textContent = 'SuperAdmin';
+            if (adminThreadUserEmail) adminThreadUserEmail.textContent = 'Your messages to the SuperAdmin';
+            if (adminThreadTenantBadge) adminThreadTenantBadge.innerHTML = '';
+            if (messageBoxRetentionTag) messageBoxRetentionTag.style.display = '';
+            if (messageBoxThreadSubject) messageBoxThreadSubject.hidden = true;
+            const items = (data.messages || []).map(m => {
+                const mine = m.senderUid === uid;
+                return { mine, senderName: mine ? '' : 'SuperAdmin', role: mine ? '' : 'SuperAdmin', text: m.userMessage, createdAt: m.createdAt || m.timestamp };
+            });
+            renderMessageBoxFeed(items, '');
+            if (!items.length && adminThreadFeed) {
+                adminThreadFeed.innerHTML = '<div class="message-box-empty"><i class="fa-solid fa-paper-plane"></i> No messages yet. Write to the SuperAdmin below.</div>';
+            }
+            setMessageBoxReplyState(null);
         } catch (err) {
-            console.warn('[Admin Thread Fetch Error]:', err.message);
+            console.warn('[Message Box] Could not load your conversation:', err.message);
         }
     }
 
-    // SuperAdmin Reply Form Submission
+    async function loadMessageBox() {
+        if (!adminThreadsList) return;
+        if (messageBoxPersonal) return loadPersonalMessageBox();
+        try {
+            const res = await fetch('/api/message-box');
+            if (res.status === 403) return loadPersonalMessageBox();
+            if (res.status === 404) throw new Error('the server is running an older version without the Message Box, so restart or redeploy it');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            messageBoxConversations = data.conversations || [];
+            messageBoxTenantList = data.tenants || [];
+            if (!messageBoxTenantList.some(t => t.tag === messageBoxTenant)) messageBoxTenant = 'all';
+            renderMessageBoxTenants();
+            renderMessageBoxList();
+            if (messageBoxActiveKey && messageBoxConversations.some(c => c.key === messageBoxActiveKey)) {
+                openMessageBoxConversation(messageBoxActiveKey);
+            } else {
+                messageBoxActiveKey = null;
+                if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'flex';
+                if (adminThreadConversationView) adminThreadConversationView.style.display = 'none';
+            }
+        } catch (err) {
+            console.warn('[Message Box] Could not load messages:', err.message);
+            adminThreadsList.innerHTML = `<div class="message-box-empty"><i class="fa-solid fa-triangle-exclamation"></i> Could not load messages (${escapeHtmlChat(err.message)}). Use Refresh to try again.</div>`;
+        }
+    }
+
+    if (adminThreadsList) {
+        adminThreadsList.addEventListener('click', (e) => {
+            const item = e.target.closest('.admin-thread-item');
+            if (item) openMessageBoxConversation(item.dataset.key);
+        });
+        adminThreadsList.addEventListener('keydown', (e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.admin-thread-item')) {
+                e.preventDefault();
+                openMessageBoxConversation(e.target.dataset.key);
+            }
+        });
+    }
+    if (messageBoxSearch) {
+        messageBoxSearch.addEventListener('input', renderMessageBoxList);
+    }
+    if (messageBoxTenants) {
+        messageBoxTenants.addEventListener('click', (e) => {
+            const chip = e.target.closest('.message-box-chip');
+            if (!chip) return;
+            messageBoxTenant = chip.dataset.tenant;
+            renderMessageBoxTenants();
+            renderMessageBoxList();
+        });
+    }
+
+    // Reply (SuperAdmin, this site's conversations) or write to the SuperAdmin (everyone else). The server
+    // decides which from the signed-in account, so the recipient fields only matter for a SuperAdmin's reply
     if (adminReplyForm) {
         adminReplyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentAdminActiveConvId || !currentAdminActiveSupporter) return;
-
             const replyText = (adminReplyInput?.value || '').trim();
             if (!replyText) return;
-
-            const currentUser = window.firebaseService?.getCurrentUser?.();
+            const c = messageBoxConversations.find(conv => conv.key === messageBoxActiveKey);
+            if (!messageBoxPersonal && !(c && c.replyable)) return;
 
             if (adminSendReplyBtn) {
                 adminSendReplyBtn.disabled = true;
                 adminSendReplyBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
             }
-
             try {
+                const body = messageBoxPersonal ? { userMessage: replyText } : {
+                    userMessage: replyText,
+                    conversationId: c.conversationId,
+                    recipientUid: c.counterpart.uid,
+                    recipientEmail: c.counterpart.email,
+                    recipientName: c.counterpart.name
+                };
                 const res = await fetch('/api/chat/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        senderUid: currentUser?.uid || 'superadmin',
-                        senderEmail: currentUser?.email || 'support@aifoundation.net.au',
-                        senderName: 'SuperAdmin',
-                        senderRole: 'super_admin',
-                        recipientUid: currentAdminActiveSupporter.supporterUid,
-                        recipientEmail: currentAdminActiveSupporter.supporterEmail,
-                        recipientName: currentAdminActiveSupporter.supporterName,
-                        conversationId: currentAdminActiveConvId,
-                        tag: currentAdminActiveSupporter.tag || 'aifoundation',
-                        userMessage: replyText,
-                        hasUploads: false
-                    })
+                    body: JSON.stringify(body)
                 });
-
-                const data = await res.json();
-                if (!res.ok || !data.success) {
-                    throw new Error(data.error || 'Failed to send reply.');
-                }
-
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) throw new Error(data.error || 'Failed to send.');
                 if (adminReplyInput) adminReplyInput.value = '';
-                await loadAdminThreadMessages(currentAdminActiveConvId);
-                await loadAdminChatConversations();
-
+                await loadMessageBox();
             } catch (err) {
-                alert('Could not send reply: ' + (err.message || 'Please try again.'));
+                alert('Could not send: ' + (err.message || 'Please try again.'));
             } finally {
                 if (adminSendReplyBtn) {
                     adminSendReplyBtn.disabled = false;
-                    adminSendReplyBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Reply</span>';
+                    adminSendReplyBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Send</span>';
                 }
             }
         });
@@ -1878,7 +2013,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
     if (adminRefreshChatBtn) {
         adminRefreshChatBtn.addEventListener('click', () => {
-            loadAdminChatConversations();
+            loadMessageBox();
         });
     }
 
@@ -1896,6 +2031,205 @@ const postObserver = new IntersectionObserver((entries) => {
     if (adminMobileTabSelect) {
         adminMobileTabSelect.addEventListener('change', (e) => {
             switchAdminTab(e.target.value);
+        });
+    }
+
+    // ==========================================
+    // Services 2: prices set in the admin panel (Services & Pricing tab).
+    // Visitors in Australia see AUD (USD when no AUD price is set); everyone else sees USD.
+    // The service list, validation and currency rule come from service-pricing.js, shared with the server
+    // ==========================================
+    const servicePriceBoxes = document.querySelectorAll('[data-service-price]');
+    const servicePricesForm = document.getElementById('servicePricesForm');
+    const servicePricesRows = document.getElementById('servicePricesRows');
+    const servicePricesSaveBtn = document.getElementById('servicePricesSaveBtn');
+    const servicePricesStatus = document.getElementById('servicePricesStatus');
+    const servicePricesUpdated = document.getElementById('servicePricesUpdated');
+    let servicePricesData = null; // last answer from /api/services/prices: { country, prices, updatedAt }
+
+    // The server's IP geolocation decides; when it can't tell (local development), the location bar's place does
+    function serviceVisitorCountry() {
+        if (servicePricesData && servicePricesData.country) return servicePricesData.country;
+        const place = window.SitePrefs ? window.SitePrefs.getLocation() : null;
+        return place && place.countryCode ? place.countryCode : '';
+    }
+
+    function servicePriceAmountHtml(price, suffix) {
+        if (!price) return '<span class="service-price-amount service-price-on-request">Price on request</span>';
+        const text = escapeHtml(window.ServicePricing.formatPrice(price));
+        return `<span class="service-price-amount">${text}${suffix ? `<small>${escapeHtml(suffix)}</small>` : ''}</span>`;
+    }
+
+    function renderServicePrices() {
+        const pricing = window.ServicePricing;
+        if (!pricing) {
+            servicePriceBoxes.forEach(box => { box.hidden = true; });
+            return;
+        }
+        const country = serviceVisitorCountry();
+        servicePriceBoxes.forEach(box => {
+            const service = pricing.SERVICES.find(s => s.id === box.getAttribute('data-service-price'));
+            if (!service) return;
+            const saved = (servicePricesData && servicePricesData.prices && servicePricesData.prices[service.id]) || {};
+            const lines = service.parts.map(part => ({ part, price: pricing.resolvePrice(saved[part.key], country) }));
+            const name = `<span class="service-price-name">${escapeHtml(service.name)}</span>`;
+            if (lines.length > 1 && lines.some(line => line.price)) {
+                // e.g. AI Agent Hosting: the setup price and the monthly price on their own lines
+                box.innerHTML = name + lines.map(({ part, price }) => `
+                    <span class="service-price-line">
+                        <span class="service-price-label">${escapeHtml(part.label)}</span>
+                        ${servicePriceAmountHtml(price, part.suffix)}
+                    </span>`).join('');
+            } else {
+                box.innerHTML = `${name} ${servicePriceAmountHtml(lines[0].price, lines[0].part.suffix)}`;
+            }
+            box.classList.remove('is-loading');
+        });
+    }
+
+    async function loadServicePrices() {
+        if (!servicePriceBoxes.length) return;
+        try {
+            const res = await fetch('/api/services/prices');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            servicePricesData = await res.json();
+        } catch (e) {
+            console.warn('[Service Prices] Could not load prices:', e.message);
+        }
+        renderServicePrices();
+    }
+
+    function setServicePricesStatus(message, type = 'info') {
+        if (!servicePricesStatus) return;
+        servicePricesStatus.style.display = message ? 'block' : 'none';
+        servicePricesStatus.className = `service-prices-status is-${type}`;
+        servicePricesStatus.textContent = message || '';
+    }
+
+    function showServicePricesUpdated(updatedAt) {
+        if (!servicePricesUpdated) return;
+        const date = updatedAt ? new Date(updatedAt) : null;
+        servicePricesUpdated.textContent = date && !isNaN(date.getTime())
+            ? `Last saved ${window.SitePrefs ? window.SitePrefs.formatDateTime(date) : date.toLocaleString()}`
+            : 'No prices saved yet';
+    }
+
+    // A 404 means the server is still running code from before Services & Pricing existed, which retrying won't fix
+    function servicePricesRequestError(res, data) {
+        if (res.status === 404) return new Error('the server is running an older version without Services & Pricing, so restart or redeploy it first');
+        return new Error(String(data.error || `HTTP ${res.status}`).replace(/\.$/, ''));
+    }
+
+    // Box text for a saved amount: "1500", or "1499.95" when it has cents
+    function servicePriceBoxValue(amount) {
+        if (typeof amount !== 'number') return '';
+        return Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+    }
+
+    function renderAdminServicePricesForm(prices) {
+        const pricing = window.ServicePricing;
+        if (!pricing || !servicePricesRows) return;
+        servicePricesRows.innerHTML = pricing.SERVICES.map(service => {
+            const saved = (prices && prices[service.id]) || {};
+            return `
+            <div class="service-prices-card" role="group" aria-labelledby="servicePricesName-${escapeHtml(service.id)}">
+                <h3 class="service-prices-name" id="servicePricesName-${escapeHtml(service.id)}">${escapeHtml(service.name)}</h3>
+                ${service.parts.map(part => `
+                <div class="service-prices-row">
+                    ${service.parts.length > 1 ? `<span class="service-prices-part">${escapeHtml(part.label)}</span>` : ''}
+                    ${pricing.CURRENCIES.map(currency => `
+                    <label class="service-prices-field">
+                        <span class="service-prices-currency">${currency.code} $</span>
+                        <input type="text" inputmode="decimal" autocomplete="off"
+                            data-service="${escapeHtml(service.id)}" data-part="${escapeHtml(part.key)}" data-currency="${escapeHtml(currency.key)}"
+                            value="${escapeHtml(servicePriceBoxValue(saved[part.key] && saved[part.key][currency.key]))}"
+                            placeholder="${currency.key === 'aud' ? 'Uses USD price' : 'Not set'}"
+                            aria-label="${escapeHtml(`${service.name}, ${part.label}, ${currency.name}`)}">
+                    </label>`).join('')}
+                </div>`).join('')}
+            </div>`;
+        }).join('');
+    }
+
+    async function loadAdminServicePrices() {
+        if (!servicePricesRows || !window.ServicePricing) return;
+        // Saving stays off until the saved prices are shown, so a failed load can't blank them
+        if (servicePricesSaveBtn) servicePricesSaveBtn.disabled = true;
+        servicePricesRows.innerHTML = '';
+        setServicePricesStatus('Loading saved prices...');
+        try {
+            const res = await fetch('/api/services/prices');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw servicePricesRequestError(res, data);
+            servicePricesData = data;
+            renderAdminServicePricesForm(data.prices);
+            showServicePricesUpdated(data.updatedAt);
+            setServicePricesStatus('');
+            if (servicePricesSaveBtn) servicePricesSaveBtn.disabled = false;
+        } catch (e) {
+            setServicePricesStatus(`Could not load the saved prices: ${e.message}. Then open Services & Pricing again.`, 'error');
+        }
+    }
+
+    if (servicePricesRows) {
+        // Clear a box's error highlight once it is edited
+        servicePricesRows.addEventListener('input', (e) => {
+            const field = e.target.closest('.service-prices-field');
+            if (field) field.classList.remove('is-invalid');
+        });
+    }
+
+    if (servicePricesForm) {
+        servicePricesForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pricing = window.ServicePricing;
+            if (!pricing || !servicePricesSaveBtn || servicePricesSaveBtn.disabled) return;
+
+            const prices = {};
+            let firstInvalid = null;
+            servicePricesRows.querySelectorAll('input[data-service]').forEach(input => {
+                const amount = pricing.parseAmount(input.value);
+                const invalid = Number.isNaN(amount);
+                input.closest('.service-prices-field').classList.toggle('is-invalid', invalid);
+                input.setAttribute('aria-invalid', String(invalid));
+                if (invalid && !firstInvalid) firstInvalid = input;
+                const { service, part, currency } = input.dataset;
+                prices[service] = prices[service] || {};
+                prices[service][part] = prices[service][part] || {};
+                prices[service][part][currency] = invalid ? null : amount;
+            });
+            if (firstInvalid) {
+                setServicePricesStatus('Check the highlighted boxes: enter amounts like 1500 or 1,499.95 (above 0, up to 1,000,000), or leave a box blank.', 'error');
+                firstInvalid.focus();
+                return;
+            }
+
+            servicePricesSaveBtn.disabled = true;
+            servicePricesSaveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+            setServicePricesStatus('');
+            try {
+                const res = await fetch('/api/services/prices', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prices })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw servicePricesRequestError(res, data);
+                servicePricesData = { ...servicePricesData, prices: data.prices, updatedAt: data.updatedAt };
+                renderAdminServicePricesForm(data.prices);
+                showServicePricesUpdated(data.updatedAt);
+                renderServicePrices();
+                if (data.savedToDatabase) {
+                    setServicePricesStatus('Prices saved. The Services page shows them now.', 'ok');
+                } else {
+                    setServicePricesStatus('Saved to this server\'s data file only: the database could not be reached, so the live site will not show these prices.', 'error');
+                }
+            } catch (err) {
+                setServicePricesStatus(`Could not save the prices: ${err.message}.`, 'error');
+            } finally {
+                servicePricesSaveBtn.disabled = false;
+                servicePricesSaveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save Prices';
+            }
         });
     }
 
@@ -1924,6 +2258,8 @@ const postObserver = new IntersectionObserver((entries) => {
         if (allCommunityPosts.length) renderCommunityPosts();
         const managePosts = document.getElementById('admin-manage-posts');
         if (managePosts && managePosts.style.display === 'block') renderAdminAllPosts();
+        // A new location can change the currency when the server couldn't tell the visitor's country
+        if (servicePricesData) renderServicePrices();
     });
 
     const DELETED_IDS_KEY = 'aifoundation_deleted_items';
@@ -2930,7 +3266,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
         const targetSection = document.getElementById(targetId);
         if (targetSection) {
-            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services') ? 'flex' : 'block';
+            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services' || targetId === 'section-services2') ? 'flex' : 'block';
         }
     }
     window.activateSection = activateSection;
@@ -2969,8 +3305,9 @@ const postObserver = new IntersectionObserver((entries) => {
         let targetId = null;
         if (hash === 'projects') {
             targetId = 'section-projects';
-        } else if (hash === 'services') {
-            targetId = 'section-services';
+        } else if (hash === 'services' || hash === 'services2') {
+            // The original Services section is hidden for now, so #services opens Services 2 too
+            targetId = 'section-services2';
         } else if (hash === 'education' || hash === 'classroom') {
             targetId = 'section-education';
         } else if (hash === 'david' || hash === 'contact') {
@@ -3527,4 +3864,5 @@ const postObserver = new IntersectionObserver((entries) => {
     loadProjects();
     loadCommunityPosts();
     loadTechPosts();
+    loadServicePrices();
 });

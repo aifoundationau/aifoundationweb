@@ -869,39 +869,35 @@ p { margin: 0; }
   scroll-behavior: smooth;
 }
 
-/* Custom Visible Scrollbars */
-.admin-panel-content-pane::-webkit-scrollbar,
-.admin-panel-sidebar::-webkit-scrollbar,
-.modal-content::-webkit-scrollbar,
-.modal::-webkit-scrollbar {
-  width: 8px;
+/* Admin panel: no visible scrollbars. Its areas still scroll with the wheel, trackpad, touch and keyboard */
+#adminModal,
+#adminModal * {
+  scrollbar-width: none;
 }
-.admin-panel-content-pane::-webkit-scrollbar-track,
-.admin-panel-sidebar::-webkit-scrollbar-track,
-.modal-content::-webkit-scrollbar-track,
-.modal::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 999px;
-}
-.admin-panel-content-pane::-webkit-scrollbar-thumb,
-.admin-panel-sidebar::-webkit-scrollbar-thumb,
-.modal-content::-webkit-scrollbar-thumb,
-.modal::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 999px;
-  border: 2px solid #f1f5f9;
-}
-.admin-panel-content-pane::-webkit-scrollbar-thumb:hover,
-.admin-panel-sidebar::-webkit-scrollbar-thumb:hover,
-.modal-content::-webkit-scrollbar-thumb:hover,
-.modal::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+#adminModal::-webkit-scrollbar,
+#adminModal *::-webkit-scrollbar {
+  display: none;
 }
 
-.admin-panel-content-pane,
-.admin-panel-sidebar {
-  scrollbar-width: thin;
-  scrollbar-color: #94a3b8 #f1f5f9;
+/* Without a scrollbar, a soft fade along the bottom shows there's more to scroll to. app.js adds
+   .has-more-below only while content continues below the visible area */
+#adminModal .admin-panel-content-pane.has-more-below::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: block;
+  height: 36px;
+  margin-top: -36px;
+  background: linear-gradient(rgba(255, 255, 255, 0), #ffffff);
+  pointer-events: none;
+}
+
+/* While the admin panel is open the page behind it doesn't scroll, so the page's scrollbar goes too
+   (app.js adds the class) */
+html.admin-panel-open,
+html.admin-panel-open body {
+  overflow: hidden;
 }
 
 .admin-form {
@@ -2004,6 +2000,213 @@ p { margin: 0; }
   gap: 24px;
 }
 
+/* Services 2: price box above each card's button, filled in by app.js.
+   margin-top: auto keeps the price and button together at the bottom of the card */
+.service-price {
+  margin-top: auto;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.service-price + .service-action-btn {
+  margin-top: 0;
+}
+.service-price-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+.service-price-amount {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+.service-price-amount small {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #64748b;
+}
+.service-price-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.service-price-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+.service-price-line .service-price-amount {
+  margin-left: auto; /* stays right-aligned when it wraps under its label on narrow cards */
+  font-size: 1.1rem;
+}
+.service-price .service-price-on-request {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #64748b;
+}
+/* Placeholder bars while prices load */
+.service-price.is-loading::before,
+.service-price.is-loading::after {
+  content: '';
+  display: block;
+  border-radius: 6px;
+  background: #e2e8f0;
+}
+.service-price.is-loading::before {
+  width: 35%;
+  height: 10px;
+}
+.service-price.is-loading::after {
+  width: 50%;
+  height: 22px;
+}
+
+/* Admin panel: Services & Pricing tab. Cards sit two across when the panel is wide enough (laptops) */
+.service-prices-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+.service-prices-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.service-prices-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+/* The USD and AUD boxes side by side, under the part's label when a service has several prices */
+.service-prices-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 10px;
+}
+.service-prices-part {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+.service-prices-field {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.service-prices-field:focus-within {
+  border-color: #0066ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+.service-prices-field.is-invalid {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+.service-prices-currency {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  border-right: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.service-prices-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+.service-prices-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 16px;
+}
+.service-prices-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  background: #0066ff;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2);
+}
+.service-prices-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.service-prices-updated {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+.service-prices-status {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.service-prices-status.is-ok {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+.service-prices-status.is-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.service-prices-status.is-info {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+/* Phones: one box per line, so amounts and hints have room */
+@media (max-width: 600px) {
+  .service-prices-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
 /* ==========================================================================
    Navigation Actions & Firebase Google Auth Component (Replaces Settings Button)
    ========================================================================== */
@@ -2469,16 +2672,16 @@ p { margin: 0; }
 
 @media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
   body:not(.device-android):not(.device-ipad):not(.device-ios):not(.admin-touch-device) #adminModal:not(.mobile-tablet-mode) .admin-panel-sidebar {
-    width: 250px !important;
+    width: 228px !important;
     flex-shrink: 0 !important;
     border-right: 1px solid #e2e8f0 !important;
     background: #f8fafc !important;
-    padding: 18px 14px !important;
+    padding: 12px 8px !important;
     overflow-y: auto !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 8px !important;
+    gap: 4px !important;
   }
 }
 
@@ -2602,6 +2805,192 @@ p { margin: 0; }
   border-color: #0066ff !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 6px 18px rgba(0, 102, 255, 0.12) !important;
+}
+
+/* Settings & Admin Panel quick-jump cards: four across on laptops, fewer on narrower panels */
+.admin-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ==========================================================================
+   Admin panel on laptops and desktops: a little smaller than the screen and compact, so each tab fits
+   a typical laptop screen (e.g. 1536x700 at 125% scaling) without scrolling. Tabs use the width for
+   columns rather than growing taller. Phones and tablets keep their own layout (.mobile-tablet-mode)
+   ========================================================================== */
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
+  #adminModal:not(.mobile-tablet-mode) {
+    padding: 24px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .modal-content {
+    max-width: 1040px !important;
+    height: calc(100vh - 48px) !important;
+    height: calc(100dvh - 48px) !important;
+    max-height: 800px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-topbar {
+    padding: 10px 18px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-close-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  #adminModal:not(.mobile-tablet-mode) .close {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 1.1rem !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-footer {
+    padding: 8px 18px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .panel-signout-btn {
+    padding: 7px 14px !important;
+    font-size: 0.82rem !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-sidebar-section-title {
+    padding: 4px 8px 8px;
+    margin-bottom: 2px;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-sidebar .sidebar-item {
+    gap: 9px;
+    padding: 8px 10px;
+    font-size: 0.84rem;
+    line-height: 1.3;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-content-pane {
+    padding: 18px 24px !important;
+  }
+
+  /* Tab headings and the overview's cards (their sizes are inline styles in the HTML) */
+  #adminModal:not(.mobile-tablet-mode) .admin-tab-content h2 {
+    font-size: 1.15rem !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) #admin-settings-overview > div:first-child,
+  #adminModal:not(.mobile-tablet-mode) #admin-register-details > div:first-child {
+    margin-bottom: 14px !important;
+  }
+  /* Keeps the "SuperAdmin Active" badge beside the overview heading rather than wrapping under it */
+  #adminModal:not(.mobile-tablet-mode) #admin-settings-overview > div:first-child > div {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+  /* Register Your Details: three fields across, so a slightly smaller font keeps a full email visible */
+  #adminModal:not(.mobile-tablet-mode) #userDetailsForm input {
+    font-size: 0.88rem !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-overview-card {
+    padding: 14px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-overview-card > div:first-child {
+    width: 34px !important;
+    height: 34px !important;
+    margin-bottom: 10px !important;
+    font-size: 15px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-overview-card strong {
+    font-size: 0.92rem !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) #admin-settings-overview > div:last-child {
+    padding: 14px 18px !important;
+  }
+
+  /* Upload Image */
+  #adminModal:not(.mobile-tablet-mode) #admin-upload-image .admin-form {
+    padding: 18px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) #directImgbbDropzone {
+    padding: 22px 16px !important;
+  }
+
+  /* Database Activity */
+  #adminModal:not(.mobile-tablet-mode) .db-filters-card {
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  #adminModal:not(.mobile-tablet-mode) .db-stats-row {
+    margin-bottom: 12px;
+  }
+  #adminModal:not(.mobile-tablet-mode) .db-stat-card {
+    padding: 10px 12px;
+  }
+  #adminModal:not(.mobile-tablet-mode) .db-stat-num {
+    font-size: 1.25rem;
+  }
+
+  /* Message Box: the tab fills the panel and the inbox takes the height left under the heading and the
+     search row (which wraps when there are many apps) */
+  #adminModal:not(.mobile-tablet-mode) .admin-chat-header-bar {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+  #adminModal:not(.mobile-tablet-mode) #admin-supporter-chat {
+    height: 100%;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-chat-layout {
+    flex: 1;
+    height: auto;
+    min-height: 280px;
+  }
+}
+
+/* Shorter laptop screens (e.g. 1366x768, or 1080p at 150% scaling): less margin around the panel, tighter
+   spacing, and the overview cards show their titles without the one-line descriptions */
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine) and (max-height: 680px) {
+  #adminModal:not(.mobile-tablet-mode) {
+    padding: 16px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .modal-content {
+    height: calc(100vh - 32px) !important;
+    height: calc(100dvh - 32px) !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-content-pane {
+    padding: 16px 22px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-overview-card small {
+    display: none !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-overview-card strong {
+    margin-bottom: 0 !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) #admin-settings-overview > div:last-child {
+    padding: 12px 16px !important;
+  }
+}
+
+/* Very short laptop screens (e.g. 1080p at 150% scaling with toolbars): the panel nearly fills the window */
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine) and (max-height: 620px) {
+  #adminModal:not(.mobile-tablet-mode) {
+    padding: 10px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .modal-content {
+    height: calc(100vh - 20px) !important;
+    height: calc(100dvh - 20px) !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-topbar {
+    padding: 8px 16px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-footer {
+    padding: 6px 16px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .admin-panel-content-pane {
+    padding: 14px 20px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) #admin-services-pricing > div:first-child {
+    margin-bottom: 12px !important;
+  }
+  #adminModal:not(.mobile-tablet-mode) .service-prices-card {
+    padding: 11px 14px;
+  }
+  #adminModal:not(.mobile-tablet-mode) .service-prices-row {
+    margin-top: 8px;
+  }
+  #adminModal:not(.mobile-tablet-mode) .service-prices-actions {
+    margin-top: 12px;
+  }
 }
 
 .admin-logout-action-btn {
@@ -2927,6 +3316,33 @@ p { margin: 0; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+/* Register Your Details (admin panel tab): fields sit side by side when there's room (three across on
+   laptops), one per line on phones. Grid gaps replace the fields' inline margins */
+#userDetailsForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-items: start;
+  gap: 14px 16px;
+}
+#userDetailsForm > div,
+#userDetailsForm .supporter-address-box > div {
+  margin: 0 !important;
+}
+#userDetailsForm > .supporter-address-box,
+#userDetailsForm > #userFormStatusMsg,
+#userDetailsForm > div:last-child {
+  grid-column: 1 / -1;
+}
+#userDetailsForm .supporter-address-box {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 14px;
+  padding: 14px 16px;
+}
+#userDetailsForm .supporter-address-header {
+  grid-column: 1 / -1;
 }
 
 @media (max-width: 480px) {
@@ -3998,6 +4414,153 @@ p { margin: 0; }
   display: flex;
   gap: 10px;
   align-items: flex-end;
+}
+
+/* Message Box tab: heading, search row and inbox stacked (app.js shows it as flex via data-display) */
+#admin-supporter-chat {
+  flex-direction: column;
+}
+
+/* Message Box: search and app (tenant) filter above the conversations */
+.message-box-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 12px;
+}
+.message-box-toolbar[hidden] {
+  display: none;
+}
+.message-box-search {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+.message-box-search:focus-within {
+  border-color: #0066ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+.message-box-search i {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.message-box-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+.message-box-tenants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.message-box-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.message-box-chip:hover {
+  border-color: #bfdbfe;
+  color: #0f172a;
+}
+.message-box-chip.active {
+  background: #0066ff;
+  border-color: #0066ff;
+  color: #ffffff;
+}
+.message-box-chip-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  font-size: 0.72rem;
+  text-align: center;
+}
+.message-box-chip.active .message-box-chip-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Message Box: subjects (LMS messages have them), thread header, empty and read-only states */
+.admin-thread-subject {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.message-box-thread-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.message-box-thread-subject {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+}
+.chat-bubble-subject {
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.message-box-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.message-box-empty i {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.6rem;
+  color: #cbd5e1;
+}
+.message-box-readonly-note {
+  padding: 10px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.message-box-readonly-note a {
+  color: #0066ff;
+  font-weight: 600;
+}
+
+/* An admin who isn't a SuperAdmin sees just their own conversation with the SuperAdmin */
+.admin-chat-layout.is-personal {
+  grid-template-columns: 1fr;
+}
+.admin-chat-layout.is-personal .admin-chat-threads-sidebar {
+  display: none;
 }
 
 /* ==========================================================================

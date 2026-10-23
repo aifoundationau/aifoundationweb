@@ -4,6 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Original Services page, kept but hidden for now: it sends visitors to Services 2 on the home page.
+         Vercel serves this file directly, so the redirect in server.js can't catch it. To show this page
+         again, remove the next two lines and that redirect -->
+    <script>location.replace('/#services2');</script>
+    <noscript><meta http-equiv="refresh" content="0; url=/#services2"></noscript>
     <title>Services &amp; Capabilities - AI Foundation Australia</title>
     <link rel="stylesheet" href="style.css?v=44">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">

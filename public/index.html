@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Foundation Australia - Social & Web Updates</title>
-    <link rel="stylesheet" href="style.css?v=44">
+    <link rel="stylesheet" href="style.css?v=48">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -105,8 +105,8 @@
                                         <button type="button" class="dropdown-item" id="menuAdminChatInboxBtn">
                                             <span class="item-icon-wrap" style="background: rgba(16, 185, 129, 0.1); color: #10b981;"><i class="fa-solid fa-inbox"></i></span>
                                             <div class="item-text">
-                                                <strong>Supporter Messages</strong>
-                                                <small>Inbox &amp; conversation threads</small>
+                                                <strong>Message Box</strong>
+                                                <small>Messages from every app</small>
                                             </div>
                                         </button>
                                     </li>
@@ -134,6 +134,15 @@
                                             <div class="item-text">
                                                 <strong>Manage Posts</strong>
                                                 <small>Review &amp; delete published entries</small>
+                                            </div>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item" id="menuServicePricesBtn">
+                                            <span class="item-icon-wrap"><i class="fa-solid fa-tags"></i></span>
+                                            <div class="item-text">
+                                                <strong>Services &amp; Pricing</strong>
+                                                <small>Service prices in USD &amp; AUD</small>
                                             </div>
                                         </button>
                                     </li>
@@ -182,7 +191,7 @@
                         <i class="fa-solid fa-layer-group"></i>
                         <span>Projects</span>
                     </li>
-                    <li class="sidebar-item" data-target="section-services">
+                    <li class="sidebar-item" data-target="section-services2">
                         <i class="fa-solid fa-briefcase"></i>
                         <span>Services</span>
                     </li>
@@ -284,7 +293,9 @@
                 </div>
             </div>
 
-            <!-- Services Section -->
+            <!-- Services Section (original): hidden for now. The Services menu item, #services and #services2 open
+                 Services 2 below instead. To show it again, point the Services menu item back to section-services
+                 and map #services to it in handleHash (app.js) -->
             <div id="section-services" class="content-section" style="display: none; flex-direction: column; gap: 32px;">
                 <!-- Services Hero Card -->
                 <div class="services-hero-card">
@@ -428,6 +439,133 @@
                         </ul>
                         <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Community%20Partnerships" class="service-action-btn" style="background: #f0fdf4; color: #16a34a;">
                             Partner With Us <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Call to Action Banner -->
+                <div class="service-cta-box">
+                    <div>
+                        <h3 style="font-size: 1.4rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Ready to Transform Your Organization?</h3>
+                        <p style="margin: 0; font-size: 0.95rem; color: #475569; max-width: 540px; line-height: 1.5;">
+                            Speak directly with our technical convenors and AI architects to map out a concrete implementation roadmap.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="#david" onclick="document.querySelector('[data-target=\'section-david\']')?.click();" style="background: #0066ff; color: white; padding: 14px 24px; border-radius: 12px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-envelope"></i> Contact Us
+                        </a>
+                        <a href="https://www.linkedin.com/company/aifoundationaus/" target="_blank" rel="noopener noreferrer" style="background: white; color: #0f172a; padding: 14px 20px; border-radius: 12px; font-weight: 600; text-decoration: none; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fa-brands fa-linkedin" style="color: #0a66c2;"></i> LinkedIn
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services 2 Section (opened by the Services menu item, #services2 and #services) -->
+            <div id="section-services2" class="content-section" style="display: none; flex-direction: column; gap: 32px;">
+                <!-- Services Hero Card -->
+                <div class="services-hero-card">
+                    <div class="services-hero-badge">
+                        <i class="fa-solid fa-sparkles"></i> AI Foundation Australia &bull; Strategic Capability
+                    </div>
+                    <h1 class="services-hero-title">Empowering Industry, Education &amp; Community Services</h1>
+                    <p class="services-hero-desc">
+                        We deliver agnostic-agentic artificial intelligence architectures, bespoke autonomous agent workflows, enterprise data pipelines, and certified workforce upskilling.
+                    </p>
+                </div>
+
+                <!-- Services Grid (4 services). Prices come from the admin panel (Services & Pricing) via app.js -->
+                <div class="services-grid">
+                    <!-- Service 1: 30 Day Roadmap -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #eff6ff; color: #0066ff;">
+                                <i class="fa-solid fa-route"></i>
+                            </div>
+                            <span class="service-pill" style="background: #eff6ff; color: #0066ff;">AI Consultancy &amp; Scale</span>
+                        </div>
+                        <h3 class="service-title">Google AI Strategy &amp; First-Month Plan</h3>
+                        <p class="service-desc">
+                            Mapping out a 30-day AI rollout for sole traders, contractors, and growing teams. Eliminate repetitive admin, client triage, scheduling, and document processing using the Google ecosystem.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> First-month AI implementation &amp; Google Gemini roadmap</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Google Workspace integration and custom API connectors</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Secure Google Cloud Platform / private workspace deployment</li>
+                        </ul>
+                        <div class="service-price is-loading" data-service-price="30-day-roadmap"></div>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%2030%20Day%20Roadmap" class="service-action-btn" style="background: #eff6ff; color: #0066ff;">
+                            Enquire About Consultancy <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 2: Regulatory Roadmap -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #fff1f2; color: #e11d48;">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <span class="service-pill" style="background: #fff1f2; color: #e11d48;">Community Impact</span>
+                        </div>
+                        <h3 class="service-title">Regional Education &amp; AI Literacy</h3>
+                        <p class="service-desc">
+                            Bridging the digital divide across regional Australia and Southeast Asia. We deliver open educational platforms, subsidized training, and grassroots community learning.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Regulatory verification &amp; algorithmic auditing</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Organizational AI governance policy formulation</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Privacy preservation &amp; compliance assurance</li>
+                        </ul>
+                        <div class="service-price is-loading" data-service-price="regulatory-roadmap"></div>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Regulatory%20Roadmap" class="service-action-btn" style="background: #fff1f2; color: #e11d48;">
+                            Consult Governance <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 3: Stack Selection -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #f5f3ff; color: #7c3aed;">
+                                <i class="fa-solid fa-toolbox"></i>
+                            </div>
+                            <span class="service-pill" style="background: #f5f3ff; color: #7c3aed;">Advisory &amp; Selection</span>
+                        </div>
+                        <h3 class="service-title">AI Tool Selection &amp; Governance Advisory</h3>
+                        <p class="service-desc">
+                            Specialized strategic counsel for high-compliance environments across medical regulatory frameworks, academic integrity, and corporate governance. We advise on the exact AI tools required.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> High-precision AI tool evaluation &amp; stack selection</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Multimodal workflow, software &amp; platform vetting</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> On-premise air-gapped / secure cloud tool compliance</li>
+                        </ul>
+                        <div class="service-price is-loading" data-service-price="stack-selection"></div>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Stack%20Selection" class="service-action-btn" style="background: #f5f3ff; color: #7c3aed;">
+                            Select Your Tools <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Service 4: AI Agent Hosting (setup price + monthly servicing price) -->
+                    <div class="service-card">
+                        <div class="service-card-top">
+                            <div class="service-icon-box" style="background: #ecfdf5; color: #10b981;">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <span class="service-pill" style="background: #ecfdf5; color: #10b981;">Agent Operations</span>
+                        </div>
+                        <h3 class="service-title">Managed AI Agent Hosting &amp; Maintenance</h3>
+                        <p class="service-desc">
+                            Convert fragmented workflows, institutional tasks, and live operations into reliable, self-sustaining AI agents with zero downtime and continuous performance monitoring.
+                        </p>
+                        <ul class="service-features-list">
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Managed AI agent hosting &amp; infrastructure setup</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Custom agent programming &amp; prompt optimization</li>
+                            <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Continuous monitoring, safety &amp; system maintenance</li>
+                        </ul>
+                        <div class="service-price is-loading" data-service-price="ai-agent-hosting"></div>
+                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20AI%20Agent%20Hosting" class="service-action-btn" style="background: #ecfdf5; color: #10b981;">
+                            Deploy Your Agent <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
                 </div>
@@ -737,7 +875,7 @@
                             <li class="admin-mobile-menu-item" data-target="admin-supporter-chat">
                                 <div class="admin-mobile-item-left">
                                     <i class="fa-solid fa-comments"></i>
-                                    <span>Supporter Messages</span>
+                                    <span>Message Box</span>
                                 </div>
                                 <i class="fa-solid fa-check active-check"></i>
                             </li>
@@ -762,6 +900,13 @@
                                 </div>
                                 <i class="fa-solid fa-check active-check"></i>
                             </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-services-pricing">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-tags"></i>
+                                    <span>Services &amp; Pricing</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
                             <li class="admin-mobile-menu-item" data-target="admin-database-activity">
                                 <div class="admin-mobile-item-left">
                                     <i class="fa-solid fa-database"></i>
@@ -776,10 +921,11 @@
                     <select id="adminMobileTabSelect" class="admin-mobile-nav-select sr-only" aria-label="Select Admin Section" style="display: none;">
                         <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
                         <option value="admin-settings-overview" selected>Settings &amp; Admin Panel</option>
-                        <option value="admin-supporter-chat">Supporter Messages</option>
+                        <option value="admin-supporter-chat">Message Box</option>
                         <option value="admin-upload-post">Upload Content</option>
                         <option value="admin-upload-image">Upload Image</option>
                         <option value="admin-manage-posts">Manage Posts</option>
+                        <option value="admin-services-pricing">Services &amp; Pricing</option>
                         <option value="admin-database-activity">Database Activity</option>
                     </select>
                 </div>
@@ -801,9 +947,9 @@
                                     <i class="fa-solid fa-sliders"></i>
                                     <span>Settings &amp; Admin Panel</span>
                                 </li>
-                                <li class="sidebar-item" data-target="admin-supporter-chat" title="Supporter Messages & Chat Threads">
+                                <li class="sidebar-item" data-target="admin-supporter-chat" title="Messages to the SuperAdmin from every app">
                                     <i class="fa-solid fa-comments"></i>
-                                    <span>Supporter Messages</span>
+                                    <span>Message Box</span>
                                 </li>
                                 <li class="sidebar-item" data-target="admin-upload-post" title="Publish new articles & projects">
                                     <i class="fa-solid fa-upload"></i>
@@ -816,6 +962,10 @@
                                 <li class="sidebar-item" data-target="admin-manage-posts" title="Review & delete published entries">
                                     <i class="fa-solid fa-list-check"></i>
                                     <span>Manage Posts</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-services-pricing" title="Service prices in USD & AUD">
+                                    <i class="fa-solid fa-tags"></i>
+                                    <span>Services &amp; Pricing</span>
                                 </li>
                                 <li class="sidebar-item" data-target="admin-database-activity" title="Multi-tenant recent inputs">
                                     <i class="fa-solid fa-database"></i>
@@ -864,7 +1014,7 @@
                                 <span class="db-live-badge"><i class="fa-solid fa-circle"></i> SuperAdmin Active</span>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                            <div class="admin-overview-grid">
                                 <div class="admin-overview-card" data-jump="admin-upload-post" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
                                     <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(0, 102, 255, 0.1); color: #0066ff; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
                                         <i class="fa-solid fa-upload"></i>
@@ -877,8 +1027,8 @@
                                     <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
                                         <i class="fa-solid fa-comments"></i>
                                     </div>
-                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Supporter Messages</strong>
-                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Inbox &amp; conversation threads</small>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Message Box</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Messages from every app</small>
                                 </div>
 
                                 <div class="admin-overview-card" data-jump="admin-upload-image" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
@@ -895,6 +1045,14 @@
                                     </div>
                                     <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Manage Posts</strong>
                                     <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Review &amp; delete published entries</small>
+                                </div>
+
+                                <div class="admin-overview-card" data-jump="admin-services-pricing" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
+                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(225, 29, 72, 0.1); color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px;">
+                                        <i class="fa-solid fa-tags"></i>
+                                    </div>
+                                    <strong style="display: block; font-size: 1rem; color: #0f172a; margin-bottom: 4px;">Services &amp; Pricing</strong>
+                                    <small style="color: #64748b; font-size: 0.82rem; line-height: 1.4; display: block;">Service prices in USD &amp; AUD</small>
                                 </div>
 
                                 <div class="admin-overview-card" data-jump="admin-database-activity" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.2s;">
@@ -1262,6 +1420,31 @@
                             </div>
                         </div>
 
+                        <!-- Services & Pricing Section (prices shown on Services 2) -->
+                        <div id="admin-services-pricing" class="admin-tab-content" style="display: none;">
+                            <div style="margin-bottom: 20px;">
+                                <h2 style="font-size: 1.25rem; margin: 0 0 6px; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-tags" style="color: #0066ff;"></i>
+                                    Services &amp; Pricing
+                                </h2>
+                                <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                    Enter each price in US dollars and Australian dollars. Visitors in Australia see the AUD price, or the USD price when the AUD box is blank. Everyone else sees the USD price. Leave both boxes blank to show &ldquo;Price on request&rdquo;.
+                                </p>
+                            </div>
+                            <form id="servicePricesForm" novalidate>
+                                <div id="servicePricesRows" class="service-prices-rows">
+                                    <!-- One card per service, built by app.js from service-pricing.js -->
+                                </div>
+                                <div class="service-prices-actions">
+                                    <button type="submit" id="servicePricesSaveBtn" class="service-prices-save-btn" disabled>
+                                        <i class="fa-solid fa-check"></i> Save Prices
+                                    </button>
+                                    <span id="servicePricesUpdated" class="service-prices-updated"></span>
+                                </div>
+                                <div id="servicePricesStatus" class="service-prices-status" role="status" style="display: none;"></div>
+                            </form>
+                        </div>
+
                         <!-- Database Explorer Section -->
                         <div id="admin-database-activity" class="admin-tab-content" style="display: none;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 18px;">
@@ -1372,15 +1555,15 @@
                             </div>
                         </div>
 
-                        <!-- Supporter Chat Section (SuperAdmin Inbox) -->
-                        <div id="admin-supporter-chat" class="admin-tab-content" style="display: none;">
+                        <!-- Message Box: SuperAdmin inbox across all tenant apps -->
+                        <div id="admin-supporter-chat" class="admin-tab-content" data-display="flex" style="display: none;">
                             <div class="admin-chat-header-bar">
                                 <div>
                                     <h2 style="font-size: 1.25rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                                        <i class="fa-solid fa-comments" style="color: #004ecc;"></i> Supporter Chat Inbox
+                                        <i class="fa-solid fa-comments" style="color: #004ecc;"></i> Message Box
                                     </h2>
-                                    <p style="font-size: 0.85rem; color: #64748b; margin: 0;">
-                                        Review supporter messages &amp; reply directly. Tag: <code>aifoundation</code> &bull; 7-Year Statutory Retention Enforced.
+                                    <p id="messageBoxIntro" style="font-size: 0.85rem; color: #64748b; margin: 0;">
+                                        Messages to the SuperAdmin from every AI Foundation app. Each conversation's tag shows the app it came from.
                                     </p>
                                 </div>
                                 <button type="button" id="adminRefreshChatBtn" class="admin-refresh-chat-btn">
@@ -1388,11 +1571,20 @@
                                 </button>
                             </div>
 
+                            <!-- Search and app (tenant) filter -->
+                            <div class="message-box-toolbar" id="messageBoxToolbar">
+                                <label class="message-box-search">
+                                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                    <input type="search" id="messageBoxSearch" placeholder="Search names, emails, subjects and messages" aria-label="Search the Message Box" autocomplete="off">
+                                </label>
+                                <div class="message-box-tenants" id="messageBoxTenants" role="group" aria-label="Show conversations from"></div>
+                            </div>
+
                             <div class="admin-chat-layout">
                                 <!-- Conversations List -->
                                 <div class="admin-chat-threads-sidebar">
                                     <div class="admin-threads-header">
-                                        <span>Active Conversations</span>
+                                        <span>Conversations</span>
                                         <span id="adminThreadCount" class="admin-threads-badge">0</span>
                                     </div>
                                     <div class="admin-threads-list" id="adminThreadsList">
@@ -1405,16 +1597,20 @@
                                     <div id="adminNoThreadSelected" class="admin-no-thread-selected">
                                         <i class="fa-solid fa-envelope-open-text"></i>
                                         <h4>Select a conversation</h4>
-                                        <p>Choose a supporter thread on the left to read messages and send replies.</p>
+                                        <p>Choose a conversation on the left to read it. Each one is tagged with the app it came from.</p>
                                     </div>
 
                                     <div id="adminThreadConversationView" style="display: none; height: 100%; flex-direction: column;">
                                         <div class="admin-thread-meta-bar">
                                             <div class="admin-thread-user-info">
                                                 <img id="adminThreadAvatar" referrerpolicy="no-referrer" src="assets/avatar.png" alt="Avatar" class="user-avatar-small" />
-                                                <div>
-                                                    <strong id="adminThreadUserName">Supporter Name</strong>
-                                                    <div id="adminThreadUserEmail" style="font-size: 0.8rem; color: #64748b;">supporter@example.com</div>
+                                                <div style="min-width: 0;">
+                                                    <div class="message-box-thread-title">
+                                                        <strong id="adminThreadUserName"></strong>
+                                                        <span id="adminThreadTenantBadge"></span>
+                                                    </div>
+                                                    <div id="adminThreadUserEmail" style="font-size: 0.8rem; color: #64748b;"></div>
+                                                    <div id="messageBoxThreadSubject" class="message-box-thread-subject" hidden></div>
                                                 </div>
                                             </div>
                                             <div class="admin-thread-retention-tag">
@@ -1428,6 +1624,7 @@
 
                                         <!-- SuperAdmin Reply Composer -->
                                         <div class="admin-thread-reply-wrap">
+                                            <div id="messageBoxReadOnlyNote" class="message-box-readonly-note" style="display: none;"></div>
                                             <div class="chat-constraints-banner mini">
                                                 <span><i class="fa-solid fa-link"></i> Web links permitted</span>
                                                 <span><i class="fa-solid fa-ban"></i> File uploads disabled</span>
@@ -1437,12 +1634,12 @@
                                                     id="adminReplyInput" 
                                                     class="chat-textarea" 
                                                     rows="2" 
-                                                    placeholder="Reply to supporter as SuperAdmin... (Links supported, uploads disabled)"
+                                                    placeholder="Reply as SuperAdmin... (links allowed, no file uploads)"
                                                     maxlength="4000"
                                                     required></textarea>
-                                                <button type="submit" id="adminSendReplyBtn" class="chat-send-btn" title="Send Reply">
+                                                <button type="submit" id="adminSendReplyBtn" class="chat-send-btn" title="Send">
                                                     <i class="fa-solid fa-paper-plane"></i>
-                                                    <span>Reply</span>
+                                                    <span>Send</span>
                                                 </button>
                                             </form>
                                         </div>
@@ -1541,7 +1738,8 @@
     <!-- Payment SDKs -->
     <script src="https://js.stripe.com/v3/"></script>
     <script src="site-locale.js?v=1"></script>
-    <script src="app.js?v=48"></script>
+    <script src="service-pricing.js?v=1"></script>
+    <script src="app.js?v=55"></script>
 </body>
 
 </html>
