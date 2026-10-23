@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test tests/service-pricing.test.js tests/server-routes.test.js tests/message-box.test.js"
+    "test": "node --test tests/service-pricing.test.js tests/server-routes.test.js tests/message-box.test.js tests/token-balances.test.js tests/exchange-rates.test.js"
   },
   "keywords": [],
   "author": "",

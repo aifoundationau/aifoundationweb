@@ -35,12 +35,15 @@ service cloud.firestore {
     // because Firestore rules are OR'd and a broad match would otherwise override these.
     function isProtectedCollection(name) {
       return name in ['users', 'transactions', 'stripe_transactions', 'paypal_transactions',
-                      'chat_interactions', 'system_settings', 'admins', 'content'];
+                      'chat_interactions', 'system_settings', 'admins', 'content',
+                      'token_ledger', 'aifoundation_token_checkouts'];
     }
 
-    // Profile fields that grant privileges; users can never set or change these themselves
+    // Profile fields that grant privileges or hold value; users can never set or change these themselves.
+    // token_balance is the token balance every app shares: only servers change it (service account)
     function privilegedFields() {
-      return ['role', 'status', 'classification', 'isSuperAdmin', 'isAdmin', 'tags'];
+      return ['role', 'status', 'classification', 'isSuperAdmin', 'isAdmin', 'tags',
+              'token_balance', 'token_balance_updated_at'];
     }
 
     // AI Foundation Content (Articles, Projects, Tech, Community)
@@ -59,7 +62,8 @@ service cloud.firestore {
         request.resource.data.get('status', 'supporter') == 'supporter' &&
         request.resource.data.get('isSuperAdmin', false) == false &&
         request.resource.data.get('isAdmin', false) == false &&
-        !request.resource.data.keys().hasAny(['tags'])
+        request.resource.data.get('token_balance', 0) == 0 &&
+        !request.resource.data.keys().hasAny(['tags', 'token_balance_updated_at'])
       );
       allow update: if isSuperAdmin() || (
         isOwner(userId) &&
@@ -92,6 +96,19 @@ service cloud.firestore {
         )
       );
       allow update, delete: if isSuperAdmin();
+    }
+
+    // Token ledger: one entry per change to a token balance (purchase, grant or spend). Users read their own entries;
+    // only servers write them (service account), in the same commit as the balance change
+    match /token_ledger/{entryId} {
+      allow read: if (isAuthenticated() && resource.data.uid == request.auth.uid) || isAdmin();
+      allow write: if false;
+    }
+
+    // Token checkouts not paid yet (Buy Tokens): server only, readable by the owner and admins
+    match /aifoundation_token_checkouts/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if false;
     }
 
     // Admin email lists used for authorization (PII)

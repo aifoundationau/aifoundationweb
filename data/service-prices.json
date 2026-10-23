@@ -2,8 +2,8 @@
   "prices": {
     "30-day-roadmap": {
       "price": {
-        "usd": 2200,
-        "aud": 3300
+        "usd": 1100,
+        "aud": 1100
       }
     },
     "regulatory-roadmap": {
@@ -29,5 +29,5 @@
       }
     }
   },
-  "updatedAt": "2026-10-23T00:02:53.226Z"
+  "updatedAt": "2026-10-23T08:57:42.275Z"
 }

@@ -8,7 +8,7 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
-const { SERVICES } = require('../public/service-pricing');
+const { SERVICES, PRICE_GROUPS } = require('../public/service-pricing');
 
 const root = path.join(__dirname, '..');
 let server;
@@ -32,7 +32,7 @@ before(async () => {
     server = spawn(process.execPath, ['server.js'], {
         cwd: root,
         // Empty credentials turn Firestore off: dotenv never overrides variables that are already set
-        env: { ...process.env, PORT: String(port), FIREBASE_CLIENT_EMAIL: '', FIREBASE_PRIVATE_KEY: '' },
+        env: { ...process.env, PORT: String(port), FIREBASE_CLIENT_EMAIL: '', FIREBASE_PRIVATE_KEY: '', TOKEN_API_ORIGINS: 'https://apps.example.com' },
         stdio: ['ignore', 'pipe', 'pipe']
     });
     server.stderr.on('data', chunk => { serverLog += chunk; });
@@ -64,8 +64,9 @@ test('GET /api/services/prices lists every service and is never cached', async (
     assert.match(res.headers.get('cache-control'), /no-store/);
     const body = await res.json();
     assert.equal(body.country, '');
-    assert.deepEqual(Object.keys(body.prices), SERVICES.map(s => s.id));
+    assert.deepEqual(Object.keys(body.prices), PRICE_GROUPS.map(s => s.id));
     assert.deepEqual(Object.keys(body.prices['ai-agent-hosting']), ['setup', 'monthly']);
+    assert.deepEqual(Object.keys(body.prices.tokens), ['per10']);
     assert.ok(!('updatedBy' in body), 'the admin email is never public');
 });
 
@@ -93,6 +94,64 @@ test('Message Box and chat routes refuse callers without a valid sign-in', async
         const headers = method === 'POST' ? { 'Content-Type': 'application/json' } : {};
         assert.equal((await get(urlPath, { method, headers, body })).status, 401, `${method} ${urlPath} without sign-in`);
         assert.equal((await get(urlPath, { method, headers: { ...headers, ...forged }, body })).status, 401, `${method} ${urlPath} with a forged token`);
+    }
+});
+
+test('token routes refuse callers without a valid sign-in, and the exchange rate needs an admin', async () => {
+    const forged = { Authorization: 'Bearer not-a-real-token' };
+    const routes = [
+        ['GET', '/api/tokens'],
+        ['POST', '/api/tokens/checkout', { tokens: 10 }],
+        ['POST', '/api/tokens/confirm', { sessionId: 'cs_test_a1b2c3' }],
+        ['POST', '/api/tokens/spend', { tokens: 10, app: 'lms', reference: 'order-1' }],
+        ['GET', '/api/tokens/accounts'],
+        ['POST', '/api/tokens/grant', { uid: 'user123', tokens: 10, requestId: 'req-0001-abcd' }],
+        ['GET', '/api/exchange-rates/usd-aud']
+    ];
+    for (const [method, urlPath, payload] of routes) {
+        const body = payload ? JSON.stringify(payload) : undefined;
+        const headers = payload ? { 'Content-Type': 'application/json' } : {};
+        assert.equal((await get(urlPath, { method, headers, body })).status, 401, `${method} ${urlPath} without sign-in`);
+        assert.equal((await get(urlPath, { method, headers: { ...headers, ...forged }, body })).status, 401, `${method} ${urlPath} with a forged token`);
+    }
+});
+
+test('other apps listed in TOKEN_API_ORIGINS may call the balance and spend routes from a browser; no other site may', async () => {
+    const preflight = (urlPath, origin) => get(urlPath, {
+        method: 'OPTIONS',
+        headers: { Origin: origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization,content-type' }
+    });
+    for (const urlPath of ['/api/tokens', '/api/tokens/spend']) {
+        const allowed = await preflight(urlPath, 'https://apps.example.com');
+        assert.equal(allowed.status, 204, urlPath);
+        assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://apps.example.com', urlPath);
+        assert.match(allowed.headers.get('access-control-allow-headers'), /Authorization/, urlPath);
+        assert.equal((await preflight(urlPath, 'https://evil.example.net')).headers.get('access-control-allow-origin'), null, urlPath);
+    }
+    // SuperAdmin routes are never opened to other sites
+    for (const urlPath of ['/api/tokens/grant', '/api/tokens/accounts']) {
+        assert.equal((await preflight(urlPath, 'https://apps.example.com')).headers.get('access-control-allow-origin'), null, urlPath);
+    }
+    const res = await get('/api/tokens', { headers: { Origin: 'https://apps.example.com' } });
+    assert.equal(res.status, 401);
+    assert.equal(res.headers.get('access-control-allow-origin'), 'https://apps.example.com', 'errors are readable by the app too');
+});
+
+test('Buy Tokens is in both panels and Token Accounts in the SuperAdmin panel on every page, with the shared price rules loaded', () => {
+    for (const file of ['index.html', 'projects.html', 'services.html']) {
+        const html = fs.readFileSync(path.join(root, 'public', file), 'utf8');
+        assert.match(html, /<div id="admin-buy-tokens" class="admin-tab-content"/, `${file}: Buy Tokens content`);
+        assert.match(html, /<div id="admin-token-accounts" class="admin-tab-content"/, `${file}: Token Accounts content`);
+        const superTabs = html.slice(html.indexOf('id="adminSuperTabs"'), html.indexOf('id="adminSupporterSidebar"'));
+        const supporterTabs = html.slice(html.indexOf('id="adminSupporterTabs"'));
+        const supporterMenu = supporterTabs.slice(0, supporterTabs.indexOf('</ul>'));
+        assert.match(superTabs, /data-target="admin-buy-tokens"/, `${file}: Buy Tokens in the SuperAdmin menu`);
+        assert.match(superTabs, /data-target="admin-token-accounts"/, `${file}: Token Accounts in the SuperAdmin menu`);
+        assert.match(supporterMenu, /data-target="admin-buy-tokens"/, `${file}: Buy Tokens in the supporter menu`);
+        assert.doesNotMatch(supporterMenu, /admin-token-accounts/, `${file}: supporters don't get Token Accounts`);
+        assert.match(html, /id="buyTokensAmount" inputmode="numeric" autocomplete="off" value="10"/, `${file}: Buy Tokens starts at 10`);
+        assert.match(html, /id="tokenGrantAmount" inputmode="numeric" autocomplete="off" value="10"/, `${file}: adding tokens starts at 10`);
+        assert.match(html, /<script src="service-pricing\.js\?v=\d+"><\/script>\s*<script src="app\.js/, `${file}: service-pricing.js before app.js`);
     }
 });
 

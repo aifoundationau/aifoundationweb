@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects & Initiatives - AI Foundation Australia</title>
-    <link rel="stylesheet" href="style.css?v=50">
+    <link rel="stylesheet" href="style.css?v=52">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -520,6 +520,20 @@
                                 </div>
                                 <i class="fa-solid fa-check active-check"></i>
                             </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-buy-tokens">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-coins"></i>
+                                    <span>Buy Tokens</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-token-accounts">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-wallet"></i>
+                                    <span>Token Accounts</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
                         </ul>
                     </div>
 
@@ -533,6 +547,8 @@
                         <option value="admin-manage-posts">Manage Posts</option>
                         <option value="admin-services-pricing">Services &amp; Pricing</option>
                         <option value="admin-database-activity">Database Activity</option>
+                        <option value="admin-buy-tokens">Buy Tokens</option>
+                        <option value="admin-token-accounts">Token Accounts</option>
                     </select>
                 </div>
 
@@ -577,10 +593,18 @@
                                     <i class="fa-solid fa-database"></i>
                                     <span>Database Activity</span>
                                 </li>
+                                <li class="sidebar-item" data-target="admin-buy-tokens" title="Buy tokens for your account">
+                                    <i class="fa-solid fa-coins"></i>
+                                    <span>Buy Tokens</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-token-accounts" title="Every account's tokens; add tokens to an account">
+                                    <i class="fa-solid fa-wallet"></i>
+                                    <span>Token Accounts</span>
+                                </li>
                             </ul>
                         </div>
 
-                        <!-- Supporter Sidebar (Supporter strictly gets ONLY these 3 options) -->
+                        <!-- Supporter Sidebar (Supporter strictly gets ONLY these 4 options) -->
                         <div id="adminSupporterSidebar" style="display: none;">
                             <div class="admin-sidebar-section-title">
                                 <i class="fa-solid fa-user"></i> Supporter Portal
@@ -597,6 +621,10 @@
                                 <li class="sidebar-item" data-target="supporter-tab-donate" title="Donation option (same as website front page)">
                                     <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
                                     <span>Donation Option</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-buy-tokens" title="Buy tokens for your account">
+                                    <i class="fa-solid fa-coins" style="color: #f59e0b;"></i>
+                                    <span>Buy Tokens</span>
                                 </li>
                             </ul>
                         </div>
@@ -929,6 +957,80 @@
                             </div>
                         </div>
 
+                        <!-- Buy Tokens Section (SuperAdmin and supporter panels; the price per 100 tokens is set in Services & Pricing) -->
+                        <div id="admin-buy-tokens" class="admin-tab-content" style="display: none;">
+                            <div style="margin-bottom: 20px;">
+                                <h2 style="font-size: 1.25rem; margin: 0 0 6px; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-coins" style="color: #f59e0b;"></i>
+                                    Buy Tokens
+                                </h2>
+                                <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                    Start at 10 tokens and add 10 at a time, or type any amount, then pay securely by card. Tokens are added to your balance as soon as your payment goes through, and work in all our apps.
+                                </p>
+                            </div>
+                            <div class="buy-tokens-card">
+                                <div class="buy-tokens-balance">
+                                    <span>Your balance</span>
+                                    <strong id="buyTokensBalance">...</strong>
+                                </div>
+                                <div class="buy-tokens-picker">
+                                    <button type="button" id="buyTokensLess" class="buy-tokens-step" aria-label="10 fewer tokens"><i class="fa-solid fa-minus"></i></button>
+                                    <label class="buy-tokens-amount">
+                                        <input type="text" id="buyTokensAmount" inputmode="numeric" autocomplete="off" value="10" aria-label="Number of tokens" aria-describedby="buyTokensHint">
+                                        <span>tokens</span>
+                                    </label>
+                                    <button type="button" id="buyTokensMore" class="buy-tokens-step" aria-label="10 more tokens"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                                <p id="buyTokensHint" class="buy-tokens-hint">Starts at 10. Press + to add 10 more each time (or &minus; to take 10 off), or type any amount.</p>
+                                <div id="buyTokensTotal" class="buy-tokens-total" aria-live="polite"></div>
+                                <button type="button" id="buyTokensPayBtn" class="service-prices-save-btn buy-tokens-pay-btn" disabled>
+                                    <i class="fa-solid fa-credit-card"></i> Pay with Card
+                                </button>
+                                <div class="buy-tokens-secure"><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe</div>
+                                <div id="buyTokensStatus" class="service-prices-status" role="status" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Token Accounts Section (SuperAdmin only): every account's shared token balance, and adding tokens to one -->
+                        <div id="admin-token-accounts" class="admin-tab-content" style="display: none;">
+                            <div style="margin-bottom: 20px;">
+                                <h2 style="font-size: 1.25rem; margin: 0 0 6px; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fa-solid fa-wallet" style="color: #0066ff;"></i>
+                                    Token Accounts
+                                </h2>
+                                <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
+                                    Every account's token balance. One balance is shared by all your apps. Choose an account to add tokens to it.
+                                </p>
+                            </div>
+                            <div class="token-accounts-layout">
+                                <div class="token-accounts-browse">
+                                    <input type="search" id="tokenAccountsSearch" class="token-accounts-search" placeholder="Search by name, email or app" aria-label="Search accounts" autocomplete="off">
+                                    <div id="tokenAccountsList" class="token-accounts-list">
+                                        <!-- One row per account, built by app.js -->
+                                    </div>
+                                </div>
+                                <div id="tokenGrantPanel" class="buy-tokens-card token-grant-card" hidden>
+                                    <div class="buy-tokens-balance">
+                                        <span id="tokenGrantWho"></span>
+                                        <strong id="tokenGrantBalance"></strong>
+                                    </div>
+                                    <div class="buy-tokens-picker">
+                                        <button type="button" id="tokenGrantLess" class="buy-tokens-step" aria-label="10 fewer tokens"><i class="fa-solid fa-minus"></i></button>
+                                        <label class="buy-tokens-amount">
+                                            <input type="text" id="tokenGrantAmount" inputmode="numeric" autocomplete="off" value="10" aria-label="Number of tokens to add" aria-describedby="tokenGrantHint">
+                                            <span>tokens</span>
+                                        </label>
+                                        <button type="button" id="tokenGrantMore" class="buy-tokens-step" aria-label="10 more tokens"><i class="fa-solid fa-plus"></i></button>
+                                    </div>
+                                    <p id="tokenGrantHint" class="buy-tokens-hint">Starts at 10. Press + to add 10 more each time, or type any amount.</p>
+                                    <button type="button" id="tokenGrantBtn" class="service-prices-save-btn buy-tokens-pay-btn" disabled>
+                                        <i class="fa-solid fa-plus"></i> Add tokens
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="tokenAccountsStatus" class="service-prices-status" role="status" style="display: none;"></div>
+                        </div>
+
                         <!-- Upload Post Section -->
                         <div id="admin-upload-post" class="admin-tab-content" style="display: none;">
                             <h2 style="margin-bottom: 24px; font-size: 1.25rem;">Upload Content</h2>
@@ -1037,6 +1139,7 @@
                                     Enter each price in US dollars and Australian dollars. Visitors in Australia see the AUD price, or the USD price when the AUD box is blank. Everyone else sees the USD price. Leave both boxes blank to show &ldquo;Price on request&rdquo;.
                                 </p>
                             </div>
+                            <p id="servicePricesRate" class="service-prices-rate" hidden></p>
                             <form id="servicePricesForm" novalidate>
                                 <div id="servicePricesRows" class="service-prices-rows">
                                     <!-- One card per service, built by app.js from service-pricing.js -->
@@ -1358,8 +1461,8 @@
         <!-- Payment SDKs -->
         <script src="https://js.stripe.com/v3/"></script>
         <script src="site-locale.js?v=1"></script>
-        <script src="service-pricing.js?v=1"></script>
-        <script src="app.js?v=56"></script>
+        <script src="service-pricing.js?v=3"></script>
+        <script src="app.js?v=58"></script>
 </body>
 
 </html>

@@ -117,7 +117,7 @@ flowchart TD
 
 ### Principle 1: Firebase Auth as the Single Identity Authority
 - **No Fragmented Logins:** The application never maintains separate username/password databases or external session cookies.
-- **Unified Identity:** Every user identity is represented by a single Firebase UID mapped to their Google email (`@aifoundation.net.au`, `@aifoundation.com.au`, or external student/member Google accounts).
+- **Unified Identity:** Every user identity is represented by a single Firebase UID mapped to their Google email (`@aifoundation.net.au`, or external student/member Google accounts).
 - **Persistent State:** Firebase Auth automatically manages local session persistence (`browserLocalPersistence`) across tab reloads and device restarts without needing hosting-level cookie sessions.
 
 ### Principle 2: Zero Hosting-Service Auth Overhead
@@ -344,7 +344,6 @@ To allow Firebase Auth to issue tokens valid for Classroom, Gmail, or Workspace 
    - Go to [Firebase Console > Authentication > Settings > Authorized domains](https://console.firebase.google.com/).
    - Add your domains:
      - `aifoundation.net.au`
-     - `aifoundation.com.au`
      - Your Vercel / Firebase Hosting / Custom production domains.
      - `localhost` (for testing).
 

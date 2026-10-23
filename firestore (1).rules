@@ -10,8 +10,7 @@ service cloud.firestore {
     function isSuperAdmin() {
       return isAuthenticated() && (
         request.auth.token.email == 'support@aifoundation.net.au' ||
-        request.auth.token.email == 'davidrobertson.info@gmail.com' ||
-        request.auth.token.email == 'david@aifoundation.com.au'
+        request.auth.token.email == 'davidrobertson.info@gmail.com'
       );
     }
 

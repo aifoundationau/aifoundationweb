@@ -2353,6 +2353,254 @@ html.admin-panel-open body {
     gap: 8px;
   }
 }
+/* A card's note (what the token price is for) and the exchange rate note above the cards */
+.service-prices-note {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+.service-prices-rate {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+/* Admin panel: Buy Tokens tab (SuperAdmin and supporter panels) */
+.buy-tokens-card {
+  max-width: 460px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+}
+.buy-tokens-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+.buy-tokens-balance strong {
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+/* The - and + buttons either side of the amount box */
+.buy-tokens-picker {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.buy-tokens-step {
+  flex: 0 0 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: #0066ff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.buy-tokens-step:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #0066ff;
+}
+.buy-tokens-step:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.25);
+}
+.buy-tokens-step:disabled {
+  color: #94a3b8;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.buy-tokens-amount {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+.buy-tokens-amount:focus-within {
+  border-color: #0066ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+.buy-tokens-amount input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: center;
+}
+.buy-tokens-amount span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.buy-tokens-hint {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+.buy-tokens-total {
+  margin-top: 14px;
+  font-size: 0.92rem;
+  color: #334155;
+  line-height: 1.5;
+}
+.buy-tokens-total strong {
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+.buy-tokens-rate {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.buy-tokens-pay-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 14px;
+}
+.buy-tokens-secure {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* Admin panel: Token Accounts tab (SuperAdmin). The account list and the add-tokens box sit side by side when there's room */
+.token-accounts-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.token-accounts-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #0f172a;
+}
+.token-accounts-search:focus {
+  outline: none;
+  border-color: #0066ff;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+}
+.token-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 420px;
+  margin-top: 10px;
+  overflow-y: auto;
+}
+.token-account-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.token-account-row:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+.token-account-row:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.25);
+}
+.token-account-row.is-selected {
+  background: #eff6ff;
+  border-color: #0066ff;
+}
+.token-account-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.token-account-who strong,
+.token-account-who small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.token-account-who strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+.token-account-who small {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+/* Which app the account belongs to, e.g. LMS */
+.token-account-app {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.token-account-balance {
+  flex: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+.token-account-balance small {
+  font-weight: 500;
+  color: #64748b;
+}
+.token-accounts-empty {
+  margin: 8px 2px;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+.token-grant-card {
+  max-width: none;
+}
+.token-grant-card[hidden] {
+  display: none;
+}
 
 /* ==========================================================================
    Navigation Actions & Firebase Google Auth Component (Replaces Settings Button)

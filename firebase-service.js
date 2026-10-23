@@ -246,6 +246,80 @@ async function getDocument(collectionId, documentId) {
 }
 
 /**
+ * Read a document, telling a missing document apart from Firestore being unreachable (getDocument returns null for both).
+ * Returns { ok: true, data, updateTime } with data null when the document doesn't exist, or { ok: false } when it couldn't be read.
+ * updateTime can be passed to commitWrites so a write only goes ahead if nothing changed the document since
+ */
+async function readDocument(collectionId, documentId) {
+    const token = await getAccessToken();
+    if (!token) return { ok: false };
+
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionId}/${encodeURIComponent(documentId)}`;
+    try {
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.status === 404) return { ok: true, data: null };
+        if (!res.ok) {
+            console.warn(`[Firebase] Reading ${collectionId}/${documentId} failed (HTTP ${res.status})`);
+            return { ok: false };
+        }
+        const data = await res.json();
+        return { ok: true, data: fromFirestoreFields(data.fields), updateTime: data.updateTime };
+    } catch (err) {
+        console.error(`[Firebase] Error reading ${collectionId}/${documentId}:`, err.message);
+        return { ok: false };
+    }
+}
+
+/**
+ * Apply several writes atomically: all of them are saved, or none are.
+ * Each write: { path: 'collection/docId' (or a subcollection path), data, replace, mustNotExist, mustExist, updateTime,
+ *   increment, arrayUnion, arrayRemove }
+ * - data: fields to set. Other fields are kept unless replace is true
+ * - mustNotExist / mustExist: the whole commit fails if this document already exists / doesn't exist
+ * - updateTime: the whole commit fails if the document changed since it was read with this updateTime (readDocument)
+ * - increment: { field: number } added to the stored number (a missing field counts as 0)
+ * - arrayUnion / arrayRemove: { field: [values] } added to (when missing) or removed from the stored array
+ * Returns { success: true } or { success: false, error }
+ */
+async function commitWrites(writes) {
+    const token = await getAccessToken();
+    if (!token) return { success: false, error: 'Authentication unavailable' };
+
+    const documentsRoot = `projects/${PROJECT_ID}/databases/(default)/documents`;
+    const body = {
+        writes: writes.map(w => {
+            const data = w.data || {};
+            const write = { update: { name: `${documentsRoot}/${w.path}`, fields: toFirestoreFields(data) } };
+            if (!w.replace) write.updateMask = { fieldPaths: Object.keys(data) };
+            if (w.mustNotExist) write.currentDocument = { exists: false };
+            else if (w.updateTime) write.currentDocument = { updateTime: w.updateTime };
+            else if (w.mustExist) write.currentDocument = { exists: true };
+            const transforms = [
+                ...Object.entries(w.increment || {}).map(([fieldPath, by]) => ({ fieldPath, increment: toFirestoreValue(by) })),
+                ...Object.entries(w.arrayUnion || {}).map(([fieldPath, values]) => ({ fieldPath, appendMissingElements: { values: values.map(toFirestoreValue) } })),
+                ...Object.entries(w.arrayRemove || {}).map(([fieldPath, values]) => ({ fieldPath, removeAllFromArray: { values: values.map(toFirestoreValue) } }))
+            ];
+            if (transforms.length) write.updateTransforms = transforms;
+            return write;
+        })
+    };
+
+    try {
+        const res = await fetch(`https://firestore.googleapis.com/v1/${documentsRoot}:commit`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) return { success: true };
+        const result = await res.json().catch(() => ({}));
+        return { success: false, error: result.error?.message || `Firestore commit failed (HTTP ${res.status})` };
+    } catch (err) {
+        console.error('[Firebase] Network error committing writes:', err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
  * Read every document in a collection, following Firestore's pages (one request returns at most a page).
  * Returns [{ id, fields }] with plain values, or null when Firestore can't be reached or a page fails
  */
@@ -330,7 +404,7 @@ async function recordTransaction(txData) {
         updatedAt: now,
         metadata: {
             platform: 'web',
-            originUrl: txData.originUrl || 'https://aifoundation.com.au',
+            originUrl: txData.originUrl || 'https://www.aifoundation.net.au',
             customerEmail: txData.customerEmail || '',
             customerName: txData.customerName || '',
             ...(txData.metadata || {})
@@ -437,9 +511,11 @@ async function listAIFoundationTransactions(limit = 50) {
     }
 }
 
-// SuperAdmin is the Firebase Admin service account email (registered on the Firebase project)
-const SUPERADMIN_UIDS = [];
-const SUPERADMIN_EMAILS = process.env.FIREBASE_CLIENT_EMAIL ? [process.env.FIREBASE_CLIENT_EMAIL] : [];
+// The two SuperAdmins (also listed in firestore.rules, public/app.js and public/firebase-client.js: keep all four the same).
+// The Firebase Admin service account email also counts, for messages other apps address to it
+const SUPERADMIN_UIDS = ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'];
+const SUPERADMIN_EMAILS = ['davidrobertson.info@gmail.com', 'support@aifoundation.net.au',
+    ...(process.env.FIREBASE_CLIENT_EMAIL ? [process.env.FIREBASE_CLIENT_EMAIL.trim().toLowerCase()] : [])];
 
 
 function isSuperAdminUser(uid, email) {
@@ -901,7 +977,7 @@ async function getDatabaseRecentInputs(options = {}) {
                 let websiteLabel = 'Shared Tenant';
                 let websiteKey = 'other';
 
-                if (rawTag === 'aifoundation' || fields.businessName === 'AI Foundation' || (fields.email && (fields.email.endsWith('@aifoundation.com.au') || fields.email.endsWith('@aifoundation.net.au')))) {
+                if (rawTag === 'aifoundation' || fields.businessName === 'AI Foundation' || (fields.email && fields.email.endsWith('@aifoundation.net.au'))) {
                     rawTag = 'aifoundation';
                     websiteLabel = 'AI Foundation';
                     websiteKey = 'aifoundation';
@@ -1021,5 +1097,7 @@ module.exports = {
     SUPERADMIN_EMAILS,
     writeDocument,
     deleteDocument,
-    listDocuments
+    listDocuments,
+    readDocument,
+    commitWrites
 };

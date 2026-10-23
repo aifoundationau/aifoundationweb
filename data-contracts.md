@@ -244,15 +244,15 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 #### Target Storage & Endpoints
 - Firestore: `system_settings/aifoundation_service_prices` (one document). `firestore.rules` allows browser access to `system_settings` for SuperAdmins only, so the server reads and writes it with the service account.
 - Local copy: `data/service-prices.json` (`prices` and `updatedAt` only). Used when Firestore can't be reached.
-- API: `GET /api/services/prices` (public), `PUT /api/services/prices` (admin only; replaces every price).
-- Shared rules: `public/service-pricing.js` (service list, price validation, currency choice), used by the server and the browser.
-- Admin UI: Admin Panel > Services & Pricing.
+- API: `GET /api/services/prices` (public), `PUT /api/services/prices` (admin only; replaces every price), `GET /api/exchange-rates/usd-aud` (admin only; today's USD to AUD rate from Frankfurter, `exchange-rates.js`, kept for an hour, never stored).
+- Shared rules: `public/service-pricing.js` (service list, token price group, price validation, currency choice), used by the server and the browser.
+- Admin UI: Admin Panel > Services & Pricing. Typing a USD price fills in its AUD box at today's rate, rounded to the cent; the admin can still change it.
 
 #### Data Fields Specification
 | Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `tag`, `businessId`, `businessName`, `source` | String | Server Injection | Partition Key | Constants from Invariant Rule 1. | Firestore root fields. |
-| `prices` | Map | Admin Panel / `PUT /api/services/prices` | Public | `{ [serviceId]: { [part]: { usd, aud } } }`. Service IDs: `30-day-roadmap`, `regulatory-roadmap`, `stack-selection`, `ai-agent-hosting`. Part: `price`, or `setup` and `monthly` for `ai-agent-hosting`. Each amount is `null` (blank) or a number from 0.01 to 1,000,000 with at most 2 decimal places. | Firestore map. |
+| `prices` | Map | Admin Panel / `PUT /api/services/prices` | Public | `{ [serviceId]: { [part]: { usd, aud } } }`. Service IDs: `30-day-roadmap`, `regulatory-roadmap`, `stack-selection`, `ai-agent-hosting`, plus `tokens` (Domain 11). Part: `price`, or `setup` and `monthly` for `ai-agent-hosting`, or `per10` (price per 10 tokens) for `tokens`. Each amount is `null` (blank) or a number from 0.01 to 1,000,000 with at most 2 decimal places. | Firestore map. |
 | `updatedAt` | String (Timestamp) | Server Generation | Audit | ISO 8601 UTC timestamp of the last save. | Firestore timestamp. |
 | `updatedBy` | String (Email) | Verified ID token | PII | Email of the admin who saved. Never returned by the public API or written to the local copy. | Firestore root field. |
 | Return: `country` | String | `x-vercel-ip-country` request header | Public | ISO 3166-1 alpha-2 code, or `''` when unknown. Not stored; the response is sent with `Cache-Control: private, no-store`. | In-memory transient. |
@@ -262,6 +262,59 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 - All other visitors see the USD price. AUD prices are never shown outside Australia.
 - With no price to show, the service card says "Price on request".
 - When the server can't tell the country (local development), the browser uses the location bar's place.
+
+---
+
+### Domain 11: Tokens (one balance shared by all the owner's apps)
+
+#### Target Storage & Endpoints
+- Balance: `users/{uid}.token_balance` (integer), on the user profile every app shares. The LMS already uses this field. Only servers change it (service account); `firestore.rules` lists it in `privilegedFields`, so users can't change it themselves, and a new profile can only start with `token_balance` 0 or unset.
+- Ledger: `token_ledger/{entryId}`, one entry per balance change, written in the same atomic commit as the change. Readable by the user it belongs to and admins; no browser writes.
+- Pending checkouts: `aifoundation_token_checkouts/{uid}` (`pendingCheckouts`), Buy Tokens checkouts not paid yet. Server only.
+- Billing records: each purchase is also recorded in `transactions` / `stripe_transactions` (Domain 1) with `paymentType: 'tokens'`.
+- API (all need a signed-in user's Firebase ID token):
+  - `GET /api/tokens`: balance and this visitor's price. It also credits checkouts paid since the user last looked.
+  - `POST /api/tokens/checkout` (`{ tokens }`): answers a Stripe Checkout URL.
+  - `POST /api/tokens/confirm` (`{ sessionId }`): the page Stripe returns to.
+  - `POST /api/tokens/spend` (`{ tokens, app, reference, description }`): see Spending Rules.
+  - `GET /api/tokens/accounts` (SuperAdmin): every profile with its balance.
+  - `POST /api/tokens/grant` (SuperAdmin, `{ uid, tokens, requestId, note }`).
+- Other apps' browsers may call `GET /api/tokens` and `POST /api/tokens/spend` when their site is listed in the `TOKEN_API_ORIGINS` environment variable (comma separated). Otherwise only this site can call them from a browser.
+- Code: `token-balances.js` (balance, ledger, crediting, spending, grants), `public/service-pricing.js` (limits and totals, shared with the browser).
+- UI: Admin Panel > Buy Tokens (SuperAdmin and supporter panels), Admin Panel > Token Accounts (SuperAdmin only).
+
+#### Data Fields Specification
+| Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `token_balance` | Integer | Server (atomic increment, or a precondition-checked write when spending) | Account | Tokens the user has. Never below 0 when spent through `POST /api/tokens/spend` or the Spending Rules. | `users/{uid}`. |
+| `token_balance_updated_at` | String (Timestamp) | Server Generation | Audit | ISO 8601 UTC of the last change. | `users/{uid}`. |
+| `tag`, `businessId`, `businessName`, `source` | String | Server Injection | Partition Key | Constants from Invariant Rule 1 (the app that wrote the record: `aifoundation`). | Ledger entries, pending checkouts. |
+| `uid` | String | Verified ID token / Stripe metadata | Identifier | Firebase UID of the account whose balance changed. | Ledger entries, pending checkouts. |
+| `change` | Integer | Server | Account | Tokens added (positive) or spent (negative). | Ledger entry. |
+| `kind` | String | Server | Operational | `purchase`, `grant` or `spend`. | Ledger entry. |
+| `reference` | String | Stripe / browser / calling app | Operational | Purchase: the Stripe Checkout Session ID. Grant: the request ID. Spend: the calling app's purchase ID. | Ledger entry. |
+| Entry ID | String | Server | Idempotency Key | `purchase_<sessionId>`, `grant_<requestId>` or `spend_<app>_<reference>`. Created with "must not exist", so each change is applied at most once. | Ledger document ID. |
+| `amount`, `currency` | Number, String | Stripe (`amount_total`) | Financial | Purchases only: amount charged, as confirmed by Stripe. `usd` or `aud`. | Ledger entry. |
+| `app` | String | Calling app | Operational | Spends only: the app's tag, lower case (e.g. `lms`). | Ledger entry. |
+| `grantedBy` | String (Email) | Verified ID token | PII | Grants only: the SuperAdmin who added the tokens. | Ledger entry. |
+| `description` | String | Server / calling app | Operational | Up to 200 characters. | Ledger entry. |
+| `createdAt` | String (Timestamp) | Server Generation | Audit | ISO 8601 UTC. | Ledger entry. |
+| `pendingCheckouts` | Array (String) | Server | Operational | Stripe Checkout Session IDs (`cs_*`) started but not yet credited. Removed when credited, expired, or unpaid after 7 days. | `aifoundation_token_checkouts/{uid}`. |
+
+#### Purchase Rules
+- The token box starts at 10. Each + adds 10 and each - takes 10 off, with no upper limit; buyers can also type any whole number of 10 or more. (One request is capped at 1,000,000,000 tokens to catch typing mistakes.)
+- The price is the admin's price per 10 tokens (Domain 10, `tokens.per10`), chosen by the Domain 10 display rule (AUD in Australia when set, otherwise USD). The total is rounded to the cent and must be from 0.50 to 999,999.99, Stripe's limits for one card payment.
+- The server works out every amount; the browser only sends the number of tokens.
+- Tokens are credited only after Stripe reports the checkout as `paid`, in one atomic commit that creates the `purchase_<sessionId>` ledger entry (which must not exist yet) and increments `token_balance`.
+- No token checkout is started while balances can't be reached or the buyer has no profile, so a payment is never taken that can't be credited.
+
+#### Grant Rules (SuperAdmin)
+- Token Accounts lists every profile in `users` (all apps) with its balance. The SuperAdmin chooses one and adds tokens. The box starts at 10, each + adds 10, and there is no upper limit.
+- Each click sends a new `requestId`, used as the ledger entry's key, so a retried request is never added twice.
+
+#### Spending Rules (for every app)
+- Spend through `POST /api/tokens/spend` with the user's Firebase ID token, the app's tag and the app's own purchase ID as `reference`. Sending the same `app` and `reference` again never takes tokens twice (answer `already-spent`). Not enough tokens: HTTP 409 with the balance, and nothing is taken.
+- An app that changes `token_balance` from its own server instead must follow the same rules: read the profile and its `updateTime`. Then, in one commit, create `token_ledger/spend_<app>_<reference>` with "must not exist" and write the lower balance with an `updateTime` precondition, retrying from the read if the commit is refused. Never change `token_balance` from a browser; `firestore.rules` refuses it.
 
 ---
 

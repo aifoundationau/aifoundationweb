@@ -64,7 +64,6 @@ unless your domains are registered in Firebase.
 4. Click "Add domain" and add EACH of the following (without https:// or trailing slashes):
    - localhost
    - aifoundationweb.vercel.app
-   - aifoundation.com.au
    - aifoundation.net.au
    - (Add any other deployment preview domains or custom domains)
 5. Click "Add".
@@ -317,7 +316,7 @@ When multiple sites (AI Foundation, Pro LMS, It's A Simple Job, RTO AI) write to
 the same database, enforce the tenant tag matching rule in Firestore:
 
 TENANT TAG CODES:
-  - 'aifoundation'  : AI Foundation Australia (https://aifoundation.com.au)
+  - 'aifoundation'  : AI Foundation Australia (https://www.aifoundation.net.au)
   - 'itsasimplejob' : It's A Simple Job
   - 'pro-lms'       : Pro Learning Management System
   - 'rto-ai'        : Registered Training Organisation AI

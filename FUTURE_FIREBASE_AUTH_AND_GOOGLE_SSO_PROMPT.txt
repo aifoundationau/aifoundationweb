@@ -190,5 +190,5 @@ service cloud.firestore {
    - Add scopes: email, profile, classroom.courses.readonly, gmail.send
    - Set User Type to Internal or External as required
 3. Firebase Console > Authentication > Settings > Authorized domains:
-   - Whitelist all production hostnames (e.g. aifoundation.net.au, aifoundation.com.au)
+   - Whitelist each production hostname exactly (e.g. aifoundation.net.au, aifoundationweb.vercel.app)
 ================================================================================

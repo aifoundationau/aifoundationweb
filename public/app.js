@@ -194,13 +194,16 @@ const postObserver = new IntersectionObserver((entries) => {
         { id: 'admin-upload-image', icon: 'fa-solid fa-cloud-arrow-up', title: 'Upload Image' },
         { id: 'admin-manage-posts', icon: 'fa-solid fa-list-check', title: 'Manage Posts' },
         { id: 'admin-services-pricing', icon: 'fa-solid fa-tags', title: 'Services & Pricing' },
-        { id: 'admin-database-activity', icon: 'fa-solid fa-database', title: 'Database Activity' }
+        { id: 'admin-database-activity', icon: 'fa-solid fa-database', title: 'Database Activity' },
+        { id: 'admin-buy-tokens', icon: 'fa-solid fa-coins', title: 'Buy Tokens' },
+        { id: 'admin-token-accounts', icon: 'fa-solid fa-wallet', title: 'Token Accounts' }
     ];
 
     const SUPPORTER_TABS = [
         { id: 'supporter-tab-chat', icon: 'fa-solid fa-comments', title: 'Direct Chat with Team' },
         { id: 'admin-register-details', icon: 'fa-solid fa-id-card', title: 'Register Your Details' },
-        { id: 'supporter-tab-donate', icon: 'fa-solid fa-heart', title: 'Donation Option', iconColor: '#ef4444' }
+        { id: 'supporter-tab-donate', icon: 'fa-solid fa-heart', title: 'Donation Option', iconColor: '#ef4444' },
+        { id: 'admin-buy-tokens', icon: 'fa-solid fa-coins', title: 'Buy Tokens', iconColor: '#f59e0b' }
     ];
 
     // Administration & Settings menu order: the sections clicked most in this browser come first, and
@@ -418,6 +421,10 @@ const postObserver = new IntersectionObserver((entries) => {
             if (typeof loadMessageBox === 'function') loadMessageBox();
         } else if (targetId === 'admin-services-pricing') {
             if (typeof loadAdminServicePrices === 'function') loadAdminServicePrices();
+        } else if (targetId === 'admin-buy-tokens') {
+            if (typeof loadBuyTokens === 'function') loadBuyTokens();
+        } else if (targetId === 'admin-token-accounts') {
+            if (typeof loadTokenAccounts === 'function') loadTokenAccounts();
         } else if (targetId === 'supporter-tab-chat') {
             if (currentUser && typeof loadSupporterChatMessages === 'function') {
                 loadSupporterChatMessages(currentUser.uid);
@@ -595,6 +602,8 @@ const postObserver = new IntersectionObserver((entries) => {
                     <option value="admin-manage-posts">Manage Posts</option>
                     <option value="admin-services-pricing">Services &amp; Pricing</option>
                     <option value="admin-database-activity">Database Activity</option>
+                    <option value="admin-buy-tokens">Buy Tokens</option>
+                    <option value="admin-token-accounts">Token Accounts</option>
                 `;
             }
 
@@ -629,6 +638,7 @@ const postObserver = new IntersectionObserver((entries) => {
                     <option value="supporter-tab-chat">Direct chat with administrative team</option>
                     <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
                     <option value="supporter-tab-donate">Donation option (same as website front page)</option>
+                    <option value="admin-buy-tokens">Buy Tokens</option>
                 `;
             }
 
@@ -2045,7 +2055,9 @@ const postObserver = new IntersectionObserver((entries) => {
     const servicePricesSaveBtn = document.getElementById('servicePricesSaveBtn');
     const servicePricesStatus = document.getElementById('servicePricesStatus');
     const servicePricesUpdated = document.getElementById('servicePricesUpdated');
+    const servicePricesRate = document.getElementById('servicePricesRate');
     let servicePricesData = null; // last answer from /api/services/prices: { country, prices, updatedAt }
+    let usdAudRate = null; // last answer from /api/exchange-rates/usd-aud: { rate, date }, null until fetched
 
     // The server's IP geolocation decides; when it can't tell (local development), the location bar's place does
     function serviceVisitorCountry() {
@@ -2129,11 +2141,12 @@ const postObserver = new IntersectionObserver((entries) => {
     function renderAdminServicePricesForm(prices) {
         const pricing = window.ServicePricing;
         if (!pricing || !servicePricesRows) return;
-        servicePricesRows.innerHTML = pricing.SERVICES.map(service => {
+        servicePricesRows.innerHTML = pricing.PRICE_GROUPS.map(service => {
             const saved = (prices && prices[service.id]) || {};
             return `
             <div class="service-prices-card" role="group" aria-labelledby="servicePricesName-${escapeHtml(service.id)}">
                 <h3 class="service-prices-name" id="servicePricesName-${escapeHtml(service.id)}">${escapeHtml(service.name)}</h3>
+                ${service.note ? `<p class="service-prices-note">${escapeHtml(service.note)}</p>` : ''}
                 ${service.parts.map(part => `
                 <div class="service-prices-row">
                     ${service.parts.length > 1 ? `<span class="service-prices-part">${escapeHtml(part.label)}</span>` : ''}
@@ -2151,12 +2164,31 @@ const postObserver = new IntersectionObserver((entries) => {
         }).join('');
     }
 
+    // Today's USD to AUD rate (Frankfurter, through the server) for filling in AUD boxes, and the note saying so
+    async function loadUsdAudRate() {
+        if (!servicePricesRate) return;
+        try {
+            const res = await fetch('/api/exchange-rates/usd-aud');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !(data.rate > 0)) throw new Error(data.error || `HTTP ${res.status}`);
+            usdAudRate = { rate: data.rate, date: data.date };
+            const day = new Date(`${data.date}T00:00:00Z`);
+            const dayText = isNaN(day.getTime()) ? '' : `, ${day.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
+            servicePricesRate.textContent = `Typing a USD price fills in its AUD box at today's rate: 1 USD = ${data.rate} AUD (Frankfurter${dayText}). You can still change the AUD amount.`;
+        } catch (e) {
+            usdAudRate = null;
+            servicePricesRate.textContent = 'Today\'s exchange rate could not be fetched, so AUD boxes won\'t fill in by themselves. Enter AUD prices yourself.';
+        }
+        servicePricesRate.hidden = false;
+    }
+
     async function loadAdminServicePrices() {
         if (!servicePricesRows || !window.ServicePricing) return;
         // Saving stays off until the saved prices are shown, so a failed load can't blank them
         if (servicePricesSaveBtn) servicePricesSaveBtn.disabled = true;
         servicePricesRows.innerHTML = '';
         setServicePricesStatus('Loading saved prices...');
+        loadUsdAudRate();
         try {
             const res = await fetch('/api/services/prices');
             const data = await res.json().catch(() => ({}));
@@ -2176,6 +2208,14 @@ const postObserver = new IntersectionObserver((entries) => {
         servicePricesRows.addEventListener('input', (e) => {
             const field = e.target.closest('.service-prices-field');
             if (field) field.classList.remove('is-invalid');
+
+            // Typing a USD price fills in the AUD box beside it at today's rate
+            if (!usdAudRate || e.target.dataset.currency !== 'usd') return;
+            const aud = window.ServicePricing.convertUsdToAud(e.target.value, usdAudRate.rate);
+            const audInput = e.target.closest('.service-prices-row').querySelector('input[data-currency="aud"]');
+            if (aud === null || !audInput) return;
+            audInput.value = servicePriceBoxValue(aud);
+            audInput.closest('.service-prices-field').classList.remove('is-invalid');
         });
     }
 
@@ -2229,6 +2269,320 @@ const postObserver = new IntersectionObserver((entries) => {
             } finally {
                 servicePricesSaveBtn.disabled = false;
                 servicePricesSaveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save Prices';
+            }
+        });
+    }
+
+    // ==========================================
+    // TOKEN BOXES (Buy Tokens and Token Accounts)
+    // The - / amount / + controls. The amount starts at 10 and each press adds or takes 10 (TOKEN_LIMITS in
+    // service-pricing.js), with no upper limit; any whole number can be typed too. onChange runs after every change
+    // ==========================================
+    function setupTokenStepper({ input, less, more, onChange }) {
+        const limits = () => window.ServicePricing.TOKEN_LIMITS;
+        const typed = () => parseInt(String(input.value).replace(/\D/g, ''), 10);
+
+        function refresh() {
+            const value = typed();
+            less.disabled = !(value > limits().min);
+            more.disabled = value >= limits().max;
+            onChange();
+        }
+
+        function step(direction) {
+            const { min, max, step: by } = limits();
+            const value = typed();
+            const current = Number.isFinite(value) ? value : 0;
+            input.value = String(Math.min(max, Math.max(min, current + direction * by)));
+            refresh();
+        }
+
+        input.addEventListener('input', () => {
+            const digits = input.value.replace(/\D/g, '');
+            if (digits !== input.value) input.value = digits;
+            refresh();
+        });
+        // Leaving the box keeps the amount within the limits
+        input.addEventListener('blur', () => {
+            const { min, max } = limits();
+            const value = typed();
+            input.value = String(Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min);
+            refresh();
+        });
+        less.addEventListener('click', () => step(-1));
+        more.addEventListener('click', () => step(1));
+        refresh();
+        return { refresh };
+    }
+
+    // ==========================================
+    // BUY TOKENS (SuperAdmin and supporter panels)
+    // GET /api/tokens gives the balance (users/{uid}.token_balance, shared by all the owner's apps) and this visitor's
+    // price per 10 tokens (set in Services & Pricing). Paying goes through Stripe Checkout; when Stripe sends the buyer
+    // back, the payment is confirmed and credited
+    // ==========================================
+    const buyTokensBalance = document.getElementById('buyTokensBalance');
+    const buyTokensAmount = document.getElementById('buyTokensAmount');
+    const buyTokensTotal = document.getElementById('buyTokensTotal');
+    const buyTokensPayBtn = document.getElementById('buyTokensPayBtn');
+    const buyTokensStatus = document.getElementById('buyTokensStatus');
+    let buyTokensData = null; // last answer from GET /api/tokens: { balance, hasProfile, price, limits, minPayment, maxPayment, canPay }
+    let buyTokensBusy = false; // true while a checkout is being started
+    let buyTokensReturn = null; // back from Stripe: { sessionId } or { cancelled: true }, used by the next load
+    let buyTokensStepper = null;
+
+    function setBuyTokensStatus(message, type = 'info') {
+        if (!buyTokensStatus) return;
+        buyTokensStatus.style.display = message ? 'block' : 'none';
+        buyTokensStatus.className = `service-prices-status is-${type}`;
+        buyTokensStatus.textContent = message || '';
+    }
+
+    // Total and Pay button for the amount in the box
+    function renderBuyTokensTotal() {
+        const pricing = window.ServicePricing;
+        const { min, pricedPer } = pricing.TOKEN_LIMITS;
+        const quantity = pricing.parseTokenQuantity(buyTokensAmount.value);
+        const price = buyTokensData && buyTokensData.price;
+        buyTokensPayBtn.innerHTML = '<i class="fa-solid fa-credit-card"></i> Pay with Card';
+        if (Number.isNaN(quantity)) {
+            buyTokensTotal.textContent = `Enter a whole number of tokens, at least ${min}.`;
+            buyTokensPayBtn.disabled = true;
+            return;
+        }
+        if (!price) {
+            buyTokensTotal.textContent = '';
+            buyTokensPayBtn.disabled = true;
+            return;
+        }
+        const total = pricing.tokenTotal(price, quantity);
+        const maxPayment = buyTokensData.maxPayment || pricing.MAX_CARD_PAYMENT;
+        let problem = '';
+        if (total.amount < buyTokensData.minPayment) problem = `The smallest card payment is ${total.currency} $0.50, so please choose more tokens.`;
+        else if (total.amount > maxPayment) problem = `One card payment can be at most ${total.currency} $999,999.99, so please choose fewer tokens.`;
+        buyTokensTotal.innerHTML = `
+            <strong>${escapeHtml(pricing.formatPrice(total))}</strong> for ${quantity.toLocaleString('en-AU')} tokens
+            <span class="buy-tokens-rate">${escapeHtml(pricing.formatPrice(price))} per ${pricedPer} tokens</span>
+            ${problem ? `<span class="buy-tokens-rate">${escapeHtml(problem)}</span>` : ''}`;
+        buyTokensPayBtn.innerHTML = `<i class="fa-solid fa-credit-card"></i> Pay ${escapeHtml(pricing.formatPrice(total))}`;
+        buyTokensPayBtn.disabled = buyTokensBusy || Boolean(problem) || !buyTokensData.canPay ||
+            buyTokensData.balance === null || buyTokensData.hasProfile === false;
+    }
+
+    // The message for a confirmed payment (POST /api/tokens/confirm): { text, type }
+    function tokenConfirmMessage(data) {
+        const tokensText = `${Number(data.tokens).toLocaleString('en-AU')} tokens`;
+        if (data.status === 'credited') return { text: `Payment received: ${tokensText} added to your balance. Thank you!`, type: 'ok' };
+        if (data.status === 'already-credited') return { text: `Payment received: ${tokensText} are in your balance.`, type: 'ok' };
+        if (data.status === 'expired') return { text: 'That payment was not completed, so you were not charged and no tokens were added.', type: 'error' };
+        return { text: 'Your payment is still being processed. The tokens will appear here once Stripe confirms it.', type: 'info' };
+    }
+
+    async function loadBuyTokens() {
+        if (!buyTokensStepper) return;
+        const returned = buyTokensReturn;
+        buyTokensReturn = null;
+        buyTokensPayBtn.disabled = true;
+        buyTokensBalance.textContent = '...';
+        setBuyTokensStatus(returned && returned.sessionId ? 'Checking your payment...' : '');
+
+        let notice = returned && returned.cancelled
+            ? { text: 'Payment cancelled. You were not charged and no tokens were bought.', type: 'info' }
+            : null;
+        if (returned && returned.sessionId) {
+            try {
+                const res = await fetch('/api/tokens/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: returned.sessionId })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+                notice = tokenConfirmMessage(data);
+            } catch (e) {
+                notice = { text: `Your payment could not be confirmed yet: ${e.message}`, type: 'error' };
+            }
+        }
+
+        try {
+            const res = await fetch('/api/tokens');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(String(data.error || `HTTP ${res.status}`).replace(/\.$/, ''));
+            buyTokensData = data;
+        } catch (e) {
+            buyTokensData = null;
+            buyTokensBalance.textContent = '-';
+            setBuyTokensStatus(notice ? notice.text : `Could not load Buy Tokens: ${e.message}. Please try again.`, notice ? notice.type : 'error');
+            buyTokensStepper.refresh();
+            return;
+        }
+
+        buyTokensBalance.textContent = buyTokensData.balance === null
+            ? 'Unavailable right now'
+            : `${buyTokensData.balance.toLocaleString('en-AU')} tokens`;
+        if (!notice && !buyTokensData.price) notice = { text: 'Tokens are not on sale yet. Please check back soon.', type: 'info' };
+        if (!notice && !buyTokensData.canPay) notice = { text: 'Card payments are not set up yet, so tokens can\'t be bought right now.', type: 'info' };
+        if (!notice && buyTokensData.balance === null) notice = { text: 'Your token balance can\'t be reached right now, so buying is paused. Please try again shortly.', type: 'error' };
+        if (!notice && buyTokensData.hasProfile === false) notice = { text: 'Your account isn\'t fully set up yet. Please sign out and sign in again to buy tokens.', type: 'info' };
+        setBuyTokensStatus(notice ? notice.text : '', notice ? notice.type : 'info');
+        buyTokensStepper.refresh();
+    }
+
+    if (buyTokensAmount && window.ServicePricing) {
+        buyTokensStepper = setupTokenStepper({
+            input: buyTokensAmount,
+            less: document.getElementById('buyTokensLess'),
+            more: document.getElementById('buyTokensMore'),
+            onChange: renderBuyTokensTotal
+        });
+
+        buyTokensPayBtn.addEventListener('click', async () => {
+            const quantity = window.ServicePricing.parseTokenQuantity(buyTokensAmount.value);
+            if (Number.isNaN(quantity) || buyTokensBusy) return;
+            buyTokensBusy = true;
+            buyTokensPayBtn.disabled = true;
+            buyTokensPayBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Opening secure payment...';
+            setBuyTokensStatus('');
+            try {
+                const res = await fetch('/api/tokens/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokens: quantity, returnPath: window.location.pathname })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.url) throw new Error(data.error || `HTTP ${res.status}`);
+                window.location.href = data.url;
+            } catch (e) {
+                buyTokensBusy = false;
+                setBuyTokensStatus(`Could not start the payment: ${String(e.message).replace(/\.$/, '')}.`, 'error');
+                renderBuyTokensTotal();
+            }
+        });
+    }
+
+    // ==========================================
+    // TOKEN ACCOUNTS (SuperAdmin panel)
+    // Every account's balance (profiles from all apps, which share one token balance) from GET /api/tokens/accounts.
+    // Choosing an account opens the add-tokens box; POST /api/tokens/grant adds them
+    // ==========================================
+    const tokenAccountsSearch = document.getElementById('tokenAccountsSearch');
+    const tokenAccountsList = document.getElementById('tokenAccountsList');
+    const tokenAccountsStatus = document.getElementById('tokenAccountsStatus');
+    const tokenGrantPanel = document.getElementById('tokenGrantPanel');
+    const tokenGrantWho = document.getElementById('tokenGrantWho');
+    const tokenGrantBalance = document.getElementById('tokenGrantBalance');
+    const tokenGrantAmount = document.getElementById('tokenGrantAmount');
+    const tokenGrantBtn = document.getElementById('tokenGrantBtn');
+    let tokenAccounts = []; // last answer from GET /api/tokens/accounts: [{ uid, name, email, app, balance }]
+    let selectedTokenAccount = null; // uid of the account the add-tokens box is for
+    let tokenGrantBusy = false;
+
+    function setTokenAccountsStatus(message, type = 'info') {
+        if (!tokenAccountsStatus) return;
+        tokenAccountsStatus.style.display = message ? 'block' : 'none';
+        tokenAccountsStatus.className = `service-prices-status is-${type}`;
+        tokenAccountsStatus.textContent = message || '';
+    }
+
+    function tokenAccountLabel(account) {
+        return account.name || account.email || account.uid;
+    }
+
+    function renderTokenAccounts() {
+        const query = tokenAccountsSearch.value.trim().toLowerCase();
+        const shown = tokenAccounts.filter(a => !query || `${a.name} ${a.email} ${a.app}`.toLowerCase().includes(query));
+        if (!shown.length) {
+            tokenAccountsList.innerHTML = `<p class="token-accounts-empty">${tokenAccounts.length ? 'No accounts match your search.' : 'No accounts to show.'}</p>`;
+            return;
+        }
+        tokenAccountsList.innerHTML = shown.map(a => `
+            <button type="button" class="token-account-row${a.uid === selectedTokenAccount ? ' is-selected' : ''}" data-uid="${escapeHtml(a.uid)}" aria-pressed="${a.uid === selectedTokenAccount}">
+                <span class="token-account-who">
+                    <strong>${escapeHtml(tokenAccountLabel(a))}</strong>
+                    ${a.name && a.email ? `<small>${escapeHtml(a.email)}</small>` : ''}
+                </span>
+                ${a.app ? `<span class="token-account-app">${escapeHtml(a.app)}</span>` : ''}
+                <span class="token-account-balance">${a.balance.toLocaleString('en-AU')} <small>tokens</small></span>
+            </button>`).join('');
+    }
+
+    function renderTokenGrant() {
+        const account = tokenAccounts.find(a => a.uid === selectedTokenAccount);
+        tokenGrantPanel.hidden = !account;
+        if (!account) return;
+        tokenGrantWho.textContent = tokenAccountLabel(account);
+        tokenGrantBalance.textContent = `${account.balance.toLocaleString('en-AU')} tokens`;
+        const quantity = window.ServicePricing.parseTokenQuantity(tokenGrantAmount.value);
+        tokenGrantBtn.disabled = tokenGrantBusy || Number.isNaN(quantity);
+        tokenGrantBtn.innerHTML = tokenGrantBusy
+            ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Adding...'
+            : `<i class="fa-solid fa-plus"></i> Add ${Number.isNaN(quantity) ? '' : `${quantity.toLocaleString('en-AU')} `}tokens`;
+    }
+
+    async function loadTokenAccounts() {
+        if (!tokenAccountsList || !window.ServicePricing) return;
+        setTokenAccountsStatus('Loading accounts...');
+        try {
+            const res = await fetch('/api/tokens/accounts');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(String(data.error || `HTTP ${res.status}`).replace(/\.$/, ''));
+            tokenAccounts = Array.isArray(data.accounts) ? data.accounts : [];
+            setTokenAccountsStatus('');
+        } catch (e) {
+            setTokenAccountsStatus(`Could not load the accounts: ${e.message}.`, 'error');
+        }
+        renderTokenAccounts();
+        renderTokenGrant();
+    }
+
+    // A new ID per click, so the server never adds the same click twice
+    function newGrantRequestId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+        return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    }
+
+    if (tokenAccountsList && window.ServicePricing) {
+        tokenAccountsSearch.addEventListener('input', renderTokenAccounts);
+        tokenAccountsList.addEventListener('click', (e) => {
+            const row = e.target.closest('.token-account-row');
+            if (!row) return;
+            selectedTokenAccount = row.dataset.uid;
+            setTokenAccountsStatus('');
+            renderTokenAccounts();
+            renderTokenGrant();
+            tokenGrantPanel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+
+        setupTokenStepper({
+            input: tokenGrantAmount,
+            less: document.getElementById('tokenGrantLess'),
+            more: document.getElementById('tokenGrantMore'),
+            onChange: renderTokenGrant
+        });
+
+        tokenGrantBtn.addEventListener('click', async () => {
+            const account = tokenAccounts.find(a => a.uid === selectedTokenAccount);
+            const tokens = window.ServicePricing.parseTokenQuantity(tokenGrantAmount.value);
+            if (!account || Number.isNaN(tokens) || tokenGrantBusy) return;
+            tokenGrantBusy = true;
+            renderTokenGrant();
+            setTokenAccountsStatus('');
+            try {
+                const res = await fetch('/api/tokens/grant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: account.uid, tokens, requestId: newGrantRequestId() })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+                if (typeof data.balance === 'number') account.balance = data.balance;
+                setTokenAccountsStatus(`Added ${tokens.toLocaleString('en-AU')} tokens to ${tokenAccountLabel(account)}. Their balance is now ${account.balance.toLocaleString('en-AU')} tokens.`, 'ok');
+            } catch (e) {
+                setTokenAccountsStatus(`Could not add the tokens: ${String(e.message).replace(/\.$/, '')}.`, 'error');
+            } finally {
+                tokenGrantBusy = false;
+                renderTokenAccounts();
+                renderTokenGrant();
             }
         });
     }
@@ -3887,6 +4241,24 @@ const postObserver = new IntersectionObserver((entries) => {
     } else if (donationStatus === 'cancelled') {
         setDonationStatus('Payment was cancelled. You can try again at any time.', true);
         window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Back from Stripe after buying tokens: once the sign-in is restored, open Buy Tokens to confirm the payment
+    const tokensReturnStatus = urlParams.get('tokens');
+    if ((tokensReturnStatus === 'success' && sessionId) || tokensReturnStatus === 'cancelled') {
+        buyTokensReturn = tokensReturnStatus === 'success' ? { sessionId } : { cancelled: true };
+        window.history.replaceState({}, document.title, window.location.pathname);
+        const openBuyTokens = () => openAuthenticatedPanel('admin-buy-tokens');
+        if (window.firebaseService?.getCurrentUser?.()) {
+            openBuyTokens();
+        } else {
+            const onSignedIn = (e) => {
+                if (!e.detail?.user) return;
+                window.removeEventListener('firebaseAuthChanged', onSignedIn);
+                openBuyTokens();
+            };
+            window.addEventListener('firebaseAuthChanged', onSignedIn);
+        }
     }
 
     loadPosts();
