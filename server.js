@@ -14,20 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
-
-// Initialize Firebase Admin SDK
-const admin = require('firebase-admin');
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
-  })
-});
 console.log('[Server Startup] 3. Loading firebase service...');
 const firebaseService = require('./firebase-service');
-// Export admin for other modules if needed
-module.exports.admin = admin;
 const { attachUser, requireAuth, requireAdmin, requireSuperAdmin } = require('./auth-middleware');
 const servicePricing = require('./public/service-pricing');
 const { createServicePriceStore } = require('./service-prices');
