@@ -597,3 +597,12 @@ The working original
   Website ......... https://www.aifoundation.net.au
   Admin panel ..... Services & Pricing (token price), Buy Tokens, Token Accounts
 ================================================================================
+
+
+Read: 
+The code files, all in token-kit/:
+
+Server: lib/firestore-rest.js, lib/auth.js, lib/token-balances.js, lib/token-routes.js, lib/exchange-rates.js, server.js
+Browser: public/token-pricing.js, public/firebase-client.js, public/tokens-ui.js, public/tokens.html, public/tokens.css
+Checks and settings: scripts/check-startup.js, tests/, package.json, .env.example
+The kit is a complete small app that shares your existing token balance and price.
