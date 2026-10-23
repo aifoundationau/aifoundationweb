@@ -153,6 +153,17 @@ test('parseTokenQuantity: purchases must be a multiple of 10 (tokens are bought 
     for (const value of ['15', 25, '1,005', 9]) assert.ok(Number.isNaN(pricing.parseTokenQuantity(value, tens)), String(value));
 });
 
+test('tokenPricePart: a token costs USD $1 until the admin sets a USD price; AUD only when set', () => {
+    assert.deepEqual(pricing.DEFAULT_TOKEN_PRICE, { usd: 1, aud: null });
+    for (const prices of [undefined, null, {}, { tokens: {} }, pricing.cleanPrices({}).prices]) {
+        assert.deepEqual(pricing.tokenPricePart(prices), { usd: 1, aud: null }, JSON.stringify(prices));
+    }
+    assert.deepEqual(pricing.tokenPricePart({ tokens: { perToken: { usd: 2.5, aud: null } } }), { usd: 2.5, aud: null });
+    assert.deepEqual(pricing.tokenPricePart({ tokens: { perToken: { usd: null, aud: 1.5 } } }), { usd: 1, aud: 1.5 });
+    assert.deepEqual(pricing.resolvePrice(pricing.tokenPricePart({}), 'AU'), { currency: 'USD', amount: 1 }, 'no AUD price: Australians pay USD $1');
+    assert.deepEqual(pricing.resolvePrice(pricing.tokenPricePart({}), 'US'), { currency: 'USD', amount: 1 });
+});
+
 test('tokenTotal: price per token times the number of tokens, rounded to the cent', () => {
     const aud = { currency: 'AUD', amount: 0.14 };
     assert.deepEqual(pricing.tokenTotal(aud, 10), { currency: 'AUD', amount: 1.4 });

@@ -2156,7 +2156,7 @@ const postObserver = new IntersectionObserver((entries) => {
                         <input type="text" inputmode="decimal" autocomplete="off"
                             data-service="${escapeHtml(service.id)}" data-part="${escapeHtml(part.key)}" data-currency="${escapeHtml(currency.key)}"
                             value="${escapeHtml(servicePriceBoxValue(saved[part.key] && saved[part.key][currency.key]))}"
-                            placeholder="${currency.key === 'aud' ? 'Uses USD price' : 'Not set'}"
+                            placeholder="${escapeHtml((part.placeholders && part.placeholders[currency.key]) || (currency.key === 'aud' ? 'Uses USD price' : 'Not set'))}"
                             aria-label="${escapeHtml(`${service.name}, ${part.label}, ${currency.name}`)}">
                     </label>`).join('')}
                 </div>`).join('')}

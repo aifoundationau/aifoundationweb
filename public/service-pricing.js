@@ -25,12 +25,14 @@
         }
     ];
 
-    // Token pricing: the price of one token, saved with the service prices and edited in the same form
+    // Token pricing: the price of one token, saved with the service prices and edited in the same form.
+    // A blank USD box means the default, USD $1 per token
+    const DEFAULT_TOKEN_PRICE = { usd: 1, aud: null };
     const TOKENS = {
         id: 'tokens',
         name: 'Tokens',
-        note: 'Price per token. In Buy Tokens, people buy 10 at a time (10, 20, 30 and so on), with no upper limit.',
-        parts: [{ key: 'perToken', label: 'Price per token' }]
+        note: 'Price per token: USD $1 unless you enter another price. In Buy Tokens, people buy 10 at a time (10, 20, 30 and so on), with no upper limit.',
+        parts: [{ key: 'perToken', label: 'Price per token', placeholders: { usd: '1 (default)' } }]
     };
 
     // Every card in Services & Pricing, in the order shown
@@ -152,6 +154,15 @@
         return valid ? quantity : NaN;
     }
 
+    // The token price in use ({ usd, aud }) from saved prices: the saved USD price, or the default USD $1 when that box
+    // is blank, and the saved AUD price (blank means visitors in Australia pay in USD too)
+    function tokenPricePart(prices) {
+        const saved = (prices && prices.tokens && prices.tokens.perToken) || {};
+        const usd = parseAmount(saved.usd);
+        const aud = parseAmount(saved.aud);
+        return { usd: Number.isFinite(usd) ? usd : DEFAULT_TOKEN_PRICE.usd, aud: Number.isFinite(aud) ? aud : null };
+    }
+
     // What a number of tokens costs at the price per token ({ currency, amount }), rounded to the cent
     function tokenTotal(pricePerToken, quantity) {
         if (!pricePerToken || !Number.isFinite(pricePerToken.amount) || !Number.isInteger(quantity)) return null;
@@ -160,8 +171,8 @@
     }
 
     const api = {
-        SERVICES, TOKENS, PRICE_GROUPS, CURRENCIES, MAX_AMOUNT, TOKEN_LIMITS, MIN_CARD_PAYMENT, MAX_CARD_PAYMENT,
-        parseAmount, cleanPrices, resolvePrice, formatPrice, convertUsdToAud, parseTokenQuantity, tokenTotal
+        SERVICES, TOKENS, PRICE_GROUPS, CURRENCIES, MAX_AMOUNT, TOKEN_LIMITS, MIN_CARD_PAYMENT, MAX_CARD_PAYMENT, DEFAULT_TOKEN_PRICE,
+        parseAmount, cleanPrices, resolvePrice, formatPrice, convertUsdToAud, parseTokenQuantity, tokenPricePart, tokenTotal
     };
     if (typeof module === 'object' && module.exports) module.exports = api;
     else root.ServicePricing = api;

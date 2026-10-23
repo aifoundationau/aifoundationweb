@@ -303,7 +303,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 
 #### Purchase Rules
 - Tokens are bought 10 at a time. The token box starts at 10; each + adds 10 and each - takes 10 off, with no upper limit. Buyers can also type any multiple of 10 (other amounts are rounded up to the next 10). One request is capped at 1,000,000,000 tokens to catch typing mistakes.
-- The price is the admin's price per token (Domain 10, `tokens.perToken`), chosen by the Domain 10 display rule (AUD in Australia when set, otherwise USD). The total is tokens × price per token, rounded to the cent. It must be from 0.50 to 999,999.99, Stripe's limits for one card payment.
+- The price is the admin's price per token (Domain 10, `tokens.perToken`), chosen by the Domain 10 display rule (AUD in Australia when set, otherwise USD). When the USD box is blank, a token costs the default USD $1 (`DEFAULT_TOKEN_PRICE`). The total is tokens × price per token, rounded to the cent. It must be from 0.50 to 999,999.99, Stripe's limits for one card payment.
 - The server works out every amount; the browser only sends the number of tokens.
 - Tokens are credited only after Stripe reports the checkout as `paid`, in one atomic commit that creates the `purchase_<sessionId>` ledger entry (which must not exist yet) and increments `token_balance`.
 - No token checkout is started while balances can't be reached or the buyer has no profile, so a payment is never taken that can't be credited.
