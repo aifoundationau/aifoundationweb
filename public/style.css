@@ -84,7 +84,8 @@ p { margin: 0; }
 
 @media (max-width: 1024px) {
   .dashboard-container {
-    grid-template-columns: 1fr;
+    /* minmax(0, ...) so one wide element can't make the whole page wider than the screen */
+    grid-template-columns: minmax(0, 1fr);
     gap: 24px;
   }
   .dashboard-aside {
@@ -198,15 +199,16 @@ p { margin: 0; }
 }
 .sidebar-item.active i { color: var(--primary); }
 
-/* Special Sections dropdown on phones (portrait, and landscape touch screens up to 500px tall).
+/* Special Sections dropdown on phones & tablets: any screen up to 1024px wide (where the sidebar sits
+   above the content) and any touch-first device, e.g. iPads and Android tablets in landscape.
    A pure media query, not app.js device classes, so the list never shows and then collapses at
    page load. Own class names, not the Admin Panel dropdown's (see errorlog #10). */
 .sidebar-nav-toggle {
   display: none;
 }
 
-@media (max-width: 600px),
-       (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+@media (max-width: 1024px),
+       (hover: none) and (pointer: coarse) {
   .sidebar-sections .sidebar-title {
     margin-bottom: 10px;
   }
@@ -288,6 +290,11 @@ p { margin: 0; }
   border: 1px solid var(--border-subtle);
   position: relative;
   overflow: hidden;
+}
+
+/* The Articles logo shrinks with its card on narrow phones (it is 291px wide at full size) */
+.dashboard-card > img {
+  max-width: 100%;
 }
 
 /* Welcome Card (Hero) */
@@ -521,6 +528,7 @@ p { margin: 0; }
 
 .post-share-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -570,7 +578,7 @@ p { margin: 0; }
 .share-linkedin { background: #0a66c2; }
 .share-email { background: #ea4335; }
 
-.post-footer { display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 0.9rem; }
+.post-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; color: #94a3b8; font-size: 0.9rem; }
 .post-footer a {
   background: #f1f5f9;
   color: var(--primary);
@@ -592,17 +600,18 @@ p { margin: 0; }
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
   padding-top: 16px;
   border-top: 1px solid var(--border-color, #e2e8f0);
 }
 
+/* Padding and gap sized so all 9 buttons fit one row from 1366px-wide laptops up */
 .footer-portal-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 24px;
+  padding: 8px 16px;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: 999px;
@@ -640,6 +649,17 @@ p { margin: 0; }
   box-shadow: 0 2px 6px rgba(0, 102, 255, 0.1);
 }
 
+/* 1025-1365px desktops (e.g. 1280px: a 1920x1080 laptop at 150% scaling) have a narrower column
+   beside the sidebar: slightly tighter buttons keep all 9 on one row there too */
+@media (min-width: 1025px) and (max-width: 1365px) {
+  .footer-portal-nav {
+    gap: 8px;
+  }
+  .footer-portal-btn {
+    padding: 8px 12px;
+  }
+}
+
 /* Android, iPhone & tablets. app.js (updateDeviceAdminMode) sets admin-touch-device on those devices
    and on any screen up to 1024px wide. Columns are capped at 220px so iPads don't stretch the buttons. */
 body.admin-touch-device .footer-portal-nav {
@@ -655,6 +675,12 @@ body.admin-touch-device .footer-portal-btn {
 }
 body.admin-touch-device .footer-portal-btn i {
   font-size: 0.88rem;
+}
+/* A last button left alone on its row (odd count) is centred, the same width as the others */
+body.admin-touch-device .footer-portal-btn:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc((100% - 10px) / 2);
 }
 
 /* ABN, email & Stripe details drop below the buttons, one small pill per line, as wide as the buttons.
@@ -2037,8 +2063,10 @@ html.admin-panel-open body {
 }
 .service-card-top {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 10px;
   margin-bottom: 20px;
 }
 .service-icon-box {
@@ -2329,10 +2357,13 @@ html.admin-panel-open body {
 /* ==========================================================================
    Navigation Actions & Firebase Google Auth Component (Replaces Settings Button)
    ========================================================================== */
+/* min-width: 0 on this chain (actions > auth container > user menu > badge) lets a long signed-in
+   name shorten with "..." on narrow phones instead of making the header wider than the screen */
 .nav-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .auth-container,
@@ -2340,6 +2371,7 @@ html.admin-panel-open body {
   position: relative;
   display: inline-flex;
   align-items: center;
+  min-width: 0;
 }
 
 .google-auth-btn {
@@ -2385,12 +2417,14 @@ html.admin-panel-open body {
   position: relative;
   display: inline-flex;
   align-items: center;
+  min-width: 0;
 }
 
 .user-profile-badge {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   background: #ffffff;
   border: 1.5px solid #e2e8f0;
   padding: 5px 14px 5px 6px;
@@ -5989,3 +6023,72 @@ html.locale-panel-open body {
 
 
 
+
+/* ==========================================================================
+   Very narrow phones: 359px and below (e.g. 320px iPhone SE 1st gen), down to
+   240px feature phones and foldable cover screens. Last in the file so these
+   override the base rules above.
+   ========================================================================== */
+@media (max-width: 359px) {
+  /* Contact: the LinkedIn / Telegram buttons stack instead of squeezing into one row */
+  .profile-social-btns {
+    flex-direction: column;
+  }
+  .profile-social-btns .profile-linkedin-btn {
+    flex: none;
+  }
+}
+
+@media (max-width: 319px) {
+  .nav-container {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .brand-logo {
+    height: 30px;
+  }
+  .google-auth-btn {
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  /* Signed in: avatar and menu arrow only */
+  .user-display-name {
+    display: none;
+  }
+  .sidebar-connect-list {
+    grid-template-columns: 1fr;
+  }
+  .post-content {
+    padding: 18px;
+  }
+  .services-hero-card {
+    padding: 24px 18px;
+  }
+  .services-hero-title {
+    font-size: 1.45rem;
+  }
+  .service-card {
+    padding: 20px;
+  }
+  .donation-bar-card {
+    padding: 20px 16px;
+  }
+  .donation-amount-wrap {
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
+  }
+  .donation-amount-currency {
+    white-space: nowrap;
+  }
+  .donation-amount-min-badge {
+    padding: 3px 6px;
+    font-size: 0.7rem;
+  }
+  .donation-amount-input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+}

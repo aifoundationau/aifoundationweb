@@ -437,9 +437,10 @@ async function listAIFoundationTransactions(limit = 50) {
     }
 }
 
-// The ONLY two authorized SuperAdmins allowed in Firebase
-const SUPERADMIN_UIDS = ['ZK79FRQoVlYhsgvMibhi81dRUWj2', 'L5euSJAfNKdDOX6mT0qmrCGjUA53'];
-const SUPERADMIN_EMAILS = ['davidrobertson.info@gmail.com', 'support@aifoundation.net.au'];
+// SuperAdmin is the Firebase Admin service account email (registered on the Firebase project)
+const SUPERADMIN_UIDS = [];
+const SUPERADMIN_EMAILS = process.env.FIREBASE_CLIENT_EMAIL ? [process.env.FIREBASE_CLIENT_EMAIL] : [];
+
 
 function isSuperAdminUser(uid, email) {
     const normUid = (uid || '').trim();

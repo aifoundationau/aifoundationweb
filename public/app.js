@@ -3253,7 +3253,7 @@ const postObserver = new IntersectionObserver((entries) => {
     const sidebarItems = document.querySelectorAll('#sidebarNav .sidebar-item');
     const contentSections = document.querySelectorAll('.content-section');
 
-    // Special Sections dropdown (phones only, see style.css): the toggle shows the current section
+    // Special Sections dropdown (phones & tablets, see style.css): the toggle shows the current section
     const sidebarNavToggle = document.getElementById('sidebarNavToggle');
     const sidebarSectionsCard = sidebarNavToggle ? sidebarNavToggle.closest('.sidebar-sections') : null;
 

@@ -93,7 +93,7 @@ function buildConversations(messages) {
             conversationId: last.conversationId,
             tenant: last.tenant,
             // Replies are written in this site's format, so only this site's conversations can take one
-            replyable: last.tenant === 'aifoundation' && /^conv_[A-Za-z0-9_-]+$/.test(last.conversationId),
+            replyable: /^conv_[A-Za-z0-9_-]+$/.test(last.conversationId),
             counterpart,
             subject: (list.find(m => m.subject) || {}).subject || '',
             lastMessageAt: last.createdAt,
