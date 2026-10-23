@@ -2132,9 +2132,10 @@ const postObserver = new IntersectionObserver((entries) => {
         return new Error(String(data.error || `HTTP ${res.status}`).replace(/\.$/, ''));
     }
 
-    // Box text for a saved amount: whole dollars, e.g. "1500"
+    // Box text for a saved amount: "1500" (service prices are whole dollars), or "1.43" for a token price with cents
     function servicePriceBoxValue(amount) {
-        return typeof amount === 'number' ? String(Math.round(amount)) : '';
+        if (typeof amount !== 'number') return '';
+        return Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
     }
 
     function renderAdminServicePricesForm(prices) {
@@ -2173,7 +2174,7 @@ const postObserver = new IntersectionObserver((entries) => {
             usdAudRate = { rate: data.rate, date: data.date };
             const day = new Date(`${data.date}T00:00:00Z`);
             const dayText = isNaN(day.getTime()) ? '' : `, ${day.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
-            servicePricesRate.textContent = `Typing a USD price fills in its AUD box at today's rate, rounded to the nearest dollar: 1 USD = ${data.rate} AUD (Frankfurter${dayText}). You can still change the AUD amount.`;
+            servicePricesRate.textContent = `Typing a USD price fills in its AUD box at today's rate, rounded to the nearest dollar (token prices to the cent): 1 USD = ${data.rate} AUD (Frankfurter${dayText}). You can still change the AUD amount.`;
         } catch (e) {
             usdAudRate = null;
             servicePricesRate.textContent = 'Today\'s exchange rate could not be fetched, so AUD boxes won\'t fill in by themselves. Enter AUD prices yourself.';
@@ -2210,17 +2211,20 @@ const postObserver = new IntersectionObserver((entries) => {
 
             // Typing a USD price fills in the AUD box beside it at today's rate
             if (!usdAudRate || e.target.dataset.currency !== 'usd') return;
-            const aud = window.ServicePricing.convertUsdToAud(e.target.value, usdAudRate.rate);
+            const pricing = window.ServicePricing;
+            const aud = pricing.convertUsdToAud(e.target.value, usdAudRate.rate, { decimals: pricing.priceDecimals(e.target.dataset.service) });
             const audInput = e.target.closest('.service-prices-row').querySelector('input[data-currency="aud"]');
             if (aud === null || !audInput) return;
             audInput.value = servicePriceBoxValue(aud);
             audInput.closest('.service-prices-field').classList.remove('is-invalid');
         });
 
-        // Prices are whole dollars: leaving a box shows its amount rounded to the nearest dollar (1,499.95 becomes 1500)
+        // Service prices are whole dollars: leaving a box shows its amount rounded to the nearest dollar (1,499.95 becomes
+        // 1500). Token prices keep their cents (1.4261 becomes 1.43)
         servicePricesRows.addEventListener('focusout', (e) => {
             if (!e.target.matches('input[data-service]')) return;
-            const amount = window.ServicePricing.parseAmount(e.target.value);
+            const pricing = window.ServicePricing;
+            const amount = pricing.parseAmount(e.target.value, { decimals: pricing.priceDecimals(e.target.dataset.service) });
             if (Number.isFinite(amount)) e.target.value = servicePriceBoxValue(amount);
         });
     }
@@ -2234,7 +2238,7 @@ const postObserver = new IntersectionObserver((entries) => {
             const prices = {};
             let firstInvalid = null;
             servicePricesRows.querySelectorAll('input[data-service]').forEach(input => {
-                const amount = pricing.parseAmount(input.value);
+                const amount = pricing.parseAmount(input.value, { decimals: pricing.priceDecimals(input.dataset.service) });
                 const invalid = Number.isNaN(amount);
                 input.closest('.service-prices-field').classList.toggle('is-invalid', invalid);
                 input.setAttribute('aria-invalid', String(invalid));
@@ -2245,7 +2249,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 prices[service][part][currency] = invalid ? null : amount;
             });
             if (firstInvalid) {
-                setServicePricesStatus('Check the highlighted boxes: enter whole-dollar amounts like 1500 or 1,500 (from 1 to 1,000,000), or leave a box blank.', 'error');
+                setServicePricesStatus('Check the highlighted boxes: enter amounts like 1500 or 1,500 (from 1 to 1,000,000; token prices can have cents, like 1.43), or leave a box blank.', 'error');
                 firstInvalid.focus();
                 return;
             }

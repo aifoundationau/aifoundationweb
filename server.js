@@ -621,10 +621,10 @@ app.get('/api/exchange-rates/usd-aud', requireAdmin, async (req, res) => {
 // time: AUD for visitors in Australia when an AUD price is set, USD otherwise. The server works out every amount itself;
 // the browser only says how many tokens
 
-// The price of one token for this visitor
+// The price of one token for this visitor (token prices keep their cents)
 async function tokenPriceFor(req) {
     const saved = await servicePrices.read();
-    return servicePricing.resolvePrice(servicePricing.tokenPricePart(saved.prices), visitorCountry(req));
+    return servicePricing.tokenPrice(saved.prices, visitorCountry(req));
 }
 
 // Keep the transactions record in step with a settled token checkout (best effort: the balance is what counts)

@@ -5,7 +5,7 @@
  *
  * Admins enter each price in USD and AUD (two separate boxes). Visitors in Australia see the AUD price,
  * or the USD price when the AUD box is blank. Everyone else always sees the USD price.
- * Prices are whole dollars: decimals are rounded to the nearest dollar.
+ * Service prices are whole dollars (decimals are rounded to the nearest dollar); token prices keep their cents.
  * Token prices (Buy Tokens in the admin panel) follow the same rule, and the token box limits live here too.
  */
 (function (root) {
@@ -27,12 +27,13 @@
     ];
 
     // Token pricing: the price of one token, saved with the service prices and edited in the same form.
-    // A blank USD box means the default, USD $1 per token
+    // A blank USD box means the default, USD $1 per token. Unlike service prices, token prices keep their cents (decimals: 2)
     const DEFAULT_TOKEN_PRICE = { usd: 1, aud: null };
     const TOKENS = {
         id: 'tokens',
         name: 'Tokens',
-        note: 'Price per token: USD $1 unless you enter another price. In Buy Tokens, people buy 10 at a time (10, 20, 30 and so on), with no upper limit.',
+        decimals: 2,
+        note: 'Price per token: USD $1 unless you enter another price. Token prices keep their cents (e.g. AUD 1.43). In Buy Tokens, people buy 10 at a time (10, 20, 30 and so on), with no upper limit.',
         parts: [{ key: 'perToken', label: 'Price per token', placeholders: { usd: '1 (default)' } }]
     };
 
@@ -55,10 +56,16 @@
     const MIN_CARD_PAYMENT = 0.5;
     const MAX_CARD_PAYMENT = 999999.99;
 
-    // A price box value as a whole number of dollars, null when the box is blank, or NaN when it isn't a price.
-    // Accepts numbers and text such as "1500", "1,500" or "$1,499.95"; decimals are rounded to the nearest dollar
-    // (1,499.95 is 1,500), and the result must be from 1 to MAX_AMOUNT
-    function parseAmount(value) {
+    // How many decimal places a group's prices keep: 0 (whole dollars) for services, 2 (cents) for tokens
+    function priceDecimals(serviceId) {
+        const group = PRICE_GROUPS.find(g => g.id === serviceId);
+        return (group && group.decimals) || 0;
+    }
+
+    // A price box value as a number, null when the box is blank, or NaN when it isn't a price. Accepts numbers and text
+    // such as "1500", "1,500" or "$1,499.95". Rounded to whole dollars by default (service prices: 1,499.95 is 1,500),
+    // or to the cent with decimals: 2 (token prices: 1.4261 is 1.43). The result must be above 0 and at most MAX_AMOUNT
+    function parseAmount(value, { decimals = 0 } = {}) {
         if (value === null || value === undefined) return null;
         let amount;
         if (typeof value === 'number') {
@@ -72,8 +79,9 @@
             return NaN;
         }
         if (!Number.isFinite(amount)) return NaN;
-        const dollars = Math.round(amount);
-        return dollars >= 1 && dollars <= MAX_AMOUNT ? dollars : NaN;
+        const factor = 10 ** decimals;
+        const rounded = Math.round(amount * factor) / factor;
+        return rounded > 0 && rounded <= MAX_AMOUNT ? rounded : NaN;
     }
 
     // Prices in a fixed shape, { [serviceId]: { [partKey]: { usd, aud } } } with every amount a number or null,
@@ -85,20 +93,22 @@
         const errors = [];
         PRICE_GROUPS.forEach(service => {
             const serviceIn = source[service.id] && typeof source[service.id] === 'object' ? source[service.id] : {};
+            const decimals = service.decimals || 0;
             prices[service.id] = {};
             service.parts.forEach(part => {
                 const partIn = serviceIn[part.key] && typeof serviceIn[part.key] === 'object' ? serviceIn[part.key] : {};
                 const cleaned = {};
                 CURRENCIES.forEach(currency => {
-                    const amount = parseAmount(partIn[currency.key]);
+                    const amount = parseAmount(partIn[currency.key], { decimals });
                     cleaned[currency.key] = Number.isNaN(amount) ? null : amount;
                     if (Number.isNaN(amount)) {
                         const label = service.parts.length > 1 ? `${service.name} (${part.label})` : service.name;
+                        const range = decimals ? 'a number from 0.01 to 1,000,000' : 'a whole number from 1 to 1,000,000';
                         errors.push({
                             serviceId: service.id,
                             part: part.key,
                             currency: currency.key,
-                            message: `${label}: the ${currency.code} price must be a whole number from 1 to 1,000,000, or left blank.`
+                            message: `${label}: the ${currency.code} price must be ${range}, or left blank.`
                         });
                     }
                 });
@@ -109,10 +119,10 @@
     }
 
     // The price a visitor sees for one part of a service: AUD for visitors in Australia when an AUD price is set,
-    // otherwise USD. Returns { currency, amount }, or null when there is no price to show
-    function resolvePrice(part, countryCode) {
-        const usd = parseAmount(part ? part.usd : null);
-        const aud = parseAmount(part ? part.aud : null);
+    // otherwise USD. Returns { currency, amount }, or null when there is no price to show. decimals as in parseAmount
+    function resolvePrice(part, countryCode, { decimals = 0 } = {}) {
+        const usd = parseAmount(part ? part.usd : null, { decimals });
+        const aud = parseAmount(part ? part.aud : null, { decimals });
         if (String(countryCode || '').toUpperCase() === 'AU' && Number.isFinite(aud)) {
             return { currency: 'AUD', amount: aud };
         }
@@ -130,12 +140,12 @@
         return `${price.currency} $${amount}`;
     }
 
-    // The AUD box's amount for a USD price at an exchange rate (AUD per USD), rounded to the nearest dollar.
-    // null when the USD box isn't a price or the converted amount isn't a valid price
-    function convertUsdToAud(usd, rate) {
-        const amount = parseAmount(usd);
+    // The AUD box's amount for a USD price at an exchange rate (AUD per USD), rounded to the nearest dollar, or to the
+    // cent with decimals: 2 (token prices). null when the USD box isn't a price or the converted amount isn't a valid price
+    function convertUsdToAud(usd, rate, { decimals = 0 } = {}) {
+        const amount = parseAmount(usd, { decimals });
         if (!Number.isFinite(amount) || !(rate > 0)) return null;
-        const aud = parseAmount(amount * rate);
+        const aud = parseAmount(amount * rate, { decimals });
         return Number.isFinite(aud) ? aud : null;
     }
 
@@ -155,24 +165,31 @@
         return valid ? quantity : NaN;
     }
 
-    // The token price in use ({ usd, aud }) from saved prices: the saved USD price, or the default USD $1 when that box
-    // is blank, and the saved AUD price (blank means visitors in Australia pay in USD too)
+    // The token price in use ({ usd, aud }, with cents) from saved prices: the saved USD price, or the default USD $1 when
+    // that box is blank, and the saved AUD price (blank means visitors in Australia pay in USD too)
     function tokenPricePart(prices) {
         const saved = (prices && prices.tokens && prices.tokens.perToken) || {};
-        const usd = parseAmount(saved.usd);
-        const aud = parseAmount(saved.aud);
+        const usd = parseAmount(saved.usd, { decimals: TOKENS.decimals });
+        const aud = parseAmount(saved.aud, { decimals: TOKENS.decimals });
         return { usd: Number.isFinite(usd) ? usd : DEFAULT_TOKEN_PRICE.usd, aud: Number.isFinite(aud) ? aud : null };
     }
 
-    // What a number of tokens costs at the price per token ({ currency, amount }), in whole dollars like every price
+    // The price of one token for a visitor ({ currency, amount }, with cents), by the same currency rule as services
+    function tokenPrice(prices, countryCode) {
+        return resolvePrice(tokenPricePart(prices), countryCode, { decimals: TOKENS.decimals });
+    }
+
+    // What a number of tokens costs at the price per token ({ currency, amount }), rounded to the cent
     function tokenTotal(pricePerToken, quantity) {
         if (!pricePerToken || !Number.isFinite(pricePerToken.amount) || !Number.isInteger(quantity)) return null;
-        return { currency: pricePerToken.currency, amount: Math.round(pricePerToken.amount * quantity / TOKEN_LIMITS.pricedPer) };
+        const cents = Math.round(Math.round(pricePerToken.amount * 100) * quantity / TOKEN_LIMITS.pricedPer);
+        return { currency: pricePerToken.currency, amount: cents / 100 };
     }
 
     const api = {
         SERVICES, TOKENS, PRICE_GROUPS, CURRENCIES, MAX_AMOUNT, TOKEN_LIMITS, MIN_CARD_PAYMENT, MAX_CARD_PAYMENT, DEFAULT_TOKEN_PRICE,
-        parseAmount, cleanPrices, resolvePrice, formatPrice, convertUsdToAud, parseTokenQuantity, tokenPricePart, tokenTotal
+        priceDecimals, parseAmount, cleanPrices, resolvePrice, formatPrice, convertUsdToAud, parseTokenQuantity,
+        tokenPricePart, tokenPrice, tokenTotal
     };
     if (typeof module === 'object' && module.exports) module.exports = api;
     else root.ServicePricing = api;
