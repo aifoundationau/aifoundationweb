@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Foundation Australia - Social & Web Updates</title>
-    <link rel="stylesheet" href="style.css?v=48">
+    <link rel="stylesheet" href="style.css?v=49">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -180,8 +180,16 @@
 
         <!-- Sidebar -->
         <aside class="dashboard-aside">
-            <div class="dashboard-sidebar">
-                <h3 class="sidebar-title">Special Sections</h3>
+            <div class="dashboard-sidebar sidebar-sections">
+                <h3 class="sidebar-title" id="sidebarSectionsTitle">Special Sections</h3>
+                <!-- Phones only: dropdown toggle showing the current section; opens the list below -->
+                <button type="button" class="sidebar-nav-toggle" id="sidebarNavToggle" aria-expanded="false" aria-controls="sidebarNav" aria-labelledby="sidebarSectionsTitle sidebarNavCurrentText">
+                    <span class="sidebar-nav-current">
+                        <i class="fa-solid fa-house" id="sidebarNavCurrentIcon"></i>
+                        <span id="sidebarNavCurrentText">Articles</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down sidebar-nav-chevron"></i>
+                </button>
                 <ul class="sidebar-list" id="sidebarNav">
                     <li class="sidebar-item active" data-target="section-overview">
                         <i class="fa-solid fa-house"></i>
@@ -744,7 +752,7 @@
                     </div>
                 </div>
 
-                <!-- Desktop Only Portal Buttons (Below Meta Details) -->
+                <!-- Portal Buttons (Below Meta Details) -->
                 <div class="footer-portal-nav" role="navigation" aria-label="Portal Navigation Links">
                     <a href="https://www.aifoundation.net.au/" class="footer-portal-btn" target="_self">
                         <i class="fa-solid fa-brain"></i>
@@ -1739,7 +1747,7 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="site-locale.js?v=1"></script>
     <script src="service-pricing.js?v=1"></script>
-    <script src="app.js?v=55"></script>
+    <script src="app.js?v=56"></script>
 </body>
 
 </html>

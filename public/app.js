@@ -3253,6 +3253,33 @@ const postObserver = new IntersectionObserver((entries) => {
     const sidebarItems = document.querySelectorAll('#sidebarNav .sidebar-item');
     const contentSections = document.querySelectorAll('.content-section');
 
+    // Special Sections dropdown (phones only, see style.css): the toggle shows the current section
+    const sidebarNavToggle = document.getElementById('sidebarNavToggle');
+    const sidebarSectionsCard = sidebarNavToggle ? sidebarNavToggle.closest('.sidebar-sections') : null;
+
+    function setSidebarNavOpen(open) {
+        if (!sidebarSectionsCard) return;
+        sidebarSectionsCard.classList.toggle('is-open', open);
+        sidebarNavToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    function syncSidebarNavToggle() {
+        const active = document.querySelector('#sidebarNav .sidebar-item.active');
+        if (!sidebarNavToggle || !active) return;
+        document.getElementById('sidebarNavCurrentIcon').className = active.querySelector('i').className;
+        document.getElementById('sidebarNavCurrentText').textContent = active.querySelector('span').textContent;
+    }
+
+    if (sidebarNavToggle) {
+        sidebarNavToggle.addEventListener('click', () => {
+            setSidebarNavOpen(!sidebarSectionsCard.classList.contains('is-open'));
+        });
+        // Close when tapping anywhere else on the page
+        document.addEventListener('click', (e) => {
+            if (!sidebarSectionsCard.contains(e.target)) setSidebarNavOpen(false);
+        });
+    }
+
     function activateSection(targetId) {
         sidebarItems.forEach(nav => {
             if (nav.getAttribute('data-target') === targetId) {
@@ -3261,6 +3288,8 @@ const postObserver = new IntersectionObserver((entries) => {
                 nav.classList.remove('active');
             }
         });
+        syncSidebarNavToggle();
+        setSidebarNavOpen(false);
 
         contentSections.forEach(section => section.style.display = 'none');
 

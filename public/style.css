@@ -198,6 +198,80 @@ p { margin: 0; }
 }
 .sidebar-item.active i { color: var(--primary); }
 
+/* Special Sections dropdown on phones (portrait, and landscape touch screens up to 500px tall).
+   A pure media query, not app.js device classes, so the list never shows and then collapses at
+   page load. Own class names, not the Admin Panel dropdown's (see errorlog #10). */
+.sidebar-nav-toggle {
+  display: none;
+}
+
+@media (max-width: 600px),
+       (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .sidebar-sections .sidebar-title {
+    margin-bottom: 10px;
+  }
+  .sidebar-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 16px;
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .sidebar-nav-toggle:focus-visible,
+  .sidebar-sections.is-open .sidebar-nav-toggle {
+    background: #ffffff;
+    border-color: #0066ff;
+    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
+  }
+  .sidebar-nav-current {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .sidebar-nav-current i {
+    width: 24px;
+    font-size: 1.1rem;
+    text-align: center;
+    color: var(--primary);
+  }
+  .sidebar-nav-chevron {
+    font-size: 0.88rem;
+    color: #64748b;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar-sections.is-open .sidebar-nav-chevron {
+    transform: rotate(180deg);
+    color: #0066ff;
+  }
+  .sidebar-sections #sidebarNav {
+    display: none;
+    margin-top: 8px;
+  }
+  .sidebar-sections.is-open #sidebarNav {
+    display: flex;
+    animation: mobileMenuSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-sections.is-open #sidebarNav {
+    animation: none;
+  }
+}
+
 /* Main Content Wrapper */
 .dashboard-content {
   display: flex;
@@ -509,7 +583,9 @@ p { margin: 0; }
 .post-footer a:hover { background: var(--primary); color: white; }
 
 /* ==========================================================================
-   Footer Desktop Portal Navigation Buttons
+   Footer Portal Navigation Buttons
+   Desktop: details row, then one centred row of buttons.
+   Android, iPhone & tablets: buttons two per row, then the details as small pills, one per line.
    ========================================================================== */
 .footer-portal-nav {
   display: flex;
@@ -562,6 +638,55 @@ p { margin: 0; }
 .footer-portal-btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(0, 102, 255, 0.1);
+}
+
+/* Android, iPhone & tablets. app.js (updateDeviceAdminMode) sets admin-touch-device on those devices
+   and on any screen up to 1024px wide. Columns are capped at 220px so iPads don't stretch the buttons. */
+body.admin-touch-device .footer-portal-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 10px;
+}
+body.admin-touch-device .footer-portal-btn {
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+}
+body.admin-touch-device .footer-portal-btn i {
+  font-size: 0.88rem;
+}
+
+/* ABN, email & Stripe details drop below the buttons, one small pill per line, as wide as the buttons.
+   !important beats the inline styles on these elements in the HTML. */
+body.admin-touch-device .footer-meta-row {
+  order: 1;
+  flex-direction: column;
+  align-items: stretch !important;
+  gap: 8px !important;
+  max-width: 450px;
+  margin: 0 auto;
+}
+body.admin-touch-device .footer-meta-row > div {
+  position: relative;
+  justify-content: center;
+  gap: 6px !important;
+  padding: 6px 14px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  text-align: center;
+}
+body.admin-touch-device .footer-meta-row span {
+  font-size: inherit !important;
+}
+/* Whole email pill is tappable, not just its text */
+body.admin-touch-device .footer-meta-row a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
 }
 
 /* Admin & General Modal System (Responsive, Fit-To-Screen & Scrollable) */
@@ -1498,12 +1623,6 @@ html.admin-panel-open body {
   .panel-signout-btn {
     padding: 7px 12px !important;
     font-size: 0.8rem !important;
-  }
-
-  /* Footer Portal Buttons Desktop Only */
-  .footer-portal-nav,
-  .footer-portal-btn {
-    display: none !important;
   }
 }
 
@@ -4611,12 +4730,6 @@ html.admin-panel-open body {
     max-width: 100% !important;
     padding: 12px 14px 24px 14px !important;
   }
-
-  /* Hide footer portal buttons on mobile, tablets, and touch devices */
-  .footer-portal-nav,
-  .footer-portal-btn {
-    display: none !important;
-  }
 }
 
 /* Explicit Device Class Overrides (Guarantees zero Admin Panel side menu on Android, iPad, iPhone).
@@ -4700,20 +4813,6 @@ body.admin-touch-device .admin-panel-content-pane,
   width: 100% !important;
   max-width: 100% !important;
   padding: 12px 14px 24px 14px !important;
-}
-
-/* Explicit device class hiding for footer portal buttons */
-body.device-android .footer-portal-nav,
-body.device-ipad .footer-portal-nav,
-body.device-ios .footer-portal-nav,
-body.admin-touch-device .footer-portal-nav,
-#adminModal.mobile-tablet-mode .footer-portal-nav,
-body.device-android .footer-portal-btn,
-body.device-ipad .footer-portal-btn,
-body.device-ios .footer-portal-btn,
-body.admin-touch-device .footer-portal-btn,
-#adminModal.mobile-tablet-mode .footer-portal-btn {
-  display: none !important;
 }
 
 /* ==========================================================================
