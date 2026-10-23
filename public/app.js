@@ -741,14 +741,61 @@ const postObserver = new IntersectionObserver((entries) => {
         }
     });
 
-    // Sign Out Button inside Admin Panel Footer
+    // Sign out of the site: close the menus and panel, clear the session cookies, and end the Firebase sign-in
+    async function signOutOfSite() {
+        if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+        closeAdminPanel();
+        document.cookie = "adminAuth=; max-age=0; path=/";
+        document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = "userAuth=; max-age=0; path=/";
+        document.cookie = "userAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        try {
+            if (window.firebaseService?.signOutGoogle) await window.firebaseService.signOutGoogle();
+        } catch (err) {
+            console.error('[Firebase Auth] Sign out error:', err);
+        }
+    }
+
+    // "Log out?" box with Yes and No. Resolves true for Yes; No, Esc or a click outside the box resolve false
+    let signOutDialog = null;
+    function confirmSignOut() {
+        if (!signOutDialog) {
+            signOutDialog = document.createElement('dialog');
+            signOutDialog.className = 'signout-confirm';
+            signOutDialog.setAttribute('aria-labelledby', 'signOutConfirmTitle');
+            signOutDialog.innerHTML = `
+                <div class="signout-confirm-box">
+                    <h3 id="signOutConfirmTitle">Log out?</h3>
+                    <p>Are you sure you want to log out?</p>
+                    <div class="signout-confirm-actions">
+                        <button type="button" class="signout-confirm-no" value="no">No, stay logged in</button>
+                        <button type="button" class="signout-confirm-yes" value="yes">Yes, log out</button>
+                    </div>
+                </div>`;
+            signOutDialog.addEventListener('click', (e) => {
+                const button = e.target.closest('button[value]');
+                if (button) signOutDialog.close(button.value);
+                else if (e.target === signOutDialog) signOutDialog.close('no'); // the dimmed backdrop around the box
+            });
+            // Esc closes only this box, not the admin panel behind it
+            signOutDialog.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') e.stopPropagation();
+            });
+            document.body.appendChild(signOutDialog);
+        }
+        return new Promise(resolve => {
+            signOutDialog.returnValue = 'no';
+            signOutDialog.addEventListener('close', () => resolve(signOutDialog.returnValue === 'yes'), { once: true });
+            signOutDialog.showModal();
+            signOutDialog.querySelector('.signout-confirm-no').focus();
+        });
+    }
+
+    // Sign Out Button inside Admin Panel Footer: asks first
     const panelSignOutBtn = document.getElementById('panelSignOutBtn');
     if (panelSignOutBtn) {
         panelSignOutBtn.addEventListener('click', async () => {
-            closeAdminPanel();
-            if (window.firebaseService?.signOut) {
-                await window.firebaseService.signOut();
-            }
+            if (await confirmSignOut()) await signOutOfSite();
         });
     }
 
@@ -1164,19 +1211,7 @@ const postObserver = new IntersectionObserver((entries) => {
     if (googleSignOutBtn) {
         googleSignOutBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            try {
-                if (userDropdownMenu) userDropdownMenu.style.display = 'none';
-                if (adminModal) adminModal.style.display = 'none';
-                document.cookie = "adminAuth=; max-age=0; path=/";
-                document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                document.cookie = "userAuth=; max-age=0; path=/";
-                document.cookie = "userAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                if (window.firebaseService?.signOutGoogle) {
-                    await window.firebaseService.signOutGoogle();
-                }
-            } catch (err) {
-                console.error('[Firebase Auth] Sign out error:', err);
-            }
+            await signOutOfSite();
         });
     }
 
