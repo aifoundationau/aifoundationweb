@@ -76,10 +76,10 @@ PRICE     One price for every app, set by the owner in the AI Foundation admin
           - Token prices keep their cents. (Other prices on the site are whole
             dollars.)
 
-BUYING    Tokens are bought 10 at a time: the box starts at 10, + adds 10, - takes
-          10 off, no upper limit (one request is capped at 1,000,000,000 to catch
-          typing mistakes). Typed amounts must be multiples of 10 (15 rounds up to
-          20). Payment is Stripe Checkout. The SERVER works out the price; the
+BUYING    Buyers choose any whole number of tokens from 10: the box starts at 10,
+          + adds 10, - takes 10 off, and any amount from 10 can be typed (15 stays
+          15), with no upper limit (one request is capped at 1,000,000,000 to catch
+          typing mistakes). Payment is Stripe Checkout. The SERVER works out the price; the
           browser only says how many tokens. Card total must be 0.50 to
           999,999.99 (Stripe's limits).
           Tokens are added only after Stripe says the checkout is "paid": when
@@ -113,7 +113,7 @@ FIXED VALUES (identical in every app; never change them)
   Pending checkouts ....... token_checkouts/{appTag}_{uid}
   Token price ............. system_settings/aifoundation_service_prices,
                             prices.tokens.perToken {usd, aud}; default USD 1
-  Token limits ............ min 10, step 10, priced per 1 token
+  Token limits ............ min 10 (any amount from 10), +/- step 10, priced per 1 token
   SuperAdmin UIDs ......... ZK79FRQoVlYhsgvMibhi81dRUWj2, L5euSJAfNKdDOX6mT0qmrCGjUA53
   SuperAdmin emails ....... davidrobertson.info@gmail.com, support@aifoundation.net.au
   Owner's domain .......... aifoundation.net.au
@@ -495,8 +495,8 @@ PART 6: RULES ANTIGRAVITY MUST NEVER BREAK
     are in lib/auth.js and must match firestore.rules. The owner's domain is
     aifoundation.net.au; aifoundation.com.au is NOT theirs: never add it, or any
     address on it, anywhere.
- 6. Keep public/token-pricing.js identical to AI Foundation's token rules (start
-    10, step 10, price per token, USD $1 default, cents kept).
+ 6. Keep public/token-pricing.js identical to AI Foundation's token rules (any
+    amount from 10, +/- step 10, price per token, USD $1 default, cents kept).
  7. Authorized sign-in domains: exact hostnames only, never plain vercel.app.
  8. New environment variables: add the name (never the value) to .env.example,
     and tell the owner to add it in Vercel, marking secrets Sensitive. Never

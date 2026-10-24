@@ -214,3 +214,30 @@ test('service-pricing.js is served to the browser', async () => {
     assert.match(res.headers.get('content-type'), /javascript/);
     assert.match(await res.text(), /root\.ServicePricing = api/);
 });
+
+test('public privacy and terms routes serve their pages with hashtag footers', async () => {
+    for (const urlPath of ['/privacy', '/privacy.html', '/privacy-policy']) {
+        const res = await get(urlPath);
+        assert.equal(res.status, 200, urlPath);
+        const html = await res.text();
+        assert.match(html, /<title>Public Privacy Policy \| AI Foundation Australia<\/title>/);
+        assert.match(html, /class="footer-legal-bar"/);
+        assert.match(html, /fa-hashtag.*?PrivacyPolicy/);
+        assert.match(html, /fa-hashtag.*?TermsOfService/);
+    }
+    for (const urlPath of ['/terms', '/terms.html', '/terms-of-service']) {
+        const res = await get(urlPath);
+        assert.equal(res.status, 200, urlPath);
+        const html = await res.text();
+        assert.match(html, /<title>Applications Terms of Service \| AI Foundation Australia<\/title>/);
+        assert.match(html, /class="footer-legal-bar"/);
+        assert.match(html, /fa-hashtag.*?TermsOfService/);
+        assert.match(html, /fa-hashtag.*?PrivacyPolicy/);
+    }
+    for (const page of ['index.html', 'projects.html', 'services.html']) {
+        const html = fs.readFileSync(path.join(root, 'public', page), 'utf8');
+        assert.match(html, /class="footer-legal-row"/, `${page} has footer-legal-row`);
+        assert.match(html, /href="privacy\.html".*?PrivacyPolicy/s, `${page} links to privacy.html`);
+        assert.match(html, /href="terms\.html".*?TermsOfService/s, `${page} links to terms.html`);
+    }
+});

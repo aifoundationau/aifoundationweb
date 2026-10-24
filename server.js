@@ -104,6 +104,12 @@ app.use('/api', attachUser);
 app.get(['/services', '/services.html'], (req, res) => {
     res.redirect(302, '/#services2');
 });
+app.get(['/privacy', '/privacy-policy'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+app.get(['/terms', '/terms-of-service'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
 app.use(express.static(path.join(__dirname, 'public'), {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {

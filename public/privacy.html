@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Privacy Policy | AI Foundation Australia</title>
+    <link rel="stylesheet" href="style.css?v=53">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .legal-page-wrap {
+            max-width: 1040px;
+            margin: 32px auto 60px;
+            padding: 0 20px;
+        }
+        .legal-card {
+            background: #ffffff;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            padding: 40px;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 28px;
+        }
+        .legal-header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(0, 78, 204, 0.08);
+            color: #004ecc;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .legal-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+        .legal-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            color: #64748b;
+            font-size: 0.9rem;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 24px;
+        }
+        .hashtag-pill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .hashtag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #334155;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .hashtag-pill:hover {
+            background: #004ecc;
+            color: #ffffff;
+            border-color: #004ecc;
+        }
+        .toc-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 36px;
+        }
+        .toc-box h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .toc-grid li a {
+            color: #004ecc;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.15s ease;
+        }
+        .toc-grid li a:hover {
+            text-decoration: underline;
+            color: #003399;
+        }
+        .legal-section {
+            margin-bottom: 36px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .legal-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .section-tag-anchor {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #004ecc;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-decoration: none;
+        }
+        .section-tag-anchor:hover {
+            text-decoration: underline;
+        }
+        .section-h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legal-p {
+            color: #334155;
+            line-height: 1.7;
+            font-size: 0.95rem;
+            margin-bottom: 14px;
+        }
+        .legal-table-wrap {
+            overflow-x: auto;
+            margin: 18px 0;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .legal-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+            background: #ffffff;
+        }
+        .legal-table th {
+            background: #f8fafc;
+            padding: 12px 16px;
+            font-weight: 700;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .legal-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: top;
+            line-height: 1.5;
+        }
+        .legal-callout {
+            background: #eff6ff;
+            border-left: 4px solid #004ecc;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 18px 0;
+            font-size: 0.92rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+        .code-snippet {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 14px 0;
+        }
+        .footer-legal-bar {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .footer-legal-tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+        .footer-legal-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .footer-legal-item a {
+            color: #004ecc;
+            font-weight: 700;
+            font-size: 0.86rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .footer-legal-item a:hover {
+            text-decoration: underline;
+        }
+        .footer-legal-item small {
+            color: #64748b;
+            font-size: 0.78rem;
+        }
+        @media (max-width: 768px) {
+            .legal-card {
+                padding: 24px 18px;
+            }
+            .legal-title {
+                font-size: 1.75rem;
+            }
+            .footer-legal-tag-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+        @media print {
+            .navbar, .footer-portal-nav, .hashtag-pill-list, .toc-box, .btn-switch-policy {
+                display: none !important;
+            }
+            .legal-card {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            body {
+                background: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="nav-container" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+            <div class="nav-brand">
+                <a href="index.html" style="display: flex; align-items: center; text-decoration: none; gap: 12px;">
+                    <img src="assets/logo.png" alt="AI Foundation Australia Logo" class="brand-logo" style="height: 40px; width: auto;">
+                    <span style="font-weight: 800; color: #0f172a; font-size: 1.15rem; letter-spacing: -0.02em;">AI Foundation</span>
+                </a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <a href="terms.html" class="btn-switch-policy" style="text-decoration: none; font-size: 0.88rem; font-weight: 600; color: #004ecc; background: rgba(0, 78, 204, 0.08); padding: 8px 16px; border-radius: 999px; transition: background 0.2s;">
+                    <i class="fa-solid fa-scale-balanced"></i> Terms of Service
+                </a>
+                <a href="index.html" style="text-decoration: none; font-size: 0.88rem; font-weight: 600; color: #334155; background: #f1f5f9; padding: 8px 16px; border-radius: 999px; transition: background 0.2s;">
+                    <i class="fa-solid fa-arrow-left"></i> Home
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="legal-page-wrap">
+        <div class="legal-card">
+            
+            <span class="legal-header-badge">
+                <i class="fa-solid fa-shield-halved"></i> Statutory Privacy Policy
+            </span>
+
+            <h1 class="legal-title">Public Privacy Policy</h1>
+
+            <div class="legal-meta-row">
+                <span><strong>Entity:</strong> AI Foundation</span>
+                <span>&bull;</span>
+                <span><strong>ABN:</strong> 36 339 516 584</span>
+                <span>&bull;</span>
+                <span><strong>Effective Date:</strong> 24 October 2026</span>
+                <span>&bull;</span>
+                <span><strong>Standard:</strong> Privacy Act 1988 (Cth) &amp; APPs 1&ndash;13</span>
+            </div>
+
+            <!-- Master Hashtag Badges -->
+            <div class="hashtag-pill-list">
+                <a href="#privacy-policy" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>PrivacyPolicy</a>
+                <a href="#australian-privacy-principles" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>AustralianPrivacyPrinciples</a>
+                <a href="#data-protection" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>DataProtection</a>
+                <a href="#multi-tenant-isolation" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>MultiTenantIsolation</a>
+                <a href="#seven-year-retention" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>SevenYearRetention</a>
+                <a href="#pci-dss-saq-a" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>PCI_DSS_SAQ_A</a>
+                <a href="terms.html" class="hashtag-pill" style="border-color: #004ecc; color: #004ecc;"><i class="fa-solid fa-hashtag"></i>TermsOfService</a>
+            </div>
+
+            <p class="legal-p">
+                The <strong>AI Foundation</strong> (ABN 36 339 516 584) is committed to protecting the privacy, confidentiality, and data sovereignty of individuals who interact with our services, educational courses, and platforms. This Privacy Policy details our data governance protocols in strict compliance with the <strong>Privacy Act 1988 (Cth)</strong>, the <strong>13 Australian Privacy Principles (APPs)</strong>, and statutory recordkeeping mandates under the <strong>Corporations Act 2001 (Cth)</strong>.
+            </p>
+
+            <!-- Table of Contents -->
+            <div class="toc-box">
+                <h3><i class="fa-solid fa-list-check" style="color: #004ecc;"></i> Document Index</h3>
+                <ul class="toc-grid">
+                    <li><a href="#1-architectural-scope"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 1. Architectural Scope &amp; Multi-Tenant</a></li>
+                    <li><a href="#2-solicited-personal-data"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 2. Solicited Personal Information</a></li>
+                    <li><a href="#3-chat-confidentiality"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 3. Tag Partitioning &amp; Chat Privacy</a></li>
+                    <li><a href="#4-pci-dss-payments"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 4. Payment Cards &amp; PCI DSS SAQ A</a></li>
+                    <li><a href="#5-seven-year-retention"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 5. Uniform 7-Year Statutory Retention</a></li>
+                    <li><a href="#6-media-ssrf-defense"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 6. Media Hosting &amp; SSRF Defense</a></li>
+                    <li><a href="#7-cookies-and-security"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 7. Cookies, Storage &amp; Encryption</a></li>
+                    <li><a href="#8-app-compliance-rights"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 8. APPs 1&ndash;13 Rights &amp; Redress</a></li>
+                    <li><a href="#9-privacy-officer-oaic"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 9. Privacy Officer &amp; OAIC Contact</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 1 -->
+            <section id="1-architectural-scope" class="legal-section">
+                <a href="#1-architectural-scope" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>MultiTenantIsolation</a>
+                <h2 class="section-h2"><i class="fa-solid fa-network-wired" style="color: #004ecc;"></i> 1. Architectural Scope &amp; Multi-Tenant Framework</h2>
+                <p class="legal-p">
+                    The AI Foundation ecosystem operates an enterprise-grade multi-tenant cloud infrastructure powered by Google Cloud Platform (Cloud Firestore) and Vercel Serverless Edge computing.
+                </p>
+                <div class="code-snippet">
+{
+  "tag": "aifoundation",
+  "businessId": "aifoundation",
+  "businessName": "AI Foundation",
+  "source": "aifoundation"
+}
+                </div>
+                <p class="legal-p">
+                    <strong>Tenant Data Isolation Invariant:</strong> Every system write, audit row, chat record, and transaction is tagged with the immutable server partition key above. Database queries enforce strict equality predicates on <code>tag == 'aifoundation'</code>, guaranteeing total mathematical isolation from any third-party tenant operating within the shared database.
+                </p>
+            </section>
+
+            <!-- Section 2 -->
+            <section id="2-solicited-personal-data" class="legal-section">
+                <a href="#2-solicited-personal-data" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>PersonalInformation</a>
+                <h2 class="section-h2"><i class="fa-solid fa-address-card" style="color: #004ecc;"></i> 2. Solicited Personal Information We Collect</h2>
+                <p class="legal-p">
+                    In compliance with <strong>Australian Privacy Principle 3 (Collection of solicited personal information)</strong> and <strong>APP 5 (Notification of collection)</strong>, we solicit only information reasonably necessary for system operation, authentication, educational delivery, and legal compliance:
+                </p>
+
+                <div class="legal-table-wrap">
+                    <table class="legal-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Fields Collected</th>
+                                <th>Purpose of Ingestion</th>
+                                <th>Channel</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Authentication</strong></td>
+                                <td>Firebase UID, Verified Email Address, Google Display Name, Avatar URL.</td>
+                                <td>Account provisioning, single sign-on (SSO), and session integrity.</td>
+                                <td>Firebase Google OAuth 2.0</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Supporter Profile</strong></td>
+                                <td>Optional Phone (E.164), Address (Unit, Street, Suburb, State, Postcode).</td>
+                                <td>Supporter engagement, tax-deductible gift receipting, verification.</td>
+                                <td>Profile Registration Form</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Public Contact</strong></td>
+                                <td>First Name, Last Name, Subject Line, Message Body.</td>
+                                <td>Responding to public inquiries and customer support.</td>
+                                <td>Contact Us Form (Mailto)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Supporter Chat</strong></td>
+                                <td>Sender UID, Sender Email, Display Name, Thread Identifier, Message Text, Web Links.</td>
+                                <td>Direct messaging between supporters and AI Foundation SuperAdmins.</td>
+                                <td>Chat API (<code>/api/chat/send</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Token Economy</strong></td>
+                                <td>Stripe Session ID (<code>cs_*</code>), PaymentIntent (<code>pi_*</code>), Tokens, Currency.</td>
+                                <td>Crediting token balances, transaction ledger auditing, anti-fraud reconciliations.</td>
+                                <td>Stripe Checkout &amp; Webhooks</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Telemetry &amp; Locality</strong></td>
+                                <td>Country Code (<code>x-vercel-ip-country</code>), Suburb/State (from geo widget).</td>
+                                <td>Accurate statutory currency display (AUD in AU vs USD international).</td>
+                                <td>Edge Headers &amp; Browser Preferences</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="legal-callout">
+                    <i class="fa-solid fa-shield-halved"></i> <strong>No Sensitive Data:</strong> We never collect, store, or solicit sensitive information (such as political affiliations, philosophical beliefs, or biometric identity records) under any circumstances.
+                </div>
+            </section>
+
+            <!-- Section 3 -->
+            <section id="3-chat-confidentiality" class="legal-section">
+                <a href="#3-chat-confidentiality" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>ChatConfidentiality</a>
+                <h2 class="section-h2"><i class="fa-solid fa-comments" style="color: #004ecc;"></i> 3. Multi-Tenant Tag Partitioning &amp; Chat Confidentiality</h2>
+                <p class="legal-p">
+                    Our platform includes a unified SuperAdmin Message Box with rigid architectural privacy protections:
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><strong>Confidentiality of Tenant Discriminators:</strong> Each message ingested carries an internal tenant identifier tag. This tag is confidential and readable <strong>strictly by SuperAdmins</strong>. Standard supporters and non-superadmin users never receive tenant classification keys.</li>
+                    <li><strong>Conversation Thread Isolation:</strong> Supporter chat threads are strictly partitioned to the sender’s Firebase UID (<code>conv_${uid}</code>). Regular supporters can read and write exclusively within their own thread.</li>
+                    <li><strong>Prohibition of File Uploads:</strong> To prevent unauthorized data transfer, script injection, and inadvertent leakage of sensitive personal files, the chat interface is strictly limited to text and verified URLs (<code>hasUploads: false</code>). Binary file uploads are rejected at the server level.</li>
+                </ul>
+            </section>
+
+            <!-- Section 4 -->
+            <section id="4-pci-dss-payments" class="legal-section">
+                <a href="#4-pci-dss-payments" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>PCI_DSS_SAQ_A</a>
+                <h2 class="section-h2"><i class="fa-solid fa-credit-card" style="color: #004ecc;"></i> 4. Payment Card Processing &amp; PCI DSS Scope Minimization</h2>
+                <p class="legal-p">
+                    Financial transactions, donations, and token purchases are processed with the highest assurance security protocols:
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><strong>Zero Cardholder Storage (PCI DSS SAQ A):</strong> The AI Foundation complies with the <strong>Payment Card Industry Data Security Standard (PCI DSS v4.0)</strong> under <strong>Self-Assessment Questionnaire A (SAQ A)</strong>. We never receive, process, store, or transmit raw credit card numbers (PAN, CVV/CVC, or expiration dates) on our servers.</li>
+                    <li><strong>Client-Side Tokenization:</strong> All payment fields are rendered in encrypted iframes hosted directly by Stripe (<code>js.stripe.com</code>) or PayPal. Our servers only handle tokenized references (<code>pi_*</code>, <code>cs_*</code>) and integer quantities.</li>
+                </ul>
+            </section>
+
+            <!-- Section 5 -->
+            <section id="5-seven-year-retention" class="legal-section">
+                <a href="#5-seven-year-retention" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>SevenYearRetention</a>
+                <h2 class="section-h2"><i class="fa-solid fa-clock-rotate-left" style="color: #004ecc;"></i> 5. Uniform 7-Year Statutory Data Retention &amp; Disposal</h2>
+                <p class="legal-p">
+                    In compliance with statutory recordkeeping under the <strong>Corporations Act 2001 (Cth) Section 286</strong>, the <strong>Australian Taxation Office (ATO)</strong>, and <strong>Australian Privacy Principle 11.2</strong>:
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><strong>Mandatory Retention Window:</strong> All financial transactions, donation records, receipts, supporter chat interactions, and identity verification logs are retained for exactly <strong>7 years (2,557 days)</strong> from generation.</li>
+                    <li><strong>Immutable Audit Trails:</strong> During the 7-year lifecycle, records are preserved against modification or unauthorized erasure.</li>
+                    <li><strong>Secure Disposal Routine:</strong> At the expiration of the 7-year statutory lifecycle, non-financial identifying personal records (PII) are permanently de-identified or irreversibly purged using cryptographically verified destruction routines.</li>
+                </ul>
+            </section>
+
+            <!-- Section 6 -->
+            <section id="6-media-ssrf-defense" class="legal-section">
+                <a href="#6-media-ssrf-defense" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>SSRFProtection</a>
+                <h2 class="section-h2"><i class="fa-solid fa-shield-virus" style="color: #004ecc;"></i> 6. Media Storage, Open Graph Scraping &amp; SSRF Safeguards</h2>
+                <p class="legal-p">
+                    1. <strong>Ephemeral Media Processing:</strong> Media uploads approved for public project entries or articles are processed through CDN endpoints (ImgBB Cloud CDN). Image base64 buffers are held in ephemeral transit memory and purged immediately post-transmission.
+                </p>
+                <p class="legal-p">
+                    2. <strong>SSRF Protection:</strong> When scraping web links for Open Graph previews, our server actively checks and rejects connections to private subnets (RFC 1918), loopback addresses (<code>127.0.0.0/8</code>), link-local allocations (<code>169.254.0.0/16</code>), and internal cloud metadata services.
+                </p>
+                <p class="legal-p">
+                    3. <strong>XSS Sanitization:</strong> All user-generated text rendered on screen is converted to safe HTML entities (<code>&amp;amp;</code>, <code>&amp;lt;</code>, <code>&amp;gt;</code>) to protect users against Cross-Site Scripting (XSS).
+                </p>
+            </section>
+
+            <!-- Section 7 -->
+            <section id="7-cookies-and-security" class="legal-section">
+                <a href="#7-cookies-and-security" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>DataEncryption</a>
+                <h2 class="section-h2"><i class="fa-solid fa-lock" style="color: #004ecc;"></i> 7. Cookies, Local Storage &amp; Security Safeguards</h2>
+                <p class="legal-p">
+                    We use minimal functional cookies and local storage tokens strictly required for site operation:
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><code>adminAuth</code>: Session verification cookie for authenticated administrators.</li>
+                    <li><code>aifoundation_locale</code>: Local storage cache preserving user-selected regional preferences (date/time formats and suburb/state).</li>
+                </ul>
+                <p class="legal-p">
+                    <strong>Encryption in Transit &amp; At Rest:</strong> All web traffic is encrypted with <strong>TLS 1.3 / HTTPS</strong> with HSTS enabled. All Cloud Firestore database records are encrypted with <strong>AES-256</strong> at rest.
+                </p>
+            </section>
+
+            <!-- Section 8 -->
+            <section id="8-app-compliance-rights" class="legal-section">
+                <a href="#8-app-compliance-rights" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>APPCompliance</a>
+                <h2 class="section-h2"><i class="fa-solid fa-user-shield" style="color: #004ecc;"></i> 8. Australian Privacy Principles (APPs 1&ndash;13) Rights &amp; Redress</h2>
+                <p class="legal-p">
+                    Under the Australian Privacy Principles, you have enforceable statutory rights:
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><strong>APP 1 (Open &amp; transparent management):</strong> This policy provides transparent information regarding our practices.</li>
+                    <li><strong>APP 6 (Use or disclosure):</strong> We never sell, rent, or trade your personal information to third-party data brokers or marketing lists.</li>
+                    <li><strong>APP 8 (Cross-border disclosure):</strong> Cloud services are provided by vetted tier-1 cloud providers (Google Cloud, Vercel, Stripe) with equivalent privacy standards.</li>
+                    <li><strong>APP 12 (Access):</strong> You may request access to any personal data we hold regarding your account.</li>
+                    <li><strong>APP 13 (Correction):</strong> You may request prompt correction of out-of-date, incomplete, or inaccurate records.</li>
+                </ul>
+            </section>
+
+            <!-- Section 9 -->
+            <section id="9-privacy-officer-oaic" class="legal-section">
+                <a href="#9-privacy-officer-oaic" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>PrivacyOfficer</a>
+                <h2 class="section-h2"><i class="fa-solid fa-building-columns" style="color: #004ecc;"></i> 9. Contacting the Privacy Officer &amp; OAIC Escalation</h2>
+                <p class="legal-p">
+                    For inquiries, data access requests, or privacy grievances, please contact our designated Privacy Officer:
+                </p>
+                <div class="legal-callout" style="background: #f8fafc; border-left-color: #004ecc;">
+                    <strong>AI Foundation Australia &mdash; Privacy Officer</strong><br>
+                    <strong>Email:</strong> <a href="mailto:support@aifoundation.net.au" style="color: #004ecc; font-weight: 600;">support@aifoundation.net.au</a><br>
+                    <strong>ABN:</strong> 36 339 516 584<br>
+                    <strong>Location:</strong> Queensland, Australia
+                </div>
+                <p class="legal-p">
+                    We review and resolve privacy inquiries within thirty (30) calendar days. If you remain dissatisfied with our determination, you have the right to lodge a complaint with the <strong>Office of the Australian Information Commissioner (OAIC)</strong>:
+                </p>
+                <p class="legal-p" style="color: #64748b; font-size: 0.9rem;">
+                    <strong>Web:</strong> <a href="https://www.oaic.gov.au" target="_blank" rel="noopener" style="color: #004ecc;">www.oaic.gov.au</a> &bull; <strong>Phone:</strong> 1300 363 992 &bull; <strong>Post:</strong> GPO Box 5288, Sydney NSW 2001.
+                </p>
+            </section>
+
+        </div>
+
+        <!-- Public Facing Footer with Hashtags and Small Labels -->
+        <footer class="footer-legal-bar" role="contentinfo">
+            <div class="footer-legal-tag-group">
+                <div class="footer-legal-item">
+                    <a href="#privacy-policy"><i class="fa-solid fa-hashtag"></i>PrivacyPolicy</a>
+                    <small>(Australian Privacy Act 1988 &bull; APPs 1&ndash;13 &bull; Zero Data Brokering)</small>
+                </div>
+                <span style="color: #cbd5e1;">&bull;</span>
+                <div class="footer-legal-item">
+                    <a href="terms.html"><i class="fa-solid fa-hashtag"></i>TermsOfService</a>
+                    <small>(Applications Terms &bull; Australian Consumer Law &bull; Queensland)</small>
+                </div>
+                <span style="color: #cbd5e1;">&bull;</span>
+                <div class="footer-legal-item">
+                    <a href="#seven-year-retention"><i class="fa-solid fa-hashtag"></i>SevenYearRetention</a>
+                    <small>(Corporations Act 2001 s 286 &bull; ATO Compliant)</small>
+                </div>
+                <span style="color: #cbd5e1;">&bull;</span>
+                <div class="footer-legal-item">
+                    <a href="#pci-dss-payments"><i class="fa-solid fa-hashtag"></i>PCI_DSS_SAQ_A</a>
+                    <small>(Direct Encrypted Stripe Elements &bull; Zero Cardholder Storage)</small>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0; font-size: 0.82rem; color: #64748b;">
+                <div>
+                    <strong>AI Foundation</strong> &bull; ABN 36 339 516 584 &bull; Queensland, Commonwealth of Australia
+                </div>
+                <div>
+                    <a href="mailto:support@aifoundation.net.au" style="color: #64748b; text-decoration: none;">support@aifoundation.net.au</a>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+</body>
+</html>

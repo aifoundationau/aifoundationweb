@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applications Terms of Service | AI Foundation Australia</title>
+    <link rel="stylesheet" href="style.css?v=53">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .legal-page-wrap {
+            max-width: 1040px;
+            margin: 32px auto 60px;
+            padding: 0 20px;
+        }
+        .legal-card {
+            background: #ffffff;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            padding: 40px;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 28px;
+        }
+        .legal-header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(0, 78, 204, 0.08);
+            color: #004ecc;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .legal-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+        .legal-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            color: #64748b;
+            font-size: 0.9rem;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 24px;
+        }
+        .hashtag-pill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .hashtag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #334155;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .hashtag-pill:hover {
+            background: #004ecc;
+            color: #ffffff;
+            border-color: #004ecc;
+        }
+        .toc-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 36px;
+        }
+        .toc-box h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .toc-grid li a {
+            color: #004ecc;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.15s ease;
+        }
+        .toc-grid li a:hover {
+            text-decoration: underline;
+            color: #003399;
+        }
+        .legal-section {
+            margin-bottom: 36px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .legal-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .section-tag-anchor {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #004ecc;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-decoration: none;
+        }
+        .section-tag-anchor:hover {
+            text-decoration: underline;
+        }
+        .section-h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legal-p {
+            color: #334155;
+            line-height: 1.7;
+            font-size: 0.95rem;
+            margin-bottom: 14px;
+        }
+        .legal-callout {
+            background: #eff6ff;
+            border-left: 4px solid #004ecc;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 18px 0;
+            font-size: 0.92rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+        .portal-links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+            margin: 18px 0;
+        }
+        .portal-link-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            color: #0f172a;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .portal-link-item:hover {
+            background: #ffffff;
+            border-color: #004ecc;
+            box-shadow: 0 4px 12px rgba(0, 78, 204, 0.1);
+        }
+        .portal-link-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(0, 78, 204, 0.1);
+            color: #004ecc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .footer-legal-bar {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .footer-legal-tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+        .footer-legal-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .footer-legal-item a {
+            color: #004ecc;
+            font-weight: 700;
+            font-size: 0.86rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .footer-legal-item a:hover {
+            text-decoration: underline;
+        }
+        .footer-legal-item small {
+            color: #64748b;
+            font-size: 0.78rem;
+        }
+        @media (max-width: 768px) {
+            .legal-card {
+                padding: 24px 18px;
+            }
+            .legal-title {
+                font-size: 1.75rem;
+            }
+            .footer-legal-tag-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+        @media print {
+            .navbar, .footer-portal-nav, .hashtag-pill-list, .toc-box, .btn-switch-policy {
+                display: none !important;
+            }
+            .legal-card {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            body {
+                background: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="nav-container" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+            <div class="nav-brand">
+                <a href="index.html" style="display: flex; align-items: center; text-decoration: none; gap: 12px;">
+                    <img src="assets/logo.png" alt="AI Foundation Australia Logo" class="brand-logo" style="height: 40px; width: auto;">
+                    <span style="font-weight: 800; color: #0f172a; font-size: 1.15rem; letter-spacing: -0.02em;">AI Foundation</span>
+                </a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <a href="privacy.html" class="btn-switch-policy" style="text-decoration: none; font-size: 0.88rem; font-weight: 600; color: #004ecc; background: rgba(0, 78, 204, 0.08); padding: 8px 16px; border-radius: 999px; transition: background 0.2s;">
+                    <i class="fa-solid fa-shield-halved"></i> Privacy Policy
+                </a>
+                <a href="index.html" style="text-decoration: none; font-size: 0.88rem; font-weight: 600; color: #334155; background: #f1f5f9; padding: 8px 16px; border-radius: 999px; transition: background 0.2s;">
+                    <i class="fa-solid fa-arrow-left"></i> Home
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="legal-page-wrap">
+        <div class="legal-card">
+            
+            <span class="legal-header-badge">
+                <i class="fa-solid fa-scale-balanced"></i> Applications Terms of Service
+            </span>
+
+            <h1 class="legal-title">Applications Terms of Service</h1>
+
+            <div class="legal-meta-row">
+                <span><strong>Entity:</strong> AI Foundation</span>
+                <span>&bull;</span>
+                <span><strong>ABN:</strong> 36 339 516 584</span>
+                <span>&bull;</span>
+                <span><strong>Effective Date:</strong> 24 October 2026</span>
+                <span>&bull;</span>
+                <span><strong>Jurisdiction:</strong> Queensland, Australia</span>
+            </div>
+
+            <!-- Master Hashtags -->
+            <div class="hashtag-pill-list">
+                <a href="#terms-of-service" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>TermsOfService</a>
+                <a href="#applications-terms" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>ApplicationsTerms</a>
+                <a href="#token-economy" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>TokenEconomy</a>
+                <a href="#australian-consumer-law" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>AustralianConsumerLaw</a>
+                <a href="#acceptable-use" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>AcceptableUse</a>
+                <a href="#seven-year-retention" class="hashtag-pill"><i class="fa-solid fa-hashtag"></i>SevenYearRetention</a>
+                <a href="privacy.html" class="hashtag-pill" style="border-color: #004ecc; color: #004ecc;"><i class="fa-solid fa-hashtag"></i>PrivacyPolicy</a>
+            </div>
+
+            <p class="legal-p">
+                These Applications Terms of Service ("Terms") govern access to and use of all web applications, portals, digital software, APIs, and connected platforms operated by <strong>AI Foundation</strong> (ABN 36 339 516 584) ("we", "us", or "our"). By registering an account, purchasing utility tokens, making contributions, or using our services, you agree to be bound by these Terms and our <a href="privacy.html" style="color: #004ecc; font-weight: 600;">Public Privacy Policy</a>.
+            </p>
+
+            <!-- Table of Contents -->
+            <div class="toc-box">
+                <h3><i class="fa-solid fa-list-check" style="color: #004ecc;"></i> Document Index</h3>
+                <ul class="toc-grid">
+                    <li><a href="#10-acceptance-eligibility"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 10. Acceptance &amp; Eligibility</a></li>
+                    <li><a href="#11-connected-portals"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 11. Ecosystem Portals</a></li>
+                    <li><a href="#12-auth-and-roles"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 12. Account Roles &amp; SuperAdmin</a></li>
+                    <li><a href="#13-token-economy"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 13. Universal Token Economy</a></li>
+                    <li><a href="#14-contributions"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 14. Financial Contributions</a></li>
+                    <li><a href="#15-acceptable-use"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 15. Acceptable Use Policy (AUP)</a></li>
+                    <li><a href="#16-intellectual-property"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 16. Intellectual Property</a></li>
+                    <li><a href="#17-consumer-law"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 17. Australian Consumer Law (ACL)</a></li>
+                    <li><a href="#18-liability-limits"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 18. Liability Cap &amp; Indemnity</a></li>
+                    <li><a href="#19-termination"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 19. Termination &amp; Data Purge</a></li>
+                    <li><a href="#20-governing-law"><i class="fa-solid fa-chevron-right" style="font-size: 0.75rem;"></i> 20. Governing Law &amp; Venue</a></li>
+                </ul>
+            </div>
+
+            <!-- Section 10 -->
+            <section id="10-acceptance-eligibility" class="legal-section">
+                <a href="#10-acceptance-eligibility" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>Eligibility</a>
+                <h2 class="section-h2"><i class="fa-solid fa-user-check" style="color: #004ecc;"></i> 10. Acceptance of Terms &amp; Eligibility</h2>
+                <p class="legal-p">
+                    1. <strong>Contractual Capacity:</strong> You represent and warrant that you are at least 18 years of age (or have verified parental/guardian permission) and have full legal capacity to enter into a legally binding contract under Australian law.
+                </p>
+                <p class="legal-p">
+                    2. <strong>Institutional Representation:</strong> If accessing these services on behalf of an enterprise, educational body, or Registered Training Organisation (RTO), you warrant that you are authorized to bind that entity to these Terms.
+                </p>
+            </section>
+
+            <!-- Section 11 -->
+            <section id="11-connected-portals" class="legal-section">
+                <a href="#11-connected-portals" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>ConnectedApps</a>
+                <h2 class="section-h2"><i class="fa-solid fa-cubes" style="color: #004ecc;"></i> 11. Ecosystem Portals &amp; Connected Applications</h2>
+                <p class="legal-p">
+                    These Terms govern your use of the entire family of AI Foundation applications:
+                </p>
+                
+                <div class="portal-links-grid">
+                    <a href="https://www.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-brain"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">AI Core Portal</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">www.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="https://lms.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">LMS Portal</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">lms.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="http://hr.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-user-tie"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">HR Solutions</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">hr.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="https://jobs.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">Trades &amp; Work</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">jobs.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="https://pt.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-dumbbell"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">PT &amp; Fitness</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">pt.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="https://health.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">Health Platforms</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">health.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="https://edu.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-certificate"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">Vocational RTO</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">edu.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="https://nihongo.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-language"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">Nihongo</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">nihongo.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                    <a href="https://finance.aifoundation.net.au/" class="portal-link-item">
+                        <div class="portal-link-icon"><i class="fa-solid fa-coins"></i></div>
+                        <div>
+                            <strong style="font-size: 0.95rem;">Finance Portal</strong>
+                            <div style="font-size: 0.8rem; color: #64748b;">finance.aifoundation.net.au</div>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Section 12 -->
+            <section id="12-auth-and-roles" class="legal-section">
+                <a href="#12-auth-and-roles" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>AccountSecurity</a>
+                <h2 class="section-h2"><i class="fa-solid fa-id-badge" style="color: #004ecc;"></i> 12. Authentication, Account Roles &amp; SuperAdmin Powers</h2>
+                <p class="legal-p">
+                    1. <strong>Google OAuth 2.0 Identity:</strong> Accounts are authenticated using verified Google credentials. Users are responsible for preserving the confidentiality of their Google account and sessions.
+                </p>
+                <p class="legal-p">
+                    2. <strong>Role Boundaries:</strong>
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><strong>Supporter:</strong> Default authenticated role granted to registered Google accounts. Supporters may participate in community programs, chat with administrative personnel, and manage token balances.</li>
+                    <li><strong>SuperAdmin:</strong> Highly restricted root administrative role. SuperAdmins hold powers to adjust service pricing, issue manual token grants, inspect multi-tenant message streams, and manage system operations.</li>
+                </ul>
+            </section>
+
+            <!-- Section 13 -->
+            <section id="13-token-economy" class="legal-section">
+                <a href="#13-token-economy" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>TokenEconomy</a>
+                <h2 class="section-h2"><i class="fa-solid fa-coins" style="color: #004ecc;"></i> 13. Universal Token Economy &amp; Balance Terms</h2>
+                <div class="legal-callout">
+                    <strong>Strict Utility Nature:</strong> Tokens represent internal digital utility credits used strictly to access computational workflows, specialized agent tasks, and educational services. Tokens are <strong>not legal tender, currency, securities, or financial investments</strong>.
+                </div>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><strong>Strict Integer Rule:</strong> Token balances (<code>token_balance</code>) and debits are strictly whole positive integers (<code>Math.round</code>). Decimal fractions of tokens are strictly disallowed by system invariant rules.</li>
+                    <li><strong>Purchase Increments:</strong> Tokens are purchased in increments of 10. Single checkout orders are capped at 1,000,000,000 tokens to prevent accidental inputs. Financial limits are bound between AUD/USD $0.50 and $999,999.99 per transaction.</li>
+                    <li><strong>Dynamic Geolocation Pricing:</strong> Visitors located in Australia (<code>AU</code>) are billed in Australian Dollars (<strong>AUD</strong>). Visitors connecting from outside Australia are billed in United States Dollars (<strong>USD</strong>). AUD pricing is never shown outside Australia.</li>
+                    <li><strong>Idempotent Debit Invariant:</strong> Spending tokens (<code>POST /api/tokens/spend</code>) requires an application tag and purchase reference (<code>spend_{app}_{reference}</code>). Duplicate requests are rejected, preventing double debits. Balances cannot fall below zero.</li>
+                    <li><strong>Non-Refundability:</strong> Tokens are credited immediately upon atomic database commit; token purchases are non-refundable and non-exchangeable for fiat cash, except where mandatory statutory refund rights apply under the <strong>Australian Consumer Law</strong>.</li>
+                </ul>
+            </section>
+
+            <!-- Section 14 -->
+            <section id="14-contributions" class="legal-section">
+                <a href="#14-contributions" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>Contributions</a>
+                <h2 class="section-h2"><i class="fa-solid fa-heart" style="color: #004ecc;"></i> 14. Financial Contributions, Donations &amp; Tax Compliance</h2>
+                <p class="legal-p">
+                    1. <strong>Voluntary Contributions:</strong> Contributions directly fund educational equity, regional outreach, and open AI research across Australia.
+                </p>
+                <p class="legal-p">
+                    2. <strong>Contribution Minimum:</strong> The automated payment system enforces a minimum single contribution threshold of <strong>AUD $50.00</strong>.
+                </p>
+                <p class="legal-p">
+                    3. <strong>Instant Tax Receipts:</strong> Electronic receipts are dispatched immediately upon transaction clearance via Stripe or PayPal.
+                </p>
+            </section>
+
+            <!-- Section 15 -->
+            <section id="15-acceptable-use" class="legal-section">
+                <a href="#15-acceptable-use" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>AcceptableUse</a>
+                <h2 class="section-h2"><i class="fa-solid fa-ban" style="color: #004ecc;"></i> 15. Acceptable Use Policy (AUP) &amp; Security Rules</h2>
+                <p class="legal-p">
+                    Users must not:
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li>Probe, scan, attack, or test the vulnerability of our application servers, APIs, or database security rules without prior authorization.</li>
+                    <li>Attempt to tamper with, forge, or override multi-tenant partition attributes (<code>tag</code>, <code>businessId</code>, <code>source</code>).</li>
+                    <li>Bypass file restrictions to submit binary files, scripts, or executables in chat or message areas (file uploads are strictly prohibited).</li>
+                    <li>Transmit defamatory, abusive, unlawful, or sexually explicit content through our platforms.</li>
+                    <li>Launch automated scrapers or high-concurrency bot requests that impair site performance.</li>
+                </ul>
+            </section>
+
+            <!-- Section 16 -->
+            <section id="16-intellectual-property" class="legal-section">
+                <a href="#16-intellectual-property" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>IntellectualProperty</a>
+                <h2 class="section-h2"><i class="fa-solid fa-copyright" style="color: #004ecc;"></i> 16. Intellectual Property &amp; License Grants</h2>
+                <p class="legal-p">
+                    1. <strong>AI Foundation IP:</strong> All code, algorithms, visual styles, branding, and documentation are the exclusive intellectual property of AI Foundation or its licensors.
+                </p>
+                <p class="legal-p">
+                    2. <strong>Limited License:</strong> We grant you a revocable, non-exclusive, non-transferable license to access our portals strictly in accordance with these Terms.
+                </p>
+            </section>
+
+            <!-- Section 17 -->
+            <section id="17-consumer-law" class="legal-section">
+                <a href="#17-consumer-law" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>AustralianConsumerLaw</a>
+                <h2 class="section-h2"><i class="fa-solid fa-balance-scale" style="color: #004ecc;"></i> 17. Australian Consumer Law (ACL) Guarantees &amp; Disclaimers</h2>
+                <p class="legal-p">
+                    1. <strong>Statutory Guarantees:</strong> Nothing in these Terms excludes, restricts, or modifies any consumer guarantee, condition, or remedy conferred on you by Schedule 2 of the <em>Competition and Consumer Act 2010</em> (Cth) that cannot be lawfully excluded.
+                </p>
+                <p class="legal-p">
+                    2. <strong>AI Outputs Disclaimer:</strong> Outputs produced by generative artificial intelligence or predictive agents are provided for informational and educational purposes on an "as is" basis. AI Foundation does not warrant that AI model outputs will be error-free or suitable as professional legal, medical, or financial advice.
+                </p>
+            </section>
+
+            <!-- Section 18 -->
+            <section id="18-liability-limits" class="legal-section">
+                <a href="#18-liability-limits" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>LimitationOfLiability</a>
+                <h2 class="section-h2"><i class="fa-solid fa-shield-halved" style="color: #004ecc;"></i> 18. Limitation of Liability &amp; Indemnification</h2>
+                <p class="legal-p">
+                    To the maximum extent permitted by Australian law:
+                </p>
+                <ul class="legal-p" style="padding-left: 20px;">
+                    <li><strong>Liability Cap:</strong> Our aggregate liability arising out of or related to these Terms or platform use is capped at the total amount paid by you to AI Foundation in the twelve (12) months preceding the incident, or the cost of resupplying the service.</li>
+                    <li><strong>Consequential Loss Exclusion:</strong> We shall not be liable for indirect, incidental, or consequential damages, including loss of data, loss of revenue, or business interruption.</li>
+                    <li><strong>Indemnity:</strong> You agree to indemnify AI Foundation against third-party claims or damages resulting from your breach of these Terms or misuse of the applications.</li>
+                </ul>
+            </section>
+
+            <!-- Section 19 -->
+            <section id="19-termination" class="legal-section">
+                <a href="#19-termination" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>Termination</a>
+                <h2 class="section-h2"><i class="fa-solid fa-door-open" style="color: #004ecc;"></i> 19. Termination, Suspension &amp; Account Purge</h2>
+                <p class="legal-p">
+                    1. <strong>Suspension for Cause:</strong> We reserve the right to immediately suspend or terminate accounts involved in malicious attacks, terms violations, or fraudulent transactions.
+                </p>
+                <p class="legal-p">
+                    2. <strong>Voluntary Deactivation:</strong> You may request account cancellation at any time by contacting <a href="mailto:support@aifoundation.net.au" style="color: #004ecc;">support@aifoundation.net.au</a>.
+                </p>
+                <p class="legal-p">
+                    3. <strong>Statutory Retention Preserved:</strong> Account termination does not truncate the mandatory 7-year statutory retention schedule governing transaction ledgers under Section 286 of the Corporations Act 2001.
+                </p>
+            </section>
+
+            <!-- Section 20 -->
+            <section id="20-governing-law" class="legal-section">
+                <a href="#20-governing-law" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>GoverningLaw</a>
+                <h2 class="section-h2"><i class="fa-solid fa-landmark" style="color: #004ecc;"></i> 20. Governing Law, Venue &amp; Severability</h2>
+                <p class="legal-p">
+                    1. <strong>Governing Law:</strong> These Terms are governed by and construed in accordance with the laws of the <strong>State of Queensland and the Commonwealth of Australia</strong>.
+                </p>
+                <p class="legal-p">
+                    2. <strong>Jurisdiction:</strong> The parties submit to the non-exclusive jurisdiction of the courts of Queensland and the Federal Court of Australia.
+                </p>
+                <p class="legal-p">
+                    3. <strong>Severability:</strong> If any provision of these Terms is deemed unenforceable, it will be severed to the minimum extent necessary without invalidating the remaining provisions.
+                </p>
+            </section>
+
+        </div>
+
+        <!-- Public Facing Footer with Hashtags and Small Labels -->
+        <footer class="footer-legal-bar" role="contentinfo">
+            <div class="footer-legal-tag-group">
+                <div class="footer-legal-item">
+                    <a href="#terms-of-service"><i class="fa-solid fa-hashtag"></i>TermsOfService</a>
+                    <small>(Applications Terms &bull; Australian Consumer Law &bull; Queensland)</small>
+                </div>
+                <span style="color: #cbd5e1;">&bull;</span>
+                <div class="footer-legal-item">
+                    <a href="privacy.html"><i class="fa-solid fa-hashtag"></i>PrivacyPolicy</a>
+                    <small>(Australian Privacy Act 1988 &bull; APPs 1&ndash;13 &bull; Zero Data Brokering)</small>
+                </div>
+                <span style="color: #cbd5e1;">&bull;</span>
+                <div class="footer-legal-item">
+                    <a href="#token-economy"><i class="fa-solid fa-hashtag"></i>TokenEconomy</a>
+                    <small>(Strict Integer Tokens &bull; Multi-Tenant Server-Verified Balance)</small>
+                </div>
+                <span style="color: #cbd5e1;">&bull;</span>
+                <div class="footer-legal-item">
+                    <a href="privacy.html#5-seven-year-retention"><i class="fa-solid fa-hashtag"></i>SevenYearRetention</a>
+                    <small>(Corporations Act 2001 s 286 &bull; ATO Compliant)</small>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; padding-top: 14px; border-top: 1px dashed #e2e8f0; font-size: 0.82rem; color: #64748b;">
+                <div>
+                    <strong>AI Foundation</strong> &bull; ABN 36 339 516 584 &bull; Queensland, Commonwealth of Australia
+                </div>
+                <div>
+                    <a href="mailto:support@aifoundation.net.au" style="color: #64748b; text-decoration: none;">support@aifoundation.net.au</a>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+</body>
+</html>
