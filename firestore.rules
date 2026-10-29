@@ -26,7 +26,10 @@ service cloud.firestore {
         (request.auth.token.email_verified == true && request.auth.token.email in [
           'support@aifoundation.net.au',
           'davidrobertson.info@gmail.com'
-        ])
+        ]) ||
+        (exists(/databases/$(database)/documents/admins/admin_emails) &&
+         request.auth.token.get('email_verified', false) == true &&
+         request.auth.token.get('email', '') in get(/databases/$(database)/documents/admins/admin_emails).data.get('emails', []))
       );
     }
 
@@ -45,7 +48,10 @@ service cloud.firestore {
       return name in ['users', 'transactions', 'stripe_transactions', 'paypal_transactions',
                       'chat_interactions', 'system_settings', 'admins', 'content',
                       'token_ledger', 'aifoundation_token_checkouts', 'token_checkouts',
-                      'gcoursebuilder_roles', 'gcoursebuilder_role_assignments'];
+                      'gcoursebuilder_roles', 'gcoursebuilder_role_assignments',
+                      'hr_users', 'hr_candidate_profiles', 'hr_candidate_unlocks', 'hr_agent_resumes',
+                      'hr_agent_inquiries', 'hr_recruitment_audit_logs', 'hr_conversations', 'hr_employers',
+                      'hr_registrations', 'hr_settings', 'hr_rbac_audit_log'];
     }
 
     // Profile fields that grant privileges or hold value; users can never set or change these themselves.
@@ -230,6 +236,120 @@ service cloud.firestore {
       allow create, update: if (isSuperAdmin() || gcbHasPermission('users.manage'))
         && gcbIsValidAssignment(email);
       allow delete: if isSuperAdmin() || gcbHasPermission('users.manage');
+    }
+
+    // What HR Agency (tag hr): User profiles, RBAC roles, and candidate talent pool. A new profile is a supporter; the
+    // other roles (Company, HR Agent, Main Admin, SuperAdmin) are given only by the HR server, once a SuperAdmin approves
+    // the person's registration or gives the role (lib/registrations.js, lib/role-assignment.js), so nobody changes
+    // their own role. JobSeeker comes only from a SuperAdmin approving the person's resume on the HR server: not even a
+    // SuperAdmin adds it from the app
+    function hrAddsJobseeker() {
+      return (request.resource.data.get('role', '') == 'jobseeker' && (resource == null || resource.data.get('role', '') != 'jobseeker')) ||
+        ('jobseeker' in request.resource.data.get('roles', []) && (resource == null || !('jobseeker' in resource.data.get('roles', []))));
+    }
+
+    match /hr_users/{userId} {
+      allow read: if isOwner(userId) || isSuperAdmin() || isAdmin();
+      allow create: if (isSuperAdmin() && !hrAddsJobseeker()) || (
+        isOwner(userId) &&
+        request.resource.data.get('role', 'supporter') == 'supporter' &&
+        request.resource.data.get('roles', ['supporter']) == ['supporter'] &&
+        request.resource.data.get('isAdmin', false) == false &&
+        request.resource.data.get('isSuperAdmin', false) == false &&
+        !request.resource.data.keys().hasAny(['isMainAdmin', 'employerCompanyName', 'hrAgentAgencyName'])
+      );
+      allow update: if (isSuperAdmin() && !hrAddsJobseeker()) || (
+        isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'role', 'roles', 'isAdmin', 'isSuperAdmin', 'isMainAdmin', 'employerCompanyName', 'hrAgentAgencyName'
+        ])
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    // Candidate profiles hold the contact details companies and HR Agents pay tokens to unlock, so only the candidate
+    // and admins read them here. Everyone else gets them from the HR app's server (lib/candidate-access.js), which
+    // shows the locked view until the profile is unlocked with tokens. A profile is at its candidate's uid; older
+    // profiles at a random ID are matched by their uid or registeredUserUid field
+    function isHrCandidateOwner(profileId) {
+      return profileId == request.auth.uid ||
+        resource.data.get('uid', '') == request.auth.uid ||
+        resource.data.get('registeredUserUid', '') == request.auth.uid;
+    }
+
+    match /hr_candidate_profiles/{profileId} {
+      allow read: if isAuthenticated() && (isHrCandidateOwner(profileId) || isSuperAdmin() || isAdmin());
+      // Written only by the HR app's server: saved after the upload fee (lib/resume-profiles.js), put in search only when
+      // a SuperAdmin approves the jobseeker (lib/registrations.js), edited by a SuperAdmin there (lib/admin-resumes.js).
+      // Nobody writes one from the app, not even a SuperAdmin
+      allow create, update: if false;
+      allow delete: if isAuthenticated() && (
+        resource.data.get('uid', profileId) == request.auth.uid || isSuperAdmin() || isAdmin()
+      );
+    }
+
+    // Which candidate profiles each company or HR Agent has unlocked: written only by the HR app's server, after it
+    // has taken the tokens
+    match /hr_candidate_unlocks/{viewerUid} {
+      allow read: if isOwner(viewerUid) || isAdmin();
+      allow write: if false;
+    }
+
+    // HR Agent resume pool (with the full resume text) and company inquiries to agents: written only by the server
+    match /hr_agent_resumes/{resumeId} {
+      allow read: if isAuthenticated() && (resource.data.get('agentId', '') == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+    match /hr_agent_inquiries/{inquiryId} {
+      allow read: if isAuthenticated() && (
+        resource.data.get('companyUid', '') == request.auth.uid ||
+        resource.data.get('agentId', '') == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if false;
+    }
+
+    // Companies registered with What HR (company name, ABN and contact details), recorded by the HR server when a
+    // SuperAdmin approves the company's registration (lib/registrations.js): each company sees its own; admins see them all
+    match /hr_employers/{companyUid} {
+      allow read: if isOwner(companyUid) || isAdmin();
+      allow create, update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Registrations as a Jobseeker, Company or HR Agent, waiting for (or decided by) a SuperAdmin: only the HR app's
+    // server reads and writes them (lib/registrations.js)
+    match /hr_registrations/{registrationId} {
+      allow read, write: if false;
+    }
+
+    // What HR's settings, Free This Minute! (hr_settings/free_this_minute) and the countries banned from registering
+    // (hr_settings/registration_countries): only the HR app's server reads and writes them. A SuperAdmin turns Free This
+    // Minute! on through the server (PUT /api/admin/free-this-minute, lib/free-this-minute.js), which always makes it
+    // 15 minutes; nobody writes them from the app, not even a SuperAdmin
+    match /hr_settings/{settingId} {
+      allow read, write: if false;
+    }
+
+    // Messages between companies or HR Agents and the jobseekers whose resumes they unlocked (and the jobseekers' details):
+    // only the HR app's server reads and writes them (lib/messages.js). Nobody can change or delete a message; each is kept
+    // for 7 years
+    match /hr_conversations/{conversationId}/{rest=**} {
+      allow read, write: if false;
+    }
+
+    // Audit log of candidate profile saves: people add entries about themselves; only admins read them
+    match /hr_recruitment_audit_logs/{logId} {
+      allow create: if isAuthenticated() && request.resource.data.get('userUid', '') == request.auth.uid;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Log of roles given in What HR's RBAC panel (who gave whom which role, and why): written only by the HR app's
+    // server (lib/role-assignment.js); only admins read it
+    match /hr_rbac_audit_log/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Fallback for other tenants' collections (unchanged behaviour),
