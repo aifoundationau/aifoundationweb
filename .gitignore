@@ -1,5 +1,9 @@
 # Environment variables
-.env
+.env*
+!.env.example
+
+# Security protocols
+safetyprotocols.txt
 
 # Dependencies
 node_modules/
