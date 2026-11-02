@@ -105,6 +105,7 @@ test('token routes refuse callers without a valid sign-in, and the exchange rate
         ['POST', '/api/tokens/confirm', { sessionId: 'cs_test_a1b2c3' }],
         ['POST', '/api/tokens/spend', { tokens: 10, app: 'lms', reference: 'order-1' }],
         ['GET', '/api/tokens/accounts'],
+        ['GET', '/api/tokens/counts'],
         ['POST', '/api/tokens/grant', { uid: 'user123', tokens: 10, requestId: 'req-0001-abcd' }],
         ['GET', '/api/exchange-rates/usd-aud']
     ];
@@ -129,7 +130,7 @@ test('other apps listed in TOKEN_API_ORIGINS may call the balance and spend rout
         assert.equal((await preflight(urlPath, 'https://evil.example.net')).headers.get('access-control-allow-origin'), null, urlPath);
     }
     // SuperAdmin routes are never opened to other sites
-    for (const urlPath of ['/api/tokens/grant', '/api/tokens/accounts']) {
+    for (const urlPath of ['/api/tokens/grant', '/api/tokens/accounts', '/api/tokens/counts']) {
         assert.equal((await preflight(urlPath, 'https://apps.example.com')).headers.get('access-control-allow-origin'), null, urlPath);
     }
     const res = await get('/api/tokens', { headers: { Origin: 'https://apps.example.com' } });
@@ -142,6 +143,9 @@ test('Buy Tokens is in both panels and Token Accounts in the SuperAdmin panel on
         const html = fs.readFileSync(path.join(root, 'public', file), 'utf8');
         assert.match(html, /<div id="admin-buy-tokens" class="admin-tab-content"/, `${file}: Buy Tokens content`);
         assert.match(html, /<div id="admin-token-accounts" class="admin-tab-content"/, `${file}: Token Accounts content`);
+        const tokenAccounts = html.slice(html.indexOf('<div id="admin-token-accounts"'), html.indexOf('id="tokenAccountsList"'));
+        assert.match(tokenAccounts, />Total Token Count<\/span>\s*<strong id="tokenCountTotal"/, `${file}: Total Token Count in Token Accounts`);
+        assert.match(tokenAccounts, />AI Foundation Token Count<\/span>\s*<strong id="tokenCountAifoundation"/, `${file}: AI Foundation Token Count in Token Accounts`);
         const superTabs = html.slice(html.indexOf('id="adminSuperTabs"'), html.indexOf('id="adminSupporterSidebar"'));
         const supporterTabs = html.slice(html.indexOf('id="adminSupporterTabs"'));
         const supporterMenu = supporterTabs.slice(0, supporterTabs.indexOf('</ul>'));

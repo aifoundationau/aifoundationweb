@@ -2513,7 +2513,8 @@ const postObserver = new IntersectionObserver((entries) => {
     // ==========================================
     // TOKEN ACCOUNTS (SuperAdmin panel)
     // Every account's balance (profiles from all apps, which share one token balance) from GET /api/tokens/accounts.
-    // Choosing an account opens the add-tokens box; POST /api/tokens/grant adds them
+    // Choosing an account opens the add-tokens box; POST /api/tokens/grant adds them.
+    // Above them, the Total Token Count and AI Foundation Token Count (tokens bought minus tokens paid to people)
     // ==========================================
     const tokenAccountsSearch = document.getElementById('tokenAccountsSearch');
     const tokenAccountsList = document.getElementById('tokenAccountsList');
@@ -2526,6 +2527,11 @@ const postObserver = new IntersectionObserver((entries) => {
     let tokenAccounts = []; // last answer from GET /api/tokens/accounts: [{ uid, name, email, app, balance }]
     let selectedTokenAccount = null; // uid of the account the add-tokens box is for
     let tokenGrantBusy = false;
+    // The two count tiles, by their key in the answer from GET /api/tokens/counts
+    const tokenCountTiles = {
+        total: { value: document.getElementById('tokenCountTotal'), detail: document.getElementById('tokenCountTotalDetail'), where: 'in all apps' },
+        aifoundation: { value: document.getElementById('tokenCountAifoundation'), detail: document.getElementById('tokenCountAifoundationDetail'), where: 'in AI Foundation' }
+    };
 
     function setTokenAccountsStatus(message, type = 'info') {
         if (!tokenAccountsStatus) return;
@@ -2569,8 +2575,35 @@ const postObserver = new IntersectionObserver((entries) => {
             : `<i class="fa-solid fa-plus"></i> Add ${Number.isNaN(quantity) ? '' : `${quantity.toLocaleString('en-AU')} `}tokens`;
     }
 
+    // Each count is { bought, paidOut, count }; paidOut is grants, What HR's gifts and PT trainer shares
+    async function loadTokenCounts() {
+        let counts = null;
+        let problem = '';
+        try {
+            const res = await fetch('/api/tokens/counts');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(String(data.error || `HTTP ${res.status}`).replace(/\.$/, ''));
+            counts = data;
+        } catch (e) {
+            problem = `Could not load the count: ${e.message}.`;
+        }
+        const tokens = n => Number(n).toLocaleString('en-AU');
+        for (const [key, tile] of Object.entries(tokenCountTiles)) {
+            if (!tile.value) continue;
+            const c = counts && counts[key];
+            if (!c) {
+                tile.value.textContent = '-';
+                tile.detail.textContent = problem || 'Could not load the count.';
+                continue;
+            }
+            tile.value.textContent = `${tokens(c.count)} tokens`;
+            tile.detail.textContent = `${tokens(c.bought)} bought ${tile.where}, minus ${tokens(c.paidOut)} paid to people`;
+        }
+    }
+
     async function loadTokenAccounts() {
         if (!tokenAccountsList || !window.ServicePricing) return;
+        loadTokenCounts();
         setTokenAccountsStatus('Loading accounts...');
         try {
             const res = await fetch('/api/tokens/accounts');
@@ -2627,6 +2660,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
                 if (typeof data.balance === 'number') account.balance = data.balance;
                 setTokenAccountsStatus(`Added ${tokens.toLocaleString('en-AU')} tokens to ${tokenAccountLabel(account)}. Their balance is now ${account.balance.toLocaleString('en-AU')} tokens.`, 'ok');
+                loadTokenCounts(); // tokens paid to people come off both counts
             } catch (e) {
                 setTokenAccountsStatus(`Could not add the tokens: ${String(e.message).replace(/\.$/, '')}.`, 'error');
             } finally {
@@ -2985,10 +3019,10 @@ const postObserver = new IntersectionObserver((entries) => {
         if (paginationControls) {
             let html = '';
             if (currentProjectPage > 1) {
-                html += `<button onclick="changeProjectPage(-1)" style="background: white; color: var(--text-dark); border: 1px solid #e2e8f0; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-arrow-left"></i> PREV</button>`;
+                html += `<button onclick="changeProjectPage(-1)" data-agent-id="projects-prev-btn" data-testid="projects-prev-btn" aria-label="Previous projects page" style="background: white; color: var(--text-dark); border: 1px solid #e2e8f0; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-arrow-left"></i> PREV</button>`;
             }
             if (currentProjectPage < totalPages) {
-                html += `<button onclick="changeProjectPage(1)" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); transition: all 0.2s; display: flex; align-items: center; gap: 8px;">MORE <i class="fa-solid fa-arrow-right"></i></button>`;
+                html += `<button onclick="changeProjectPage(1)" data-agent-id="projects-more-btn" data-testid="projects-more-btn" aria-label="Next projects page" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); transition: all 0.2s; display: flex; align-items: center; gap: 8px;">MORE <i class="fa-solid fa-arrow-right"></i></button>`;
             }
             paginationControls.innerHTML = html;
         }
@@ -3078,10 +3112,10 @@ const postObserver = new IntersectionObserver((entries) => {
         if (paginationControls) {
             let html = '';
             if (currentPage > 1) {
-                html += `<button onclick="changePage(-1)" style="background: white; color: var(--text-dark); border: 1px solid #e2e8f0; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-arrow-left"></i> PREV</button>`;
+                html += `<button onclick="changePage(-1)" data-agent-id="articles-prev-btn" data-testid="articles-prev-btn" aria-label="Previous articles page" style="background: white; color: var(--text-dark); border: 1px solid #e2e8f0; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-arrow-left"></i> PREV</button>`;
             }
             if (currentPage < totalPages) {
-                html += `<button onclick="changePage(1)" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); transition: all 0.2s; display: flex; align-items: center; gap: 8px;">MORE <i class="fa-solid fa-arrow-right"></i></button>`;
+                html += `<button onclick="changePage(1)" data-agent-id="articles-more-btn" data-testid="articles-more-btn" aria-label="Next articles page" style="background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); transition: all 0.2s; display: flex; align-items: center; gap: 8px;">MORE <i class="fa-solid fa-arrow-right"></i></button>`;
             }
             paginationControls.innerHTML = html;
         }

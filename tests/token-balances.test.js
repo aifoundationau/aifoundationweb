@@ -34,6 +34,13 @@ function fakeFirestore() {
                 .filter(([path]) => path.startsWith(`${collection}/`) && !path.slice(collection.length + 1).includes('/'))
                 .map(([path, doc]) => ({ id: path.slice(collection.length + 1), fields: clone(doc.data) }));
         },
+        queries: [], // every query asked for, to check what the real one would need
+        async queryDocuments(collection, { where = [] } = {}) {
+            this.queries.push({ collection, where: clone(where) });
+            if (!this.available) return null;
+            const matches = (fields, { field, op, value }) => (op === 'in' ? value.includes(fields[field]) : fields[field] === value);
+            return (await this.listDocuments(collection)).filter(({ fields }) => where.every(filter => matches(fields, filter)));
+        },
         async commitWrites(writes) {
             if (this.beforeCommit) {
                 const hook = this.beforeCommit;
@@ -273,6 +280,42 @@ test('Token Accounts lists every profile with its balance, by name; null when Fi
     ]);
     firebase.available = false;
     assert.equal(await store.listAccounts(), null);
+});
+
+// ---------- Token counts ----------
+
+test('the token counts are tokens bought minus tokens paid to people, for every app and for AI Foundation alone', async () => {
+    const { firebase, store } = setup();
+    // What the other apps wrote to the shared ledger
+    firebase.set(`${LEDGER}/purchase_cs_lms1`, { tag: 'lms', kind: 'purchase', uid: 'kim', change: 300 });
+    firebase.set(`${LEDGER}/purchase_cs_hr1`, { tag: 'hr', kind: 'purchase', uid: 'jo', change: 50 });
+    firebase.set(`${LEDGER}/grant_hr1`, { tag: 'hr', kind: 'grant', uid: 'jo', change: 40 });
+    firebase.set(`${LEDGER}/grant_gift1_sam`, { tag: 'hr', kind: 'gift-all', uid: 'sam', change: 10 });
+    // A PT video unlock: the trainer's share is paid to a person (PT writes delta, not change); the platform's isn't
+    firebase.set(`${LEDGER}/credit_trainer_v1`, { tag: 'pt', kind: 'revenue_split', shareType: 'trainer_50', uid: 'tia', delta: 3 });
+    firebase.set(`${LEDGER}/credit_platform_v1`, { tag: 'pt', kind: 'revenue_split', shareType: 'platform_50', uid: 'boss', delta: 3 });
+    // Moving, spending or correcting tokens is not buying them or paying them to people
+    firebase.set(`${LEDGER}/transfer_recv_t1`, { tag: 'hr', kind: 'transfer_received', uid: 'kim', change: 5 });
+    firebase.set(`${LEDGER}/spend_lms_x`, { tag: 'lms', kind: 'spend', uid: 'kim', change: -30 });
+    firebase.set(`${LEDGER}/remove_r1`, { tag: 'hr', kind: 'remove', uid: 'jo', change: -5 });
+    // And what this site writes: a purchase of 300 and a grant of 25
+    await store.settleCheckout(checkout());
+    await store.grantTokens({ uid: UID, tokens: 25, requestId: 'req-0001-abcd', grantedBy: 'support@aifoundation.net.au' });
+    await store.spendTokens({ uid: UID, tokens: 10, app: 'aifoundation', reference: 'order-1' });
+
+    assert.deepEqual(await store.countTokens(), {
+        total: { bought: 650, paidOut: 78, count: 572 },
+        aifoundation: { bought: 300, paidOut: 25, count: 275 }
+    });
+    assert.deepEqual(firebase.queries, [{ collection: LEDGER, where: [{ field: 'kind', op: 'in', value: ['purchase', 'grant', 'gift-all', 'revenue_split'] }] }],
+        'one filter: no extra index');
+});
+
+test('the token counts start at 0, and are null when Firestore is unreachable', async () => {
+    const { firebase, store } = setup();
+    assert.deepEqual(await store.countTokens(), { total: { bought: 0, paidOut: 0, count: 0 }, aifoundation: { bought: 0, paidOut: 0, count: 0 } });
+    firebase.available = false;
+    assert.equal(await store.countTokens(), null);
 });
 
 test('user and checkout IDs are checked before anything is read or written', async () => {

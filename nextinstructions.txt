@@ -1,0 +1,13 @@
+# Next Instructions - AI Foundation
+
+## Current Status:
+1. Dev server is running on http://localhost:3003 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-214).
+2. Firestore security rules are deployed and allow public reading of the `content` collection.
+3. Both `data/projects.json` and `public/data/projects.json` are synced with the 14 projects in Firestore.
+4. `public/app.js` is updated with DOM automation attributes (`data-agent-id`, `data-testid`, `aria-label`) on both Articles and Projects pagination controls (`MORE` and `PREV` buttons).
+5. All 74 unit/integration tests pass.
+
+## Next Steps:
+- Open http://localhost:3003/#projects in your browser to verify the MORE button in the Project section.
+- Verify page navigation between page 1, 2, 3, and 4.
+

@@ -30,6 +30,11 @@ const REFERENCE_PATTERN = /^[A-Za-z0-9_.:-]{1,100}$/;
 const ABANDONED_MS = 7 * 24 * 60 * 60 * 1000;
 // How many times a spend is retried when the balance changes between reading and saving it
 const SPEND_ATTEMPTS = 5;
+// Ledger kinds in the token counts: tokens bought with a card, and tokens paid to people: a SuperAdmin's grant in any
+// app, What HR's gift to everyone, and the trainer's share when a PT video is unlocked (revenue_split). The platform's
+// own share of a split (shareType platform_...) goes to the SuperAdmin, so it isn't paid to people
+const BOUGHT_KINDS = ['purchase'];
+const PAID_OUT_KINDS = ['grant', 'gift-all', 'revenue_split'];
 
 function str(value) {
     return typeof value === 'string' ? value.trim() : '';
@@ -202,9 +207,32 @@ function createTokenStore({ firebase = firebaseService, now = () => Date.now() }
             .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
     }
 
+    // The SuperAdmin's token counts: tokens bought minus tokens paid to people, from the ledger. total is every app;
+    // aifoundation only the entries this site wrote (its tag). { total, aifoundation }, each { bought, paidOut, count },
+    // or null when Firestore is unreachable. Nobody's balance is read or changed
+    async function countTokens() {
+        // One filter, so no extra index
+        const entries = await firebase.queryDocuments(LEDGER, { where: [{ field: 'kind', op: 'in', value: [...BOUGHT_KINDS, ...PAID_OUT_KINDS] }] });
+        if (!entries) return null;
+        const total = { bought: 0, paidOut: 0 };
+        const aifoundation = { bought: 0, paidOut: 0 };
+        for (const { fields } of entries) {
+            if (fields.kind === 'revenue_split' && str(fields.shareType).startsWith('platform')) continue;
+            // The PT app records the amount as delta rather than change
+            const change = Number.isFinite(fields.change) ? fields.change : fields.delta;
+            if (!Number.isFinite(change) || change <= 0) continue;
+            const side = BOUGHT_KINDS.includes(fields.kind) ? 'bought' : 'paidOut';
+            const tokens = Math.trunc(change);
+            total[side] += tokens;
+            if (fields.tag === PARTITION_KEY.tag) aifoundation[side] += tokens;
+        }
+        const withCount = counts => ({ ...counts, count: counts.bought - counts.paidOut });
+        return { total: withCount(total), aifoundation: withCount(aifoundation) };
+    }
+
     return {
         getBalance, getPendingCheckouts, addPendingCheckout, removePendingCheckout,
-        creditPurchase, grantTokens, spendTokens, settleCheckout, listAccounts
+        creditPurchase, grantTokens, spendTokens, settleCheckout, listAccounts, countTokens
     };
 }
 

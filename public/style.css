@@ -600,18 +600,18 @@ p { margin: 0; }
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
   padding-top: 16px;
   border-top: 1px solid var(--border-color, #e2e8f0);
 }
 
-/* Padding and gap sized so all 9 buttons fit one row from 1366px-wide laptops up */
+/* Padding and gap sized so all 10 buttons fit one row from 1366px-wide laptops up */
 .footer-portal-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 8px 10px;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: 999px;
@@ -650,13 +650,15 @@ p { margin: 0; }
 }
 
 /* 1025-1365px desktops (e.g. 1280px: a 1920x1080 laptop at 150% scaling) have a narrower column
-   beside the sidebar: slightly tighter buttons keep all 9 on one row there too */
+   beside the sidebar: slightly tighter buttons keep all 10 on one row there too */
 @media (min-width: 1025px) and (max-width: 1365px) {
   .footer-portal-nav {
-    gap: 8px;
+    gap: 6px;
   }
   .footer-portal-btn {
-    padding: 8px 12px;
+    gap: 6px;
+    padding: 8px 8px;
+    font-size: 0.86rem;
   }
 }
 
@@ -2489,6 +2491,41 @@ html.admin-panel-open body {
   font-size: 0.8rem;
   color: #94a3b8;
   text-align: center;
+}
+
+/* Token Accounts: the Total Token Count and AI Foundation Token Count, side by side when there's room */
+.token-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.token-count-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.token-count-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #475569;
+}
+.token-count-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+.token-count-detail {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 /* Admin panel: Token Accounts tab (SuperAdmin). The account list and the add-tokens box sit side by side when there's room */

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects & Initiatives - AI Foundation Australia</title>
-    <link rel="stylesheet" href="style.css?v=53">
+    <link rel="stylesheet" href="style.css?v=54">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -383,6 +383,10 @@
                     <a href="https://finance.aifoundation.net.au/" class="footer-portal-btn" target="_self">
                         <i class="fa-solid fa-coins"></i>
                         <span>Finance</span>
+                    </a>
+                    <a href="https://kangoo.aifoundation.net.au/" class="footer-portal-btn" target="_self">
+                        <i class="fa-solid fa-van-shuttle"></i>
+                        <span>Car Rental</span>
                     </a>
                 </div>
 
@@ -1020,8 +1024,20 @@
                                     Token Accounts
                                 </h2>
                                 <p style="font-size: 0.88rem; color: #64748b; margin: 0; line-height: 1.5;">
-                                    Every account's token balance. One balance is shared by all your apps. Choose an account to add tokens to it.
+                                    Tokens bought minus tokens paid to people (grants, gifts and trainer shares), and every account's token balance. One balance is shared by all your apps. Choose an account to add tokens to it.
                                 </p>
+                            </div>
+                            <div class="token-counts">
+                                <div class="token-count-tile">
+                                    <span class="token-count-label">Total Token Count</span>
+                                    <strong id="tokenCountTotal" class="token-count-value">-</strong>
+                                    <small id="tokenCountTotalDetail" class="token-count-detail">Bought in all apps, minus tokens paid to people</small>
+                                </div>
+                                <div class="token-count-tile">
+                                    <span class="token-count-label">AI Foundation Token Count</span>
+                                    <strong id="tokenCountAifoundation" class="token-count-value">-</strong>
+                                    <small id="tokenCountAifoundationDetail" class="token-count-detail">Bought in AI Foundation, minus tokens paid to people here</small>
+                                </div>
                             </div>
                             <div class="token-accounts-layout">
                                 <div class="token-accounts-browse">
@@ -1483,7 +1499,7 @@
         <script src="https://js.stripe.com/v3/"></script>
         <script src="site-locale.js?v=1"></script>
         <script src="service-pricing.js?v=7"></script>
-        <script src="app.js?v=63"></script>
+        <script src="app.js?v=64"></script>
 </body>
 
 </html>

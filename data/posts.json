@@ -1,43 +1,135 @@
 [
   {
+    "id": "post_1793230936287_k5g7l",
+    "title": "Why I Build with Semantic RAG Over Traditional Databases Across My Applications",
+    "summary": "A database searches this: A RAG searches this: If you are looking for something specific, which example would be easier to work with? I prefer building with Retrieval-Augmented Generation (RAG) systems over traditional databases because standard setups are restricted by strict schemas, relational ta",
+    "link": "https://www.linkedin.com/pulse/why-i-build-semantic-rag-over-traditional-databases-across-xgznc/",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQHiQXPCdALQjQ/article-cover_image-shrink_720_1280/B56aGE04OkIsAQ-/0/1793229816963?e=2147483647&v=beta&t=udiYt4vxoRvUxbjtYP3nT4AoYnd37Ath0biqOq4m_B4",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-28T23:42:16.287Z"
+  },
+  {
+    "id": "post_1793090956520_am6bw",
+    "title": "Connecting top talent with hiring teams just got significantly faster with the launch of What HR",
+    "summary": "Connecting top talent with hiring teams just got significantly faster with the launch of What HR's built-in messaging platform. The moment a company or HR agent selects a candidate for an interview, candidate details and direct communication lines populate instantly within our secure in-house messenger. This eliminates back-and-forth email delays and external tracking, allowing employers to reach out directly, coordinate interviews, and engage active jobseekers in real time—delivering a streamlined, frictionless hiring experience from first match to final hire.",
+    "link": "https://www.linkedin.com/feed/update/urn:li:share:7520768453159407616/",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5622AQF-g_XKpSTPoQ/feedshare-shrink_800/B56aF8jDexJwAc-/0/1793090926845?e=2147483647&v=beta&t=bDxOlf31bIoAqPXFVW1oI0YrTyUY8xHGrjIcMXBJ9jk",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-27T08:49:16.520Z"
+  },
+  {
+    "id": "post_1792708099617_zditr",
+    "title": "Automated Google Drive Routing: Dynamic Folder Creation by User and Date",
+    "summary": "To get this automated system working, I start by creating a dedicated digital assistant inside Google Cloud called a service account. I turn on the Google Drive connection so this assistant has permission to interact with my files, and then I generate a private security key that downloads to my comp",
+    "link": "https://www.linkedin.com/pulse/automated-google-drive-routing-dynamic-folder-creation-uktqc",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQFg8MMUKMsG5w/article-cover_image-shrink_720_1280/B56aFluRCJIsAU-/0/1792707989901?e=2147483647&v=beta&t=I29NrLWvTD7OWOoA4XKNr35hvu_l8ZWCctfrIrk6T9I",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-22T22:28:19.617Z"
+  },
+  {
+    "id": "post_1792572626886_pgm63",
+    "title": "RBAC: Why Staying in the Right Lane Protects the Entire Organization",
+    "summary": "Role-Based Access Control establishes clear boundaries across an institution by ensuring every contributor interacts only with the tools and information directly aligned with their daily responsibilities. To build an effective setup, leaders must start by interviewing frontline staff and thoroughly ",
+    "link": "https://www.linkedin.com/pulse/rbac-why-staying-right-lane-protects-entire-organization-h58gc/?trackingId=it8TK3LzbDk6HiS6xODwRQ%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQF07eETmKvoCA/article-cover_image-shrink_720_1280/B56aFRX7rvJYAQ-/0/1792366590952?e=2147483647&v=beta&t=qCNBT52afybFonwQ6o4TRsnQbmoOS7kA5evpgme7Rzo",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-21T08:50:26.886Z"
+  },
+  {
+    "id": "post_1792572587322_vyclw",
+    "title": "skills.md: Codifying Operational Standard Operating Procedures to Build Reliable, Mission-Ready AI Agents",
+    "summary": "With foundational language competency established through RAG and operational boundaries set by RBAC, the next crucial phase is defining the specific, practical tasks the AI agent must perform across the institution. Because an organization encompasses diverse touchpoints—from course enrollment and ",
+    "link": "https://www.linkedin.com/pulse/skillsmd-codifying-operational-standard-operating-procedures-khmkc/?trackingId=kjR6JrVnNOFEVp%2F0ohftpw%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQEpmMWZ4sw0aQ/article-cover_image-shrink_720_1280/B56aFRbW5aGcAQ-/0/1792367488862?e=2147483647&v=beta&t=6eTMVxdxsdqPrx4abSmvsuhV19a1rvm1NZ3uw6Vevy4",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-21T08:49:47.322Z"
+  },
+  {
+    "id": "post_1792572562503_4d60t",
+    "title": "skills.md: Codifying Operational Standard Operating Procedures to Build Reliable, Mission-Ready AI Agents",
+    "summary": "With foundational language competency established through RAG and operational boundaries set by RBAC, the next crucial phase is defining the specific, practical tasks the AI agent must perform across the institution. Because an organization encompasses diverse touchpoints—from course enrollment and ",
+    "link": "https://www.linkedin.com/pulse/skillsmd-codifying-operational-standard-operating-procedures-khmkc/?trackingId=kjR6JrVnNOFEVp%2F0ohftpw%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQEpmMWZ4sw0aQ/article-cover_image-shrink_720_1280/B56aFRbW5aGcAQ-/0/1792367488862?e=2147483647&v=beta&t=6eTMVxdxsdqPrx4abSmvsuhV19a1rvm1NZ3uw6Vevy4",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-21T08:49:22.503Z"
+  },
+  {
+    "id": "post_1792572419770_9uvxp",
+    "title": "skills.md: Codifying Operational Standard Operating Procedures to Build Reliable, Mission-Ready AI Agents",
+    "summary": "With foundational language competency established through RAG and operational boundaries set by RBAC, the next crucial phase is defining the specific, practical tasks the AI agent must perform across the institution. Because an organization encompasses diverse touchpoints—from course enrollment and ",
+    "link": "https://www.linkedin.com/pulse/skillsmd-codifying-operational-standard-operating-procedures-khmkc/?trackingId=kjR6JrVnNOFEVp%2F0ohftpw%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQEpmMWZ4sw0aQ/article-cover_image-shrink_720_1280/B56aFRbW5aGcAQ-/0/1792367488862?e=2147483647&v=beta&t=6eTMVxdxsdqPrx4abSmvsuhV19a1rvm1NZ3uw6Vevy4",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-21T08:46:59.770Z"
+  },
+  {
+    "id": "post_1792572397419_00ta5",
+    "title": "skills.md: Codifying Operational Standard Operating Procedures to Build Reliable, Mission-Ready AI Agents",
+    "summary": "With foundational language competency established through RAG and operational boundaries set by RBAC, the next crucial phase is defining the specific, practical tasks the AI agent must perform across the institution. Because an organization encompasses diverse touchpoints—from course enrollment and ",
+    "link": "https://www.linkedin.com/pulse/skillsmd-codifying-operational-standard-operating-procedures-khmkc/?trackingId=kjR6JrVnNOFEVp%2F0ohftpw%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQEpmMWZ4sw0aQ/article-cover_image-shrink_720_1280/B56aFRbW5aGcAQ-/0/1792367488862?e=2147483647&v=beta&t=6eTMVxdxsdqPrx4abSmvsuhV19a1rvm1NZ3uw6Vevy4",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
+    "author": "Admin",
+    "date": "2026-10-21T08:46:37.419Z"
+  },
+  {
     "id": "post_1792548592574_eng30",
     "title": "skills.md: Codifying Operational Standard Operating Procedures to Build Reliable, Mission-Ready AI Agents",
-    "summary": "With foundational language competency established through RAG and operational boundaries set by RBAC, the next crucial phase is defining the specific, practical tasks the AI agent must perform across the institution. Because an organization encompasses diverse touchpoints—from course enrollment and",
+    "summary": "With foundational language competency established through RAG and operational boundaries set by RBAC, the next crucial phase is defining the specific, practical tasks the AI agent must perform across the institution. Because an organization encompasses diverse touchpoints—from course enrollment and ",
     "link": "https://www.linkedin.com/pulse/skillsmd-codifying-operational-standard-operating-procedures-khmkc/?trackingId=mhkc6R8tftIXzoylBwYHcQ%3D%3D",
     "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQEpmMWZ4sw0aQ/article-cover_image-shrink_720_1280/B56aFRbW5aGcAQ-/0/1792367488862?e=2147483647&amp;v=beta&amp;t=6eTMVxdxsdqPrx4abSmvsuhV19a1rvm1NZ3uw6Vevy4",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "Admin",
     "date": "2026-10-21T02:09:52.574Z"
   },
   {
-    "id": "GslZBvZz2R74zff6IkNL",
-    "title": "Beyond the Middleman: How One All-in-One App Beats the Uber and Grab Playbook to Empower Providers, Franchises, and Consumers",
-    "summary": "It’s A Simple Job tackles the structural inefficiencies that plague gig platforms like Uber, Grab, Airtasker, and traditional trade franchises. Instead of acting as an extractive middleman that gouges margins and abstracts communication behind rigid menus, this platform reconstructs the ecosystem ar",
-    "link": "https://www.linkedin.com/pulse/more-come-aifoundationaus-djxcc/",
-    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQHWgBtnym91Ow/article-cover_image-shrink_720_1280/B56aET6n7mHkAQ-/0/1791335497663?e=2147483647&amp;v=beta&amp;t=umctbxiwbPbvkaz97e6RwxnEdUWaOpZoZ5Y22UNrKkw",
+    "id": "post_1792103383164_3de9w",
+    "title": "Redesigning an Admin Panel: From Chaos to 1-Click Simplicity",
+    "summary": "Every time I open a legacy admin dashboard, I brace myself for the inevitable headache: a clumpy, chaotic wall of disjointed data tables, microscopic drop-downs, and endless nested accordions where essential tools go to die. It feels like an archaeological dig just to find a basic setting or approve",
+    "link": "https://www.linkedin.com/pulse/redesigning-admin-panel-from-chaos-1-click-simplicity-owkic/?trackingId=8IgzSRgVC1PRLgviszw0Pg%3D%3D",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQFJpaGLg6o9tQ/article-cover_image-shrink_720_1280/B56aFBqdAQKMAQ-/0/1792103010660?e=2147483647&amp;v=beta&amp;t=c5GvYaA34h6YA7fngoQ-rTNBass4XTjpwpREr2M5PtE",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "Admin",
-    "date": "2026-10-07T01:52:04.403Z"
+    "date": "2026-10-15T22:29:43.164Z"
   },
   {
-    "id": "post_1790907021480",
-    "title": "Google Antigravity - It Ain't THAT Easy!",
-    "summary": "While Google Antigravity displays impressive potential for automating student inquiries and core institutional workflows, transitioning from a local prototype to production requires deliberate architectural planning.",
-    "link": "https://www.youtube.com/watch?v=hiNunc5USDw",
-    "imageUrl": "https://i.ytimg.com/vi/hiNunc5USDw/hqdefault.jpg",
-    "platform": "youtube",
+    "id": "post_1791627832117_b1qwi",
+    "title": "Under the Hood: Building the Draft-to-Published Lifecycle in a Shared LMS Database",
+    "summary": "When I design the course lifecycle for our cross-institutional LMS database, establishing a clear boundary between private curriculum drafting and public sharing is critical. Whenever an educator hits \"Save\" inside the course builder, the database writes a flag to that course document.",
+    "link": "https://www.linkedin.com/pulse/under-hood-building-draft-to-published-lifecycle-shared-robertson-fpmtc/",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQGpLT0TfZffBg/article-cover_image-shrink_600_2000/B56aElVQ3eHQAM-/0/1791627693808?e=2147483647&amp;v=beta&amp;t=QpwNfo2Sk3dRSm78nJQDl5zLoSNs72z7vAODLI42qr8",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
     "author": "Admin",
-    "date": "2026-10-02T02:10:21.480Z"
+    "date": "2026-10-10T10:23:52.118Z"
   },
   {
-    "id": "post_1790907021470",
-    "title": "The Sole Trader App is Here - Make it Simple!",
-    "summary": "Running an independent business often forces sole traders, contractors, and service providers to wear every hat. Managing daily customer enquiries, answering calls, and scheduling can now be fully streamlined with automated agent workflows.",
-    "link": "https://www.youtube.com/watch?v=3u3dfgapQEg",
-    "imageUrl": "https://i.ytimg.com/vi/3u3dfgapQEg/maxresdefault.jpg",
-    "platform": "youtube",
+    "id": "post_1791543222181_7vr94",
+    "title": "Beyond Plugins: Architecting AI-Native Websites with Universal Data Contracts and MCP Routing",
+    "summary": "Traditional web forms are tightly coupled to visual elements like buttons and DOM inputs, which is why dropping a language model into an existing site usually feels like a brittle, bolted-on plugin. The UADIS specification flips this dynamic by making the data contract the absolute core of the appli",
+    "link": "https://www.linkedin.com/pulse/beyond-plugins-architecting-ai-native-websites-universal-8ldrc/",
+    "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQFI8zzQKh8zCw/article-cover_image-shrink_720_1280/B56aEfybSRG4AU-/0/1791534675299?e=2147483647&amp;v=beta&amp;t=aPoGbcquG_HMI6aq3_vaeCMjDeVTnO45iVcywGSY8b0",
+    "imageBackupUrl": "",
+    "platform": "linkedin",
     "author": "Admin",
-    "date": "2026-10-02T02:10:21.470Z"
+    "date": "2026-10-09T10:53:42.182Z"
   },
   {
     "id": "post_1790905321103",
@@ -45,6 +137,7 @@
     "summary": "As a Higher Degree by Research candidate at Griffith University, leveraging cross disciplinary expertise across Griffith institutes positions you uniquely to design, deploy, and scale a high impact, context aware Learning Management System in remote regional health centers.",
     "link": "https://www.linkedin.com/pulse/bridging-diagnostic-gap-framework-ai-powered-healthcare-hav1c/?trackingId=3rh1%2Fa0giD%2BB7Am%2FQkxPDw%3D%3D",
     "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQEXKgYuqX-cEQ/article-cover_image-shrink_720_1280/B56aCIGNUmKIAQ-/0/1788989724175?e=2147483647&v=beta&t=o1yBbrA0y7fUfx8dtBKClity-pji4nmw3KzF2L6Mktw",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "AI Foundation Australia",
     "date": "2026-10-02T01:42:01.103Z"
@@ -55,6 +148,7 @@
     "summary": "Why is this the future of LMS for remote regions who may not be able to afford such systems? Can teachers manage a Google Sheet? Yes? Good, then they can upload their courses. Donors can assist with the cost of the AI and LMS system by purchasing tokens.",
     "link": "https://www.linkedin.com/feed/update/urn:li:activity:7510599777567293440/",
     "imageUrl": "https://media.licdn.com/dms/image/v2/D4E22AQFml1f1X_czyQ/feedshare-shrink_800/B4EaDsCsuGGwAk-/0/1790666525992?e=2147483647&v=beta&t=KX2DIfCEoNri0oJGIXuCahwieU94ShNX_L3WaElRYFw",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "AI Foundation Australia",
     "date": "2026-09-29T23:46:03.463Z"
@@ -65,6 +159,7 @@
     "summary": "This configuration file sets up security boundaries for a Firebase Firestore database. At a high level, it establishes a strict 'owner-only' data model, ensuring that logged-in users can access and modify their own personal data while remaining completely blocked from viewing or altering anyone else.",
     "link": "https://www.linkedin.com/pulse/stop-data-leaks-how-firestore-user-security-actually-works-ixmpc?trackingId=WWSRuXXMewDXTkwifk%2BYRw%3D%3D&lipi=urn%3Ali%3Apage%3Aorganization_admin_admin_page_posts_published%3Bceace028-fce2-4a6f-a805-d492207a5dd2",
     "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQESN-V_53a6PQ/article-cover_image-shrink_600_2000/B56aDbhQ1AKIAM-/0/1790389325370?e=2147483647&v=beta&t=olfMlfY9RG4HPTZM9BHt93u5Jvq7Gc8gYdxW3PTDyug",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "AI Foundation Australia",
     "date": "2026-09-29T23:45:06.734Z"
@@ -75,6 +170,7 @@
     "summary": "This platform functions as a streamlined education, training, and Learning Management System (LMS) designed to run seamlessly with Google Sheets as its primary backend database. By leveraging ubiquitous, accessible cloud spreadsheets to manage courses, applicant details, and syllabuses.",
     "link": "https://www.linkedin.com/pulse/edupulse-ai-complete-student-application-process-aifoundationaus-fqcwc?trackingId=QWLZddEESsdKMgaF3p2GlA%3D%3D&lipi=urn%3Ali%3Apage%3Aorganization_admin_admin_page_posts_published%3Bceace028-fce2-4a6f-a805-d492207a5dd2",
     "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQHHDuIpKl73Mg/article-cover_image-shrink_600_2000/B56aDf5WNLJsAM-/0/1790462748841?e=2147483647&v=beta&t=-rSS-IQwK8g3y823R-ozAQCv8MTZuKvtlYxiAOCKLiM",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "AI Foundation Australia",
     "date": "2026-09-29T23:44:50.549Z"
@@ -85,6 +181,7 @@
     "summary": "System Architecture & Operational Workflow: The Token Management System operates on a unit-of-use economic model designed to deliver, track, and reallocate digital access passes without market friction or value degradation over time.",
     "link": "https://www.linkedin.com/pulse/empowering-educational-equity-flexible-community-driven-cyr3c/?trackingId=gwJFTIyFzoEXdn3Aatz%2B6Q%3D%3D",
     "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQGiF4ZeDkAhLQ/article-cover_image-shrink_600_2000/B56aDlyRQvJ8AM-/0/1790561555770?e=2147483647&v=beta&t=awVLVv1AKmv0KnTQYQBiJjEPiRjsSd3tacEBPug73cs",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "AI Foundation Australia",
     "date": "2026-09-29T23:44:23.618Z"
@@ -95,18 +192,9 @@
     "summary": "This configuration establishes an automated, dual-tier routing framework within Google Antigravity that dynamically assigns incoming tasks based on structural complexity and cost efficiency. By anchoring the primary dispatcher and routine automation workers to lightweight models while reserving complex reasoning for deep agents.",
     "link": "https://www.linkedin.com/pulse/automated-dual-tier-routing-framework-antigravity-agents-wgtrc/?trackingId=bJdb0C%2BRnjuQtuHZwTEnRA%3D%3D",
     "imageUrl": "https://media.licdn.com/dms/image/v2/D5612AQFSzUL4q9DdQA/article-cover_image-shrink_720_1280/B56aDnQe3YIEAQ-/0/1790586253078?e=2147483647&v=beta&t=uoLAkXqD5d-BbCXJz3XwAR5DpAyD4prPgqrFaar5KK8",
+    "imageBackupUrl": "",
     "platform": "linkedin",
     "author": "AI Foundation Australia",
     "date": "2026-09-29T23:24:32.307Z"
-  },
-  {
-    "id": "post_proj_6",
-    "title": "AI Foundation Learning Portal & Digital Classroom",
-    "summary": "Interactive learning portal connecting students, corporate teams, and educators to structured curricula in applied artificial intelligence, agent workflows, and ethical digital transformation.",
-    "link": "http://classroom.google.com/",
-    "imageUrl": "https://i.ibb.co/L8mN8vX/education-ai.jpg",
-    "platform": "google",
-    "author": "AI Foundation Australia",
-    "date": "2026-09-28T12:00:00Z"
   }
 ]

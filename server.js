@@ -850,6 +850,20 @@ app.get('/api/tokens/accounts', requireSuperAdmin, async (req, res) => {
     }
 });
 
+// SuperAdmin: the Total Token Count (every app) and AI Foundation Token Count: tokens bought minus tokens paid to people
+// (grants, gifts and trainer shares), each { bought, paidOut, count }
+app.get('/api/tokens/counts', requireSuperAdmin, async (req, res) => {
+    try {
+        const counts = await tokenStore.countTokens();
+        if (!counts) return res.status(503).json({ error: 'The token counts can\'t be worked out right now. Please try again shortly.' });
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json(counts);
+    } catch (e) {
+        console.error('[Tokens] Counts error:', e);
+        sendServerError(res, e);
+    }
+});
+
 // SuperAdmin: add tokens to an account, { uid, tokens, requestId, note }. requestId is made once per click in the
 // browser, so a retried request isn't added twice
 app.post('/api/tokens/grant', requireSuperAdmin, async (req, res) => {

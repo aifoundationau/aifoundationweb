@@ -353,6 +353,44 @@ async function listDocuments(collectionId, { pageSize = 300, maxPages = 40 } = {
     }
 }
 
+const QUERY_OPERATORS = { '==': 'EQUAL', 'in': 'IN' };
+
+/**
+ * The documents of a collection matching every filter: where is [{ field, op ('==' or 'in'), value }].
+ * Returns [{ id, fields }] with plain values, or null when Firestore can't be reached or the query fails
+ */
+async function queryDocuments(collectionId, { where = [] } = {}) {
+    const token = await getAccessToken();
+    if (!token) return null;
+
+    const filters = where.map(({ field, op, value }) => {
+        if (!QUERY_OPERATORS[op]) throw new Error(`Unknown query operator: ${op}`);
+        return { fieldFilter: { field: { fieldPath: field }, op: QUERY_OPERATORS[op], value: toFirestoreValue(value) } };
+    });
+    const structuredQuery = { from: [{ collectionId }] };
+    if (filters.length === 1) structuredQuery.where = filters[0];
+    else if (filters.length > 1) structuredQuery.where = { compositeFilter: { op: 'AND', filters } };
+
+    try {
+        const res = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ structuredQuery })
+        });
+        if (!res.ok) {
+            console.warn(`[Firebase] Querying ${collectionId} failed (HTTP ${res.status})`);
+            return null;
+        }
+        const rows = await res.json();
+        return (Array.isArray(rows) ? rows : [])
+            .filter(row => row.document)
+            .map(row => ({ id: row.document.name.split('/').pop(), fields: fromFirestoreFields(row.document.fields || {}) }));
+    } catch (err) {
+        console.error(`[Firebase] Error querying ${collectionId}:`, err.message);
+        return null;
+    }
+}
+
 /**
  * Delete document from Cloud Firestore
  */
@@ -1098,6 +1136,7 @@ module.exports = {
     writeDocument,
     deleteDocument,
     listDocuments,
+    queryDocuments,
     readDocument,
     commitWrites
 };
