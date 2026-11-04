@@ -3737,7 +3737,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
         const targetSection = document.getElementById(targetId);
         if (targetSection) {
-            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services' || targetId === 'section-services2') ? 'flex' : 'block';
+            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services' || targetId === 'section-services2' || targetId === 'section-apps') ? 'flex' : 'block';
         }
     }
     window.activateSection = activateSection;
@@ -3779,6 +3779,8 @@ const postObserver = new IntersectionObserver((entries) => {
         } else if (hash === 'services' || hash === 'services2') {
             // The original Services section is hidden for now, so #services opens Services 2 too
             targetId = 'section-services2';
+        } else if (hash === 'apps') {
+            targetId = 'section-apps';
         } else if (hash === 'education' || hash === 'classroom') {
             targetId = 'section-education';
         } else if (hash === 'david' || hash === 'contact') {

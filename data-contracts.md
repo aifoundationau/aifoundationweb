@@ -326,6 +326,27 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 
 ---
 
+### Domain 5: Portal Ecosystem & Cross-App Navigation
+
+#### Authorized Ecosystem Destinations
+| Destination ID | App / Service Name | Canonical URI | `data-agent-id` / `data-testid` |
+| :--- | :--- | :--- | :--- |
+| `ai` | AI Core Portal | `https://www.aifoundation.net.au/` | `footer-portal-ai` |
+| `lms` | LMS Portal | `https://lms.aifoundation.net.au/` | `footer-portal-lms` |
+| `hr` | HR Solutions | `http://hr.aifoundation.net.au/` | `footer-portal-hr` |
+| `jobs` | Trades & Work | `https://jobs.aifoundation.net.au/` | `footer-portal-jobs` |
+| `pt` | PT & Fitness | `https://pt.aifoundation.net.au/` | `footer-portal-pt` |
+| `health` | Health Platforms | `https://health.aifoundation.net.au/` | `footer-portal-health` |
+| `edu` | Vocational RTO | `https://edu.aifoundation.net.au/` | `footer-portal-edu` |
+| `nihongo` | Nihongo Learning | `https://nihongo.aifoundation.net.au/` | `footer-portal-nihongo` |
+| `finance` | Finance Portal | `https://finance.aifoundation.net.au/` | `footer-portal-finance` |
+| `kangoo` | Kangoo Car Rental | `https://kangoo.aifoundation.net.au/` | `footer-portal-kangoo` |
+| `socialradar` | Social Media (Social Radar) | `https://socialradar.aifoundation.net.au/` | `footer-portal-socialradar` |
+
+- **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. Odd last child (item 11: `socialradar`) centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
+
+---
+
 ## 3. Regulatory Compliance & Governance Alignment
 
 1. **Australian Privacy Act 1988 & Australian Privacy Principles (APPs)**:

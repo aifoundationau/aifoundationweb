@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects & Initiatives - AI Foundation Australia</title>
-    <link rel="stylesheet" href="style.css?v=55">
+    <link rel="stylesheet" href="style.css?v=57">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -219,6 +219,10 @@
                         <i class="fa-solid fa-briefcase"></i>
                         <span>Services</span>
                     </li>
+                    <li class="sidebar-item" onclick="window.location.href='index.html#apps'">
+                        <i class="fa-solid fa-cubes"></i>
+                        <span>Apps</span>
+                    </li>
                     <!-- <li class="sidebar-item" onclick="window.location.href='index.html#education'">
                         <i class="fa-solid fa-graduation-cap"></i>
                         <span>Classroom</span>
@@ -352,45 +356,49 @@
 
                 <!-- Portal Buttons (Below Meta Details) -->
                 <div class="footer-portal-nav" role="navigation" aria-label="Portal Navigation Links">
-                    <a href="https://www.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-brain"></i>
+                    <a href="https://www.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-ai" data-testid="footer-portal-ai" aria-label="AI Core Portal">
+                        <i class="fa-solid fa-brain" aria-hidden="true"></i>
                         <span>AI</span>
                     </a>
-                    <a href="https://lms.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-graduation-cap"></i>
+                    <a href="https://lms.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-lms" data-testid="footer-portal-lms" aria-label="LMS Portal">
+                        <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
                         <span>LMS</span>
                     </a>
-                    <a href="http://hr.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-user-tie"></i>
+                    <a href="http://hr.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-hr" data-testid="footer-portal-hr" aria-label="HR Solutions">
+                        <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
                         <span>HR</span>
                     </a>
-                    <a href="https://jobs.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                    <a href="https://jobs.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-jobs" data-testid="footer-portal-jobs" aria-label="Trades and Jobs Portal">
+                        <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
                         <span>Trades</span>
                     </a>
-                    <a href="https://pt.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-dumbbell"></i>
+                    <a href="https://pt.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-pt" data-testid="footer-portal-pt" aria-label="PT and Fitness Portal">
+                        <i class="fa-solid fa-dumbbell" aria-hidden="true"></i>
                         <span>PT</span>
                     </a>
-                    <a href="https://health.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-heart-pulse"></i>
+                    <a href="https://health.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-health" data-testid="footer-portal-health" aria-label="Health Platforms">
+                        <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
                         <span>Health</span>
                     </a>
-                    <a href="https://edu.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-certificate"></i>
+                    <a href="https://edu.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-edu" data-testid="footer-portal-edu" aria-label="Vocational RTO Portal">
+                        <i class="fa-solid fa-certificate" aria-hidden="true"></i>
                         <span>RTO</span>
                     </a>
-                    <a href="https://nihongo.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-language"></i>
+                    <a href="https://nihongo.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-nihongo" data-testid="footer-portal-nihongo" aria-label="Nihongo Japanese Learning Portal">
+                        <i class="fa-solid fa-language" aria-hidden="true"></i>
                         <span>Nihongo</span>
                     </a>
-                    <a href="https://finance.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-coins"></i>
+                    <a href="https://finance.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-finance" data-testid="footer-portal-finance" aria-label="Finance Portal">
+                        <i class="fa-solid fa-coins" aria-hidden="true"></i>
                         <span>Finance</span>
                     </a>
-                    <a href="https://kangoo.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-van-shuttle"></i>
+                    <a href="https://kangoo.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-kangoo" data-testid="footer-portal-kangoo" aria-label="Kangoo Car Rental Portal">
+                        <i class="fa-solid fa-van-shuttle" aria-hidden="true"></i>
                         <span>Car Rental</span>
+                    </a>
+                    <a href="https://socialradar.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-socialradar" data-testid="footer-portal-socialradar" aria-label="Social Radar Social Media App" title="Social Radar - Social Media App">
+                        <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                        <span>Social Media</span>
                     </a>
                 </div>
 
@@ -1519,7 +1527,7 @@
         <script src="https://js.stripe.com/v3/"></script>
         <script src="site-locale.js?v=1"></script>
         <script src="service-pricing.js?v=7"></script>
-        <script src="app.js?v=68"></script>
+        <script src="app.js?v=69"></script>
 </body>
 
 </html>

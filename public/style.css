@@ -594,6 +594,7 @@ p { margin: 0; }
    Footer Portal Navigation Buttons
    Desktop: details row, then one centred row of buttons.
    Android, iPhone & tablets: buttons two per row, then the details as small pills, one per line.
+   Ultra-narrow screens: fluid single column stack with zero clipping.
    ========================================================================== */
 .footer-portal-nav {
   display: flex;
@@ -606,17 +607,18 @@ p { margin: 0; }
   border-top: 1px solid var(--border-color, #e2e8f0);
 }
 
-/* Padding and gap sized so all 10 buttons fit one row from 1366px-wide laptops up */
+/* Padding and gap sized so all 11 buttons fit smoothly across screens */
 .footer-portal-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 8px 10px;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: 999px;
   color: #0f172a;
-  font-size: 0.92rem;
+  font-size: 0.90rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
@@ -624,12 +626,19 @@ p { margin: 0; }
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   font-family: inherit;
   line-height: 1.4;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .footer-portal-btn i {
   color: #0066ff;
   font-size: 0.95rem;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.footer-portal-btn span {
+  white-space: nowrap;
 }
 
 .footer-portal-btn:hover {
@@ -650,15 +659,42 @@ p { margin: 0; }
 }
 
 /* 1025-1365px desktops (e.g. 1280px: a 1920x1080 laptop at 150% scaling) have a narrower column
-   beside the sidebar: slightly tighter buttons keep all 10 on one row there too */
+   beside the sidebar: slightly tighter buttons keep all on one row there too */
 @media (min-width: 1025px) and (max-width: 1365px) {
   .footer-portal-nav {
     gap: 6px;
   }
   .footer-portal-btn {
     gap: 6px;
-    padding: 8px 8px;
-    font-size: 0.86rem;
+    padding: 7px 8px;
+    font-size: 0.84rem;
+  }
+}
+
+/* Tablet & Mobile Screens (<= 1024px) */
+@media (max-width: 1024px) {
+  .footer-portal-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 220px));
+    justify-content: center;
+    gap: 10px;
+  }
+  .footer-portal-btn {
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    min-height: 44px;
+    width: 100%;
+  }
+  .footer-portal-btn i {
+    font-size: 0.88rem;
+  }
+  .footer-portal-btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 100%;
+    max-width: 220px;
   }
 }
 
@@ -667,13 +703,16 @@ p { margin: 0; }
 body.admin-touch-device .footer-portal-nav {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 220px));
+  justify-content: center;
   gap: 10px;
 }
 body.admin-touch-device .footer-portal-btn {
   justify-content: center;
   gap: 6px;
-  padding: 9px 12px;
+  padding: 10px 12px;
   font-size: 0.82rem;
+  min-height: 44px;
+  width: 100%;
 }
 body.admin-touch-device .footer-portal-btn i {
   font-size: 0.88rem;
@@ -682,7 +721,23 @@ body.admin-touch-device .footer-portal-btn i {
 body.admin-touch-device .footer-portal-btn:last-child:nth-child(odd) {
   grid-column: 1 / -1;
   justify-self: center;
-  width: calc((100% - 10px) / 2);
+  width: 100%;
+  max-width: 220px;
+}
+
+/* Ultra-compact screens (e.g. narrow foldables <= 340px) */
+@media (max-width: 340px) {
+  .footer-portal-nav,
+  body.admin-touch-device .footer-portal-nav {
+    grid-template-columns: minmax(0, 100%);
+    gap: 8px;
+  }
+  .footer-portal-btn,
+  body.admin-touch-device .footer-portal-btn,
+  body.admin-touch-device .footer-portal-btn:last-child:nth-child(odd) {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 /* ABN, email & Stripe details drop below the buttons, one small pill per line, as wide as the buttons.
@@ -2300,6 +2355,221 @@ html.admin-panel-open body {
 .service-price.is-loading::after {
   width: 50%;
   height: 22px;
+}
+
+/* ==========================================================================
+   Apps Section & Interactive App Cards (Special Sections -> Apps)
+   ========================================================================== */
+.apps-hero-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #002b66 100%);
+  border-radius: 24px;
+  padding: 36px 32px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+.apps-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #60a5fa;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.apps-hero-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  margin: 0 0 10px;
+  line-height: 1.25;
+  color: #ffffff;
+}
+.apps-hero-desc {
+  font-size: 0.96rem;
+  color: #94a3b8;
+  max-width: 680px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Quick Access Launcher Bar */
+.apps-quick-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+.apps-quick-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+.apps-quick-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.apps-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  line-height: 1.3;
+}
+.apps-quick-btn i {
+  font-size: 0.88rem;
+  color: #0066ff;
+  transition: transform 0.2s ease;
+}
+.apps-quick-btn:hover {
+  background: #ffffff;
+  border-color: #0066ff;
+  color: #0066ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 102, 255, 0.12);
+}
+.apps-quick-btn:hover i {
+  transform: scale(1.15);
+}
+
+/* Applications Grid & Cards */
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+}
+.app-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.app-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(0, 102, 255, 0.08);
+  border-color: #bfdbfe;
+}
+.app-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.app-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.app-card-pill {
+  font-size: 0.70rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.app-card-name {
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+  line-height: 1.3;
+}
+.app-card-domain {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0 0 10px;
+  font-family: inherit;
+  font-weight: 500;
+}
+.app-card-desc {
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0 0 18px;
+  flex: 1;
+}
+.app-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.app-card-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.96);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+.app-card-btn i {
+  font-size: 0.82rem;
+  transition: transform 0.2s ease;
+}
+.app-card-btn:hover i {
+  transform: translateX(2px) translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .apps-hero-card {
+    padding: 24px 20px;
+  }
+  .apps-hero-title {
+    font-size: 1.45rem;
+  }
+  .apps-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .app-card {
+    padding: 20px;
+  }
 }
 
 /* Admin panel: Services & Pricing tab. Cards sit two across when the panel is wide enough (laptops) */

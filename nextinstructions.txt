@@ -1,16 +1,17 @@
 # Next Instructions - AI Foundation
 
 ## Current Status:
-1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-835).
-2. Automatic Stripe Tax & Pricing Labels Configured:
-   - Default currency set to `aud` across `/api/stripe/create-checkout-session`, `/api/tokens/checkout`, and `/api/stripe/create-payment-intent` in `server.js`.
-   - Enabled `automatic_tax: { enabled: true }` so Stripe Checkout automatically detects the buyer's country on the payment page without requiring `buyerCountry` in advance.
-   - Set `tax_behavior: 'exclusive'` inside `price_data` so Stripe adds 10% GST on top for AU buyers ($0 outside AU, including New Zealand).
-   - Enabled `invoice_creation: { enabled: true }` and `customer_creation: 'always'` on one-time Checkout payments (`mode: 'payment'`).
-   - Removed all manual `tax_rates` (`txr_...` / `ensureAuGstTaxRateId`) logic from `server.js` and `public/app.js`.
-   - Updated all Support the AI Foundation panels and modals across `public/index.html`, `public/projects.html`, `public/services.html`, and `public/app.js` (`v=68`) to show `Prices exc. GST (+10% GST for Australia)` and `(exc. GST)` — with zero references to New Zealand GST.
-   - Updated AUD service and token price tags in `public/app.js` to show `(+ GST)` for Australia only.
-3. Updated `data-contracts.md` and verified all 74 unit and integration tests pass.
+1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-953).
+2. 'Apps' Added to Special Sections with all 11 Apps & Links:
+   - Added `Apps` (`<li class="sidebar-item" data-target="section-apps">`) under **Special Sections** in the sidebar on `public/index.html`.
+   - Added `Apps` menu link (`onclick="window.location.href='index.html#apps'"`) to the Special Sections sidebar on `public/projects.html` and `public/services.html`.
+   - Built the full `#section-apps` in `public/index.html`:
+     - Hero card with title and description.
+     - Quick App Launcher bar with all 11 buttons (`AI`, `LMS`, `HR`, `Trades`, `PT`, `Health`, `RTO`, `Nihongo`, `Finance`, `Car Rental`, `Social Media`).
+     - Responsive grid of 11 application cards with icons, badges, domains, descriptions, and direct launch buttons.
+   - Wired URL hash `#apps` and section switching in `public/app.js` (`v=69`).
+   - Added responsive CSS styling in `public/style.css` (`v=57`).
+   - Updated `data-contracts.md` and verified all 74 unit and integration tests pass.
 
 ## Next Step for Developer:
-- Refresh http://localhost:3002 and verify the Support the AI Foundation panel shows "Prices exc. GST (+10% GST for Australia)".
+- Open http://localhost:3002, click 'Apps' in the Special Sections sidebar (or navigate to http://localhost:3002/#apps), and test launching the 11 apps.

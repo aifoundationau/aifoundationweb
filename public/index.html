@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Foundation Australia - Social & Web Updates</title>
-    <link rel="stylesheet" href="style.css?v=55">
+    <link rel="stylesheet" href="style.css?v=57">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -202,6 +202,10 @@
                     <li class="sidebar-item" data-target="section-services2">
                         <i class="fa-solid fa-briefcase"></i>
                         <span>Services</span>
+                    </li>
+                    <li class="sidebar-item" data-target="section-apps">
+                        <i class="fa-solid fa-cubes"></i>
+                        <span>Apps</span>
                     </li>
                     <!-- <li class="sidebar-item" data-target="section-community">
                         <i class="fa-solid fa-users"></i>
@@ -597,6 +601,274 @@
                 </div>
             </div>
 
+            <!-- Apps Section (opened by the Apps menu item, #apps) -->
+            <div id="section-apps" class="content-section" style="display: none; flex-direction: column; gap: 32px;">
+                <!-- Apps Hero Card -->
+                <div class="apps-hero-card">
+                    <div class="apps-hero-badge">
+                        <i class="fa-solid fa-cubes"></i> AI Foundation Australia &bull; Ecosystem Applications
+                    </div>
+                    <h1 class="apps-hero-title">Applications &amp; Interactive Platforms</h1>
+                    <p class="apps-hero-desc">
+                        Direct access to our interconnected suite of specialized platforms, agentic systems, vocational education hubs, and enterprise intelligence tooling.
+                    </p>
+                </div>
+
+                <!-- Quick Access Launcher Bar with all 11 Apps -->
+                <div class="apps-quick-bar">
+                    <div class="apps-quick-title">
+                        <i class="fa-solid fa-bolt"></i> Quick App Launcher
+                    </div>
+                    <div class="apps-quick-buttons">
+                        <a href="https://www.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-ai" data-testid="quick-app-ai" aria-label="Open AI Core Platform">
+                            <i class="fa-solid fa-brain"></i>
+                            <span>AI</span>
+                        </a>
+                        <a href="https://lms.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-lms" data-testid="quick-app-lms" aria-label="Open LMS Portal">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            <span>LMS</span>
+                        </a>
+                        <a href="http://hr.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-hr" data-testid="quick-app-hr" aria-label="Open HR Solutions">
+                            <i class="fa-solid fa-user-tie"></i>
+                            <span>HR</span>
+                        </a>
+                        <a href="https://jobs.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-jobs" data-testid="quick-app-jobs" aria-label="Open Trades & Jobs">
+                            <i class="fa-solid fa-screwdriver-wrench"></i>
+                            <span>Trades</span>
+                        </a>
+                        <a href="https://pt.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-pt" data-testid="quick-app-pt" aria-label="Open PT & Fitness">
+                            <i class="fa-solid fa-dumbbell"></i>
+                            <span>PT</span>
+                        </a>
+                        <a href="https://health.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-health" data-testid="quick-app-health" aria-label="Open Health Platform">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                            <span>Health</span>
+                        </a>
+                        <a href="https://edu.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-edu" data-testid="quick-app-edu" aria-label="Open Vocational RTO">
+                            <i class="fa-solid fa-certificate"></i>
+                            <span>RTO</span>
+                        </a>
+                        <a href="https://nihongo.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-nihongo" data-testid="quick-app-nihongo" aria-label="Open Nihongo Portal">
+                            <i class="fa-solid fa-language"></i>
+                            <span>Nihongo</span>
+                        </a>
+                        <a href="https://finance.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-finance" data-testid="quick-app-finance" aria-label="Open Finance Portal">
+                            <i class="fa-solid fa-coins"></i>
+                            <span>Finance</span>
+                        </a>
+                        <a href="https://kangoo.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-kangoo" data-testid="quick-app-kangoo" aria-label="Open Kangoo Car Rental">
+                            <i class="fa-solid fa-van-shuttle"></i>
+                            <span>Car Rental</span>
+                        </a>
+                        <a href="https://socialradar.aifoundation.net.au/" class="apps-quick-btn" target="_blank" rel="noopener noreferrer" data-agent-id="quick-app-socialradar" data-testid="quick-app-socialradar" aria-label="Open Social Radar Social Media">
+                            <i class="fa-solid fa-share-nodes"></i>
+                            <span>Social Media</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Apps Grid (11 Apps with full descriptions and launch buttons) -->
+                <div class="apps-grid">
+                    <!-- App 1: AI -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #eff6ff; color: #0066ff;">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #eff6ff; color: #0066ff;">Core Portal</span>
+                        </div>
+                        <h3 class="app-card-name">AI</h3>
+                        <div class="app-card-domain">www.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Flagship intelligence portal, public research hub, autonomous agent frameworks, and enterprise updates across Australia.
+                        </p>
+                        <a href="https://www.aifoundation.net.au/" class="app-card-btn" style="background: #eff6ff; color: #0066ff;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-ai" data-testid="btn-launch-ai" aria-label="Open AI Core Platform">
+                            Launch AI Core <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 2: LMS -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #f5f3ff; color: #7c3aed;">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #f5f3ff; color: #7c3aed;">Education</span>
+                        </div>
+                        <h3 class="app-card-name">LMS</h3>
+                        <div class="app-card-domain">lms.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Interactive digital classrooms, modular credentials, course builder assistants, and verified assessment platforms.
+                        </p>
+                        <a href="https://lms.aifoundation.net.au/" class="app-card-btn" style="background: #f5f3ff; color: #7c3aed;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-lms" data-testid="btn-launch-lms" aria-label="Open LMS Portal">
+                            Launch LMS <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 3: HR -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #f0f9ff; color: #0284c7;">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #f0f9ff; color: #0284c7;">Workforce</span>
+                        </div>
+                        <h3 class="app-card-name">HR</h3>
+                        <div class="app-card-domain">hr.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Organizational staffing, automated talent onboarding, compliance checklists, and corporate workforce management.
+                        </p>
+                        <a href="http://hr.aifoundation.net.au/" class="app-card-btn" style="background: #f0f9ff; color: #0284c7;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-hr" data-testid="btn-launch-hr" aria-label="Open HR Solutions">
+                            Launch HR <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 4: Trades -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #fff7ed; color: #ea580c;">
+                                <i class="fa-solid fa-screwdriver-wrench"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #fff7ed; color: #ea580c;">Employment</span>
+                        </div>
+                        <h3 class="app-card-name">Trades</h3>
+                        <div class="app-card-domain">jobs.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Specialized vocational job matching, certified trades licensing, verified skills profiles, and regional apprentice recruitment.
+                        </p>
+                        <a href="https://jobs.aifoundation.net.au/" class="app-card-btn" style="background: #fff7ed; color: #ea580c;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-trades" data-testid="btn-launch-trades" aria-label="Open Trades & Jobs">
+                            Launch Trades <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 5: PT -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #f0fdf4; color: #16a34a;">
+                                <i class="fa-solid fa-dumbbell"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #f0fdf4; color: #16a34a;">Fitness</span>
+                        </div>
+                        <h3 class="app-card-name">PT</h3>
+                        <div class="app-card-domain">pt.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Health metrics tracking, AI-powered workout scheduling, personal trainer client management, and nutritional logging.
+                        </p>
+                        <a href="https://pt.aifoundation.net.au/" class="app-card-btn" style="background: #f0fdf4; color: #16a34a;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-pt" data-testid="btn-launch-pt" aria-label="Open PT & Fitness">
+                            Launch PT <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 6: Health -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #fff1f2; color: #e11d48;">
+                                <i class="fa-solid fa-heart-pulse"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #fff1f2; color: #e11d48;">Clinical</span>
+                        </div>
+                        <h3 class="app-card-name">Health</h3>
+                        <div class="app-card-domain">health.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Allied health scheduling, telehealth recordkeeping, patient triage, and medical regulatory governance assurance.
+                        </p>
+                        <a href="https://health.aifoundation.net.au/" class="app-card-btn" style="background: #fff1f2; color: #e11d48;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-health" data-testid="btn-launch-health" aria-label="Open Health Platform">
+                            Launch Health <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 7: RTO -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #fffbeb; color: #d97706;">
+                                <i class="fa-solid fa-certificate"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #fffbeb; color: #d97706;">Accredited</span>
+                        </div>
+                        <h3 class="app-card-name">RTO</h3>
+                        <div class="app-card-domain">edu.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Registered Training Organisation portal, ASQA compliance, accredited certificate programs, and training packages.
+                        </p>
+                        <a href="https://edu.aifoundation.net.au/" class="app-card-btn" style="background: #fffbeb; color: #d97706;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-rto" data-testid="btn-launch-rto" aria-label="Open Vocational RTO">
+                            Launch RTO <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 8: Nihongo -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #fdf2f8; color: #db2777;">
+                                <i class="fa-solid fa-language"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #fdf2f8; color: #db2777;">Language</span>
+                        </div>
+                        <h3 class="app-card-name">Nihongo</h3>
+                        <div class="app-card-domain">nihongo.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Immersive Japanese language learning, JLPT curriculum, speech analysis, and bilingual cultural communication modules.
+                        </p>
+                        <a href="https://nihongo.aifoundation.net.au/" class="app-card-btn" style="background: #fdf2f8; color: #db2777;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-nihongo" data-testid="btn-launch-nihongo" aria-label="Open Nihongo Portal">
+                            Launch Nihongo <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 9: Finance -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #fefce8; color: #ca8a04;">
+                                <i class="fa-solid fa-coins"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #fefce8; color: #ca8a04;">Economy</span>
+                        </div>
+                        <h3 class="app-card-name">Finance</h3>
+                        <div class="app-card-domain">finance.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Token accounts, balance tracking, cross-platform micro-transactions, and automated Australian financial compliance.
+                        </p>
+                        <a href="https://finance.aifoundation.net.au/" class="app-card-btn" style="background: #fefce8; color: #ca8a04;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-finance" data-testid="btn-launch-finance" aria-label="Open Finance Portal">
+                            Launch Finance <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 10: Car Rental -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #ecfdf5; color: #059669;">
+                                <i class="fa-solid fa-van-shuttle"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #ecfdf5; color: #059669;">Mobility</span>
+                        </div>
+                        <h3 class="app-card-name">Car Rental</h3>
+                        <div class="app-card-domain">kangoo.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Commercial vehicle hire, fleet operations, passenger transport booking, and automated rental schedule management.
+                        </p>
+                        <a href="https://kangoo.aifoundation.net.au/" class="app-card-btn" style="background: #ecfdf5; color: #059669;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-kangoo" data-testid="btn-launch-kangoo" aria-label="Open Kangoo Car Rental">
+                            Launch Car Rental <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+
+                    <!-- App 11: Social Media -->
+                    <div class="app-card">
+                        <div class="app-card-top">
+                            <div class="app-card-icon" style="background: #eef2ff; color: #6366f1;">
+                                <i class="fa-solid fa-share-nodes"></i>
+                            </div>
+                            <span class="app-card-pill" style="background: #eef2ff; color: #6366f1;">Social Radar</span>
+                        </div>
+                        <h3 class="app-card-name">Social Media</h3>
+                        <div class="app-card-domain">socialradar.aifoundation.net.au</div>
+                        <p class="app-card-desc">
+                            Social media monitoring, multi-platform sentiment radar, campaign intelligence, and AI automated trend forecasting.
+                        </p>
+                        <a href="https://socialradar.aifoundation.net.au/" class="app-card-btn" style="background: #eef2ff; color: #6366f1;" target="_blank" rel="noopener noreferrer" data-agent-id="btn-launch-socialradar" data-testid="btn-launch-socialradar" aria-label="Open Social Radar Social Media">
+                            Launch Social Media <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Other Sections -->
             <div id="section-education" class="content-section" style="display: none;">
                 <div class="dashboard-card" style="text-align: center; padding: 80px 40px;">
@@ -758,45 +1030,49 @@
 
                 <!-- Portal Buttons (Below Meta Details) -->
                 <div class="footer-portal-nav" role="navigation" aria-label="Portal Navigation Links">
-                    <a href="https://www.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-brain"></i>
+                    <a href="https://www.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-ai" data-testid="footer-portal-ai" aria-label="AI Core Portal">
+                        <i class="fa-solid fa-brain" aria-hidden="true"></i>
                         <span>AI</span>
                     </a>
-                    <a href="https://lms.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-graduation-cap"></i>
+                    <a href="https://lms.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-lms" data-testid="footer-portal-lms" aria-label="LMS Portal">
+                        <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
                         <span>LMS</span>
                     </a>
-                    <a href="http://hr.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-user-tie"></i>
+                    <a href="http://hr.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-hr" data-testid="footer-portal-hr" aria-label="HR Solutions">
+                        <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
                         <span>HR</span>
                     </a>
-                    <a href="https://jobs.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                    <a href="https://jobs.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-jobs" data-testid="footer-portal-jobs" aria-label="Trades and Jobs Portal">
+                        <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
                         <span>Trades</span>
                     </a>
-                    <a href="https://pt.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-dumbbell"></i>
+                    <a href="https://pt.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-pt" data-testid="footer-portal-pt" aria-label="PT and Fitness Portal">
+                        <i class="fa-solid fa-dumbbell" aria-hidden="true"></i>
                         <span>PT</span>
                     </a>
-                    <a href="https://health.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-heart-pulse"></i>
+                    <a href="https://health.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-health" data-testid="footer-portal-health" aria-label="Health Platforms">
+                        <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
                         <span>Health</span>
                     </a>
-                    <a href="https://edu.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-certificate"></i>
+                    <a href="https://edu.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-edu" data-testid="footer-portal-edu" aria-label="Vocational RTO Portal">
+                        <i class="fa-solid fa-certificate" aria-hidden="true"></i>
                         <span>RTO</span>
                     </a>
-                    <a href="https://nihongo.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-language"></i>
+                    <a href="https://nihongo.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-nihongo" data-testid="footer-portal-nihongo" aria-label="Nihongo Japanese Learning Portal">
+                        <i class="fa-solid fa-language" aria-hidden="true"></i>
                         <span>Nihongo</span>
                     </a>
-                    <a href="https://finance.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-coins"></i>
+                    <a href="https://finance.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-finance" data-testid="footer-portal-finance" aria-label="Finance Portal">
+                        <i class="fa-solid fa-coins" aria-hidden="true"></i>
                         <span>Finance</span>
                     </a>
-                    <a href="https://kangoo.aifoundation.net.au/" class="footer-portal-btn" target="_self">
-                        <i class="fa-solid fa-van-shuttle"></i>
+                    <a href="https://kangoo.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-kangoo" data-testid="footer-portal-kangoo" aria-label="Kangoo Car Rental Portal">
+                        <i class="fa-solid fa-van-shuttle" aria-hidden="true"></i>
                         <span>Car Rental</span>
+                    </a>
+                    <a href="https://socialradar.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-socialradar" data-testid="footer-portal-socialradar" aria-label="Social Radar Social Media App" title="Social Radar - Social Media App">
+                        <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                        <span>Social Media</span>
                     </a>
                 </div>
 
@@ -1911,7 +2187,7 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="site-locale.js?v=1"></script>
     <script src="service-pricing.js?v=7"></script>
-    <script src="app.js?v=68"></script>
+    <script src="app.js?v=69"></script>
 </body>
 
 </html>
