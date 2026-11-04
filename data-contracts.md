@@ -147,7 +147,8 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 ### Domain 6: Public Inquiries & Community Communication
 
 #### Target Components
-- UI Component: Contact Us Form ([index.html](file:///d:/Agy/AI%20Foundation/public/index.html#L385))
+- UI Component: Contact Us Form ([index.html](file:///e:/Antigravity%20Projects/ai-foundation/public/index.html#contactForm))
+- Ingestion Entrypoint: Footer Email Link (`#footerContactEmailLink`, `data-agent-id="footer-contact-email"`) routing directly into the Contact form across `index.html`, `projects.html`, `services.html`, `terms.html`, and `privacy.html`.
 - Dispatch Protocol: Client Mail User Agent (`mailto:support@aifoundation.net.au`)
 
 #### Data Fields Specification

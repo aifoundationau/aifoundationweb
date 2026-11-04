@@ -15,7 +15,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# OS generated files
+# Temporary scratch scripts
+scratch/
+
 .DS_Store
 .DS_Store?
 ._*

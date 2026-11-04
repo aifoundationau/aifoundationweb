@@ -901,6 +901,7 @@
             </div> -->
 
             <!-- David Section -->
+            <a id="david" style="display: block; position: relative; top: -70px; visibility: hidden;"></a>
             <div id="section-david" class="content-section" style="display: none; flex-direction: column; gap: 32px;">
                 <div class="dashboard-card profile-card">
                     <div class="profile-image-container">
@@ -1018,10 +1019,15 @@
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-envelope" style="color: var(--primary);"></i>
-                        <a href="mailto:support@aifoundation.net.au"
-                            style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s;"
+                        <a href="https://www.aifoundation.net.au/#david" id="footerContactEmailLink"
+                            onclick="if(window.navigateToContactForm){window.navigateToContactForm(); return false;} else { document.querySelector('[data-target=\'section-david\']')?.click(); document.getElementById('contactForm')?.scrollIntoView({behavior:'smooth'}); document.getElementById('contactFirstName')?.focus(); return false; }"
+                            style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.2s; cursor: pointer;"
                             onmouseover="this.style.color='var(--primary)'"
-                            onmouseout="this.style.color='var(--text-muted)'">support@<wbr>aifoundation.net.au</a>
+                            onmouseout="this.style.color='var(--text-muted)'"
+                            data-agent-id="footer-contact-email"
+                            data-testid="footer-contact-email"
+                            aria-label="Contact us via form (support@aifoundation.net.au)"
+                            title="Open the Contact form">support@<wbr>aifoundation.net.au</a>
                     </div>
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-size: 0.85rem; color: #94a3b8;"><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe</span>
@@ -2187,7 +2193,7 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="site-locale.js?v=1"></script>
     <script src="service-pricing.js?v=7"></script>
-    <script src="app.js?v=69"></script>
+    <script src="app.js?v=70"></script>
 </body>
 
 </html>

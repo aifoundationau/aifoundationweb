@@ -2,16 +2,11 @@
 
 ## Current Status:
 1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-953).
-2. 'Apps' Added to Special Sections with all 11 Apps & Links:
-   - Added `Apps` (`<li class="sidebar-item" data-target="section-apps">`) under **Special Sections** in the sidebar on `public/index.html`.
-   - Added `Apps` menu link (`onclick="window.location.href='index.html#apps'"`) to the Special Sections sidebar on `public/projects.html` and `public/services.html`.
-   - Built the full `#section-apps` in `public/index.html`:
-     - Hero card with title and description.
-     - Quick App Launcher bar with all 11 buttons (`AI`, `LMS`, `HR`, `Trades`, `PT`, `Health`, `RTO`, `Nihongo`, `Finance`, `Car Rental`, `Social Media`).
-     - Responsive grid of 11 application cards with icons, badges, domains, descriptions, and direct launch buttons.
-   - Wired URL hash `#apps` and section switching in `public/app.js` (`v=69`).
-   - Added responsive CSS styling in `public/style.css` (`v=57`).
-   - Updated `data-contracts.md` and verified all 74 unit and integration tests pass.
+2. 'support@aifoundation.net.au' Footer Email Link Updated to 'https://www.aifoundation.net.au/#david':
+   - Set exact canonical destination `href="https://www.aifoundation.net.au/#david"` on the footer email link in `public/index.html`, `public/projects.html`, `public/services.html`, `public/terms.html`, and `public/privacy.html`.
+   - Added anchor `<a id="david"></a>` on `public/index.html` right above `#section-david` to ensure browser anchor alignment.
+   - Enhanced `public/app.js` (`v=70`) to handle `#david` and `#contact` routing, activate `#section-david` with flex layout, and focus the Contact Us form.
+   - All 74 unit and integration tests passing (`npm test`).
 
 ## Next Step for Developer:
-- Open http://localhost:3002, click 'Apps' in the Special Sections sidebar (or navigate to http://localhost:3002/#apps), and test launching the 11 apps.
+- Hard refresh (Ctrl+F5) http://localhost:3002 and click 'support@aifoundation.net.au' at the bottom to verify it targets https://www.aifoundation.net.au/#david and opens the contact form without launching an email client.

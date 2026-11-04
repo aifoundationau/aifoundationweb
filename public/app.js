@@ -3737,7 +3737,7 @@ const postObserver = new IntersectionObserver((entries) => {
 
         const targetSection = document.getElementById(targetId);
         if (targetSection) {
-            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services' || targetId === 'section-services2' || targetId === 'section-apps') ? 'flex' : 'block';
+            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services' || targetId === 'section-services2' || targetId === 'section-apps' || targetId === 'section-david') ? 'flex' : 'block';
         }
     }
     window.activateSection = activateSection;
@@ -3791,11 +3791,35 @@ const postObserver = new IntersectionObserver((entries) => {
 
         if (targetId) {
             activateSection(targetId);
-            if (hash) {
+            if (hash === 'david' || hash === 'contact') {
+                setTimeout(() => {
+                    const contactForm = document.getElementById('contactForm');
+                    if (contactForm) {
+                        contactForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        document.getElementById('contactFirstName')?.focus();
+                    }
+                }, 150);
+            } else if (hash) {
                 setTimeout(scrollToContentOnMobile, 120);
             }
         }
     }
+
+    function navigateToContactForm() {
+        activateSection('section-david');
+        if (window.location.hash !== '#david') {
+            history.pushState(null, null, '#david');
+        }
+        const contactForm = document.getElementById('contactForm');
+        if (contactForm) {
+            contactForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                const firstInput = document.getElementById('contactFirstName');
+                if (firstInput) firstInput.focus();
+            }, 300);
+        }
+    }
+    window.navigateToContactForm = navigateToContactForm;
 
     window.addEventListener('hashchange', handleHash);
     handleHash();
