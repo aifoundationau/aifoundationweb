@@ -865,7 +865,9 @@ const postObserver = new IntersectionObserver((entries) => {
             }
             selectedDonationAmount = parsed;
             if (panelDonationStatusMsg) panelDonationStatusMsg.style.display = 'none';
-            if (typeof openPaymentModal === 'function') {
+            if (typeof redirectToStripeCheckout === 'function') {
+                redirectToStripeCheckout(panelPayWithStripeBtn);
+            } else if (typeof openPaymentModal === 'function') {
                 openPaymentModal('stripe');
             }
         });
@@ -3819,6 +3821,8 @@ const postObserver = new IntersectionObserver((entries) => {
     // Modal elements
     const paymentModal = document.getElementById('paymentPopupModal');
     const closePaymentModalBtn = document.getElementById('closePaymentModalBtn');
+    const closePaymentFooterBtn = document.getElementById('closePaymentFooterBtn');
+    const cancelPaymentModalBtn = document.getElementById('cancelPaymentModalBtn');
     const closeSuccessModalBtn = document.getElementById('closeSuccessModalBtn');
     const popupSelectedAmount = document.getElementById('popupSelectedAmount');
     const tabStripeBtn = document.getElementById('tabStripeBtn');
@@ -3935,8 +3939,18 @@ const postObserver = new IntersectionObserver((entries) => {
             if (pInput) pInput.value = '50';
         }
 
-        if (popupSelectedAmount) popupSelectedAmount.textContent = `AUD $${selectedDonationAmount}`;
-        if (stripeSubmitText) stripeSubmitText.textContent = `Pay AUD $${selectedDonationAmount} Securely`;
+        const exGst = selectedDonationAmount;
+        const gst = Math.round(exGst * 10) / 100;
+        const total = (exGst + gst).toFixed(2);
+
+        if (popupSelectedAmount) {
+            popupSelectedAmount.innerHTML = `AUD $${Number(exGst).toFixed(2)} <small style="font-size: 0.85rem; font-weight: 500; color: #64748b;">(exc. GST)</small>`;
+        }
+        const gstBreakdownEl = document.getElementById('popupGstBreakdown');
+        if (gstBreakdownEl) {
+            gstBreakdownEl.innerHTML = `+ $${gst.toFixed(2)} GST (10% AU/NZ) = <strong id="popupTotalAmount" style="color: #0f172a;">AUD $${total} total</strong>`;
+        }
+        if (stripeSubmitText) stripeSubmitText.textContent = `Pay AUD $${total} Securely (incl. 10% GST)`;
         
         // Reset Views
         if (paymentSuccessView) paymentSuccessView.style.display = 'none';
@@ -3954,6 +3968,8 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     if (closePaymentModalBtn) closePaymentModalBtn.addEventListener('click', closePaymentModal);
+    if (closePaymentFooterBtn) closePaymentFooterBtn.addEventListener('click', closePaymentModal);
+    if (cancelPaymentModalBtn) cancelPaymentModalBtn.addEventListener('click', closePaymentModal);
     if (closeSuccessModalBtn) closeSuccessModalBtn.addEventListener('click', closePaymentModal);
     if (paymentModal) {
         paymentModal.addEventListener('click', (e) => {
@@ -3988,114 +4004,55 @@ const postObserver = new IntersectionObserver((entries) => {
     // Initialize Stripe Form in Modal
     async function initStripeForm() {
         const fallbackView = document.getElementById('stripeFallbackView');
-
-        if (currentLoadedStripeAmount === selectedDonationAmount && stripeElements && stripePaymentElementInstance) {
-            if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
-            if (stripePaymentForm) stripePaymentForm.style.display = 'block';
-            if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
-            if (fallbackView) fallbackView.style.display = 'none';
-            return; // Already initialized for this amount
-        }
-
-        if (stripePaymentElementInstance) {
-            try {
-                stripePaymentElementInstance.unmount();
-                stripePaymentElementInstance.destroy();
-            } catch (e) {
-                console.warn('Stripe element unmount error:', e);
-            }
-            stripePaymentElementInstance = null;
-            stripeElements = null;
-        }
-
-        if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'block';
-        if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'none';
+        if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
         if (stripePaymentForm) stripePaymentForm.style.display = 'block';
+        if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
         if (fallbackView) fallbackView.style.display = 'none';
         if (stripePaymentError) stripePaymentError.style.display = 'none';
 
-        let readyHandled = false;
-        let readyTimeout = null;
+        const detectedCountry = window.siteLocale?.countryCode || 'AU';
+        const isAuNz = detectedCountry === 'AU' || detectedCountry === 'NZ';
+        const exGst = selectedDonationAmount || 50;
+        const gst = isAuNz ? Math.round(exGst * 10) / 100 : 0;
+        const total = (exGst + gst).toFixed(2);
 
-        try {
-            const res = await fetch('/api/stripe/create-payment-intent', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: selectedDonationAmount })
-            });
-            const data = await res.json();
-            if (!res.ok || !data.clientSecret) {
-                throw new Error(data.error || 'Failed to start Stripe session');
-            }
-            currentPaymentIntentId = data.paymentIntentId || null;
+        if (stripeSubmitText) {
+            stripeSubmitText.textContent = `Pay AUD $${total} via Stripe Checkout`;
+        }
 
-            if (!stripeClient && window.Stripe) {
-                stripeClient = window.Stripe(data.publishableKey);
-            }
-
-            if (!stripeClient) {
-                throw new Error('Stripe JS library could not be loaded.');
-            }
-
-            stripeElements = stripeClient.elements({
-                clientSecret: data.clientSecret,
-                appearance: {
-                    theme: 'flat',
-                    variables: {
-                        colorPrimary: '#635bff',
-                        colorBackground: '#ffffff',
-                        colorText: '#0f172a',
-                        borderRadius: '12px'
-                    }
-                }
-            });
-
-            stripePaymentElementInstance = stripeElements.create('payment');
-            const container = document.getElementById('stripePaymentElement');
-            if (container) container.innerHTML = '';
-            stripePaymentElementInstance.mount('#stripePaymentElement');
-
-            // Safety timeout: Ensure user is never stuck in an infinite loading pattern
-            readyTimeout = setTimeout(() => {
-                if (!readyHandled) {
-                    if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
-                    if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
-                    currentLoadedStripeAmount = selectedDonationAmount;
-                }
-            }, 3000);
-
-            stripePaymentElementInstance.on('ready', () => {
-                readyHandled = true;
-                if (readyTimeout) clearTimeout(readyTimeout);
-                if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
-                if (stripePaymentForm) stripePaymentForm.style.display = 'block';
-                if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
-                currentLoadedStripeAmount = selectedDonationAmount;
-            });
-
-            stripePaymentElementInstance.on('loaderror', (event) => {
-                readyHandled = true;
-                if (readyTimeout) clearTimeout(readyTimeout);
-                if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
-                if (stripePaymentError) {
-                    stripePaymentError.textContent = (event && event.error && event.error.message) || 'Unable to load card element. You can checkout directly via Stripe below.';
-                    stripePaymentError.style.display = 'block';
-                }
-                if (fallbackView) fallbackView.style.display = 'block';
-            });
-        } catch (err) {
-            if (readyTimeout) clearTimeout(readyTimeout);
-            if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
-            if (stripePaymentError) {
-                stripePaymentError.textContent = err.message || 'Error loading Stripe checkout.';
-                stripePaymentError.style.display = 'block';
-            }
-            if (fallbackView) fallbackView.style.display = 'block';
+        const container = document.getElementById('stripePaymentElement');
+        if (container) {
+            container.innerHTML = `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; font-size: 0.92rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569;">
+                        <span>Contribution Amount:</span>
+                        <strong style="color: #0f172a;">AUD $${Number(exGst).toFixed(2)} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(exc. GST)</span></strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569;">
+                        <span>${isAuNz ? 'GST (10% AU/NZ):' : 'Tax (Non-AU/NZ):'}</span>
+                        <strong style="color: ${isAuNz ? '#0f172a' : '#16a34a'};">${isAuNz ? `+ AUD $${gst.toFixed(2)}` : 'AUD $0.00 (Zero Tax)'}</strong>
+                    </div>
+                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 700; color: #0f172a;">
+                        <span>Total Due:</span>
+                        <span style="color: #635bff;">AUD $${total}</span>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b; line-height: 1.4; display: flex; align-items: flex-start; gap: 6px;">
+                        <i class="fa-solid fa-file-invoice" style="color: #635bff; margin-top: 2px;"></i>
+                        <span>An official ATO-compliant Tax Invoice itemizing Subtotal and 10% Australian GST will be issued automatically upon checkout.</span>
+                    </div>
+                </div>
+            `;
         }
     }
 
     // Direct Stripe Hosted Checkout Redirect
-    async function redirectToStripeCheckout() {
+    async function redirectToStripeCheckout(triggerBtn = null) {
+        let origTriggerHtml = '';
+        if (triggerBtn) {
+            origTriggerHtml = triggerBtn.innerHTML;
+            triggerBtn.disabled = true;
+            triggerBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
+        }
         const directBtn = document.getElementById('stripeDirectLinkBtn');
         const fallbackBtn = document.getElementById('stripeFallbackBtn');
         const origDirect = directBtn ? directBtn.innerHTML : '';
@@ -4105,12 +4062,14 @@ const postObserver = new IntersectionObserver((entries) => {
         if (fallbackBtn) fallbackBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
 
         try {
+            const detectedCountry = window.siteLocale?.countryCode || 'AU';
             const res = await fetch('/api/stripe/create-checkout-session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     amount: selectedDonationAmount,
-                    returnPath: window.location.pathname
+                    returnPath: window.location.pathname,
+                    buyerCountry: detectedCountry
                 })
             });
             const data = await res.json();
@@ -4119,63 +4078,36 @@ const postObserver = new IntersectionObserver((entries) => {
             }
             window.location.href = data.url;
         } catch (err) {
+            if (triggerBtn) {
+                triggerBtn.disabled = false;
+                triggerBtn.innerHTML = origTriggerHtml;
+            }
             if (directBtn) directBtn.innerHTML = origDirect;
             if (fallbackBtn) fallbackBtn.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i> Continue to Stripe Checkout';
+            const stripePaymentError = document.getElementById('stripePaymentError');
             if (stripePaymentError) {
                 stripePaymentError.textContent = err.message || 'Failed to connect to Stripe checkout.';
                 stripePaymentError.style.display = 'block';
             }
+            if (panelDonationStatusMsg) {
+                panelDonationStatusMsg.style.display = 'block';
+                panelDonationStatusMsg.style.color = '#ef4444';
+                panelDonationStatusMsg.textContent = err.message || 'Failed to connect to Stripe checkout.';
+            }
+            setDonationStatus(err.message || 'Failed to connect to Stripe checkout.', true);
         }
     }
 
     // Stripe Submit Form
     if (stripePaymentForm) {
-        stripePaymentForm.addEventListener('submit', async (e) => {
+        stripePaymentForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            if (!stripeClient || !stripeElements) return;
-
-            stripeSubmitBtn.disabled = true;
-            const originalText = stripeSubmitText.innerHTML;
-            stripeSubmitText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
-            if (stripePaymentError) stripePaymentError.style.display = 'none';
-
-            try {
-                const returnUrl = `${window.location.origin}${window.location.pathname}?donation=stripe_success&amt=${selectedDonationAmount}`;
-                const { error, paymentIntent } = await stripeClient.confirmPayment({
-                    elements: stripeElements,
-                    confirmParams: {
-                        return_url: returnUrl
-                    },
-                    redirect: 'if_required'
-                });
-
-                if (error) {
-                    if (stripePaymentError) {
-                        stripePaymentError.textContent = error.message;
-                        stripePaymentError.style.display = 'block';
-                    }
-                    stripeSubmitBtn.disabled = false;
-                    stripeSubmitText.innerHTML = originalText;
-                } else if (paymentIntent && (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing')) {
-                    syncTransactionSuccess(paymentIntent.id || currentPaymentIntentId, 'stripe', selectedDonationAmount);
-                    showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Card / Stripe');
-                } else {
-                    syncTransactionSuccess(paymentIntent?.id || currentPaymentIntentId, 'stripe', selectedDonationAmount);
-                    showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'Stripe');
-                }
-            } catch (err) {
-                if (stripePaymentError) {
-                    stripePaymentError.textContent = err.message || 'Payment processing failed.';
-                    stripePaymentError.style.display = 'block';
-                }
-                stripeSubmitBtn.disabled = false;
-                stripeSubmitText.innerHTML = originalText;
-            }
+            redirectToStripeCheckout(stripeSubmitBtn);
         });
     }
 
-    document.getElementById('stripeDirectLinkBtn')?.addEventListener('click', redirectToStripeCheckout);
-    document.getElementById('stripeFallbackBtn')?.addEventListener('click', redirectToStripeCheckout);
+    document.getElementById('stripeDirectLinkBtn')?.addEventListener('click', () => redirectToStripeCheckout(document.getElementById('stripeDirectLinkBtn')));
+    document.getElementById('stripeFallbackBtn')?.addEventListener('click', () => redirectToStripeCheckout(document.getElementById('stripeFallbackBtn')));
 
     // Initialize PayPal Buttons in Modal
     function initPayPalButtons() {
@@ -4280,7 +4212,11 @@ const postObserver = new IntersectionObserver((entries) => {
             }
             selectedDonationAmount = parsed;
             if (statusMsg) statusMsg.style.display = 'none';
-            openPaymentModal('stripe');
+            if (typeof redirectToStripeCheckout === 'function') {
+                redirectToStripeCheckout(payStripeBtn);
+            } else if (typeof openPaymentModal === 'function') {
+                openPaymentModal('stripe');
+            }
         });
     }
     if (payPayPalBtn) {

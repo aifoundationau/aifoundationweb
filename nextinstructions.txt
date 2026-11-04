@@ -1,13 +1,14 @@
 # Next Instructions - AI Foundation
 
 ## Current Status:
-1. Dev server is running on http://localhost:3003 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-214).
-2. Firestore security rules are deployed and allow public reading of the `content` collection.
-3. Both `data/projects.json` and `public/data/projects.json` are synced with the 14 projects in Firestore.
-4. `public/app.js` is updated with DOM automation attributes (`data-agent-id`, `data-testid`, `aria-label`) on both Articles and Projects pagination controls (`MORE` and `PREV` buttons).
-5. All 74 unit/integration tests pass.
+1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-584).
+2. Payment Confirmation Popup Modal Close Buttons Added:
+   - Added explicit "Close" button (`#closePaymentFooterBtn`) to the popup footer right next to the "Direct 256-bit encrypted checkout via Stripe" text.
+   - Added "Close" action button (`#cancelPaymentModalBtn`) next to the primary "Pay AUD $50 Securely" button.
+   - Upgraded top-right `&times;` to an accessible button element (`#closePaymentModalBtn`) with prominent hover, focus, and touch styling.
+   - Wired up all close triggers in `public/app.js` and styled them across `public/index.html`, `public/projects.html`, `public/services.html`, and `public/style.css`.
+3. Cache-busters updated: `style.css?v=55` and `app.js?v=66`.
+4. All 74 unit and integration tests pass.
 
-## Next Steps:
-- Open http://localhost:3003/#projects in your browser to verify the MORE button in the Project section.
-- Verify page navigation between page 1, 2, 3, and 4.
-
+## Next Step for Developer:
+- Open http://localhost:3002, open the payment confirmation modal, and verify the close button is clearly visible and functioning properly in the footer next to "Direct 256-bit encrypted checkout via Stripe" as well as in the action row and top-right corner.
