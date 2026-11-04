@@ -307,7 +307,7 @@
                             <button type="button" class="donation-preset-btn" data-amount="200" data-agent-id="donation-preset-200" data-testid="donation-preset-200" aria-label="Donate $200">$200</button>
                         </div>
 
-                        <div class="donation-amount-wrap" title="Enter contribution amount in AUD (exc. GST, minimum $50)">
+                        <div class="donation-amount-wrap" title="Enter contribution amount in AUD (exc. GST, +10% GST for Australia, minimum $50)">
                             <span class="donation-amount-currency">AUD $</span>
                             <input type="number" id="donationAmountInput" class="donation-amount-input" value="50" min="50" step="1" placeholder="50" inputmode="numeric" data-agent-id="donation-amount-input" data-testid="donation-amount-input" aria-label="Donation amount in AUD">
                             <span class="donation-amount-min-badge">Min $50</span>
@@ -321,7 +321,7 @@
                     </div>
                     <div class="donation-tax-notice" style="font-size: 0.8rem; color: #64748b; margin-top: 6px; display: flex; align-items: center; gap: 6px;">
                         <i class="fa-solid fa-circle-info" style="color: #0066ff;"></i>
-                        <span>Prices exc. GST &bull; 10% GST added at checkout for Australia &amp; New Zealand</span>
+                        <span>Prices exc. GST (+10% GST for Australia)</span>
                     </div>
                     <div id="donationStatusMsg"
                         style="display: none; font-size: 0.9rem; font-weight: 600; padding-top: 4px;"></div>
@@ -955,6 +955,9 @@
                                 <p style="font-size: 0.92rem; color: #64748b; margin: 0; line-height: 1.5;">
                                     Every contribution directly powers AI literacy, community platforms, and education equity across Australia.
                                 </p>
+                                <p style="font-size: 0.82rem; color: #0066ff; margin: 4px 0 0; font-weight: 600;">
+                                    <i class="fa-solid fa-circle-info"></i> Prices exc. GST (+10% GST for Australia)
+                                </p>
                             </div>
 
                             <div class="donation-bar-card" style="box-shadow: none; border: 1px solid #e2e8f0; background: #f8fafc; padding: 24px;">
@@ -965,7 +968,7 @@
                                         <button type="button" class="donation-preset-btn" data-amount="200">$200</button>
                                     </div>
 
-                                    <div class="donation-amount-wrap" title="Enter contribution amount (Minimum AUD $50)">
+                                    <div class="donation-amount-wrap" title="Enter contribution amount in AUD (exc. GST, +10% GST for Australia, minimum $50)">
                                         <span class="donation-amount-currency">AUD $</span>
                                         <input type="number" id="panelDonationAmountInput" class="donation-amount-input" value="50" min="50" step="1" placeholder="50" inputmode="numeric">
                                         <span class="donation-amount-min-badge">Min $50</span>
@@ -1433,7 +1436,7 @@
                         <span style="font-size: 0.95rem; color: #64748b;">Selected Amount:</span>
                         <span id="popupSelectedAmount" style="font-size: 1.45rem; font-weight: 800; color: #0066ff;">AUD $50.00 <small style="font-size: 0.85rem; font-weight: 500; color: #64748b;">(exc. GST)</small></span>
                         <div id="popupGstBreakdown" style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
-                            + $5.00 GST (10% AU/NZ) = <strong id="popupTotalAmount" style="color: #0f172a;">AUD $55.00 total</strong>
+                            Prices exc. GST (+10% GST for Australia)
                         </div>
                     </div>
                 </div>
@@ -1516,7 +1519,7 @@
         <script src="https://js.stripe.com/v3/"></script>
         <script src="site-locale.js?v=1"></script>
         <script src="service-pricing.js?v=7"></script>
-        <script src="app.js?v=66"></script>
+        <script src="app.js?v=68"></script>
 </body>
 
 </html>

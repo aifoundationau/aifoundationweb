@@ -1,14 +1,16 @@
 # Next Instructions - AI Foundation
 
 ## Current Status:
-1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-584).
-2. Payment Confirmation Popup Modal Close Buttons Added:
-   - Added explicit "Close" button (`#closePaymentFooterBtn`) to the popup footer right next to the "Direct 256-bit encrypted checkout via Stripe" text.
-   - Added "Close" action button (`#cancelPaymentModalBtn`) next to the primary "Pay AUD $50 Securely" button.
-   - Upgraded top-right `&times;` to an accessible button element (`#closePaymentModalBtn`) with prominent hover, focus, and touch styling.
-   - Wired up all close triggers in `public/app.js` and styled them across `public/index.html`, `public/projects.html`, `public/services.html`, and `public/style.css`.
-3. Cache-busters updated: `style.css?v=55` and `app.js?v=66`.
-4. All 74 unit and integration tests pass.
+1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-835).
+2. Automatic Stripe Tax & Pricing Labels Configured:
+   - Default currency set to `aud` across `/api/stripe/create-checkout-session`, `/api/tokens/checkout`, and `/api/stripe/create-payment-intent` in `server.js`.
+   - Enabled `automatic_tax: { enabled: true }` so Stripe Checkout automatically detects the buyer's country on the payment page without requiring `buyerCountry` in advance.
+   - Set `tax_behavior: 'exclusive'` inside `price_data` so Stripe adds 10% GST on top for AU buyers ($0 outside AU, including New Zealand).
+   - Enabled `invoice_creation: { enabled: true }` and `customer_creation: 'always'` on one-time Checkout payments (`mode: 'payment'`).
+   - Removed all manual `tax_rates` (`txr_...` / `ensureAuGstTaxRateId`) logic from `server.js` and `public/app.js`.
+   - Updated all Support the AI Foundation panels and modals across `public/index.html`, `public/projects.html`, `public/services.html`, and `public/app.js` (`v=68`) to show `Prices exc. GST (+10% GST for Australia)` and `(exc. GST)` — with zero references to New Zealand GST.
+   - Updated AUD service and token price tags in `public/app.js` to show `(+ GST)` for Australia only.
+3. Updated `data-contracts.md` and verified all 74 unit and integration tests pass.
 
 ## Next Step for Developer:
-- Open http://localhost:3002, open the payment confirmation modal, and verify the close button is clearly visible and functioning properly in the footer next to "Direct 256-bit encrypted checkout via Stripe" as well as in the action row and top-right corner.
+- Refresh http://localhost:3002 and verify the Support the AI Foundation panel shows "Prices exc. GST (+10% GST for Australia)".

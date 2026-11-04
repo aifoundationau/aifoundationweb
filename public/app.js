@@ -2106,7 +2106,8 @@ const postObserver = new IntersectionObserver((entries) => {
     function servicePriceAmountHtml(price, suffix) {
         if (!price) return '<span class="service-price-amount service-price-on-request">Price on request</span>';
         const text = escapeHtml(window.ServicePricing.formatPrice(price));
-        return `<span class="service-price-amount">${text}${suffix ? `<small>${escapeHtml(suffix)}</small>` : ''}</span>`;
+        const gstLabel = price.currency === 'AUD' ? ' <small>(+ GST)</small>' : '';
+        return `<span class="service-price-amount">${text}${suffix ? `<small>${escapeHtml(suffix)}</small>` : ''}${gstLabel}</span>`;
     }
 
     function renderServicePrices() {
@@ -2411,9 +2412,10 @@ const postObserver = new IntersectionObserver((entries) => {
         let problem = '';
         if (total.amount < buyTokensData.minPayment) problem = `The smallest card payment is ${total.currency} $0.50, so please choose more tokens.`;
         else if (total.amount > maxPayment) problem = `One card payment can be at most ${total.currency} $999,999.99, so please choose fewer tokens.`;
+        const gstTag = total.currency === 'AUD' ? ' (+ GST)' : '';
         buyTokensTotal.innerHTML = `
-            <strong>${escapeHtml(pricing.formatPrice(total))}</strong> for ${quantity.toLocaleString('en-AU')} tokens
-            <span class="buy-tokens-rate">${escapeHtml(pricing.formatPrice(price))} per token</span>
+            <strong>${escapeHtml(pricing.formatPrice(total))}${gstTag}</strong> for ${quantity.toLocaleString('en-AU')} tokens
+            <span class="buy-tokens-rate">${escapeHtml(pricing.formatPrice(price))}${gstTag} per token</span>
             ${problem ? `<span class="buy-tokens-rate">${escapeHtml(problem)}</span>` : ''}`;
         buyTokensPayBtn.innerHTML = `<i class="fa-solid fa-credit-card"></i> Pay ${escapeHtml(pricing.formatPrice(total))}`;
         buyTokensPayBtn.disabled = buyTokensBusy || Boolean(problem) || !buyTokensData.canPay ||
@@ -3939,18 +3941,16 @@ const postObserver = new IntersectionObserver((entries) => {
             if (pInput) pInput.value = '50';
         }
 
-        const exGst = selectedDonationAmount;
-        const gst = Math.round(exGst * 10) / 100;
-        const total = (exGst + gst).toFixed(2);
+        const amountFormatted = Number(selectedDonationAmount).toFixed(2);
 
         if (popupSelectedAmount) {
-            popupSelectedAmount.innerHTML = `AUD $${Number(exGst).toFixed(2)} <small style="font-size: 0.85rem; font-weight: 500; color: #64748b;">(exc. GST)</small>`;
+            popupSelectedAmount.innerHTML = `AUD $${amountFormatted} <small style="font-size: 0.85rem; font-weight: 500; color: #64748b;">(exc. GST)</small>`;
         }
         const gstBreakdownEl = document.getElementById('popupGstBreakdown');
         if (gstBreakdownEl) {
-            gstBreakdownEl.innerHTML = `+ $${gst.toFixed(2)} GST (10% AU/NZ) = <strong id="popupTotalAmount" style="color: #0f172a;">AUD $${total} total</strong>`;
+            gstBreakdownEl.innerHTML = `Prices exc. GST (+10% GST for Australia)`;
         }
-        if (stripeSubmitText) stripeSubmitText.textContent = `Pay AUD $${total} Securely (incl. 10% GST)`;
+        if (stripeSubmitText) stripeSubmitText.textContent = `Pay AUD $${amountFormatted} Securely`;
         
         // Reset Views
         if (paymentSuccessView) paymentSuccessView.style.display = 'none';
@@ -4010,14 +4010,10 @@ const postObserver = new IntersectionObserver((entries) => {
         if (fallbackView) fallbackView.style.display = 'none';
         if (stripePaymentError) stripePaymentError.style.display = 'none';
 
-        const detectedCountry = window.siteLocale?.countryCode || 'AU';
-        const isAuNz = detectedCountry === 'AU' || detectedCountry === 'NZ';
-        const exGst = selectedDonationAmount || 50;
-        const gst = isAuNz ? Math.round(exGst * 10) / 100 : 0;
-        const total = (exGst + gst).toFixed(2);
+        const amountFormatted = Number(selectedDonationAmount || 50).toFixed(2);
 
         if (stripeSubmitText) {
-            stripeSubmitText.textContent = `Pay AUD $${total} via Stripe Checkout`;
+            stripeSubmitText.textContent = `Pay AUD $${amountFormatted} via Stripe Checkout`;
         }
 
         const container = document.getElementById('stripePaymentElement');
@@ -4026,19 +4022,11 @@ const postObserver = new IntersectionObserver((entries) => {
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; font-size: 0.92rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569;">
                         <span>Contribution Amount:</span>
-                        <strong style="color: #0f172a;">AUD $${Number(exGst).toFixed(2)} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(exc. GST)</span></strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569;">
-                        <span>${isAuNz ? 'GST (10% AU/NZ):' : 'Tax (Non-AU/NZ):'}</span>
-                        <strong style="color: ${isAuNz ? '#0f172a' : '#16a34a'};">${isAuNz ? `+ AUD $${gst.toFixed(2)}` : 'AUD $0.00 (Zero Tax)'}</strong>
-                    </div>
-                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 700; color: #0f172a;">
-                        <span>Total Due:</span>
-                        <span style="color: #635bff;">AUD $${total}</span>
+                        <strong style="color: #0f172a;">AUD $${amountFormatted} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(exc. GST)</span></strong>
                     </div>
                     <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b; line-height: 1.4; display: flex; align-items: flex-start; gap: 6px;">
                         <i class="fa-solid fa-file-invoice" style="color: #635bff; margin-top: 2px;"></i>
-                        <span>An official ATO-compliant Tax Invoice itemizing Subtotal and 10% Australian GST will be issued automatically upon checkout.</span>
+                        <span>+10% GST applies for Australia only. Stripe Tax automatically calculates GST on the checkout page and issues an official Tax Invoice.</span>
                     </div>
                 </div>
             `;
@@ -4062,14 +4050,12 @@ const postObserver = new IntersectionObserver((entries) => {
         if (fallbackBtn) fallbackBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
 
         try {
-            const detectedCountry = window.siteLocale?.countryCode || 'AU';
             const res = await fetch('/api/stripe/create-checkout-session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     amount: selectedDonationAmount,
-                    returnPath: window.location.pathname,
-                    buyerCountry: detectedCountry
+                    returnPath: window.location.pathname
                 })
             });
             const data = await res.json();

@@ -63,19 +63,13 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `recordedAt` | String (Timestamp) | Server Generation | Audit | Required. ISO 8601 UTC timestamp format `YYYY-MM-DDTHH:mm:ss.sssZ`. | Firestore timestamp/string. Indexed. |
 | `updatedAt` | String (Timestamp) | Server Generation | Audit | Required. ISO 8601 UTC timestamp format. Updated on each state transition. | Firestore timestamp/string. |
 
-#### Stripe AUD + Exclusive GST Invariants (Support AI Foundation)
-1. **Tax Behavior**: Strict exclusive tax (`tax_behavior: 'exclusive'`). Base amounts quoted on the website and entered by users are strictly exclusive of GST (`ex-GST`).
-2. **AU / NZ Geolocation (`country === 'AU' || country === 'NZ'`)**:
-   - 10% exclusive GST applied via Stripe `TaxRate` (`txr_...`, `inclusive: false`, `percentage: 10`, `jurisdiction: 'AU'`, `display_name: 'GST'`).
-   - Formula:
-     $$\text{GST} = \text{Math.round}(P_{\text{ex}} \times 0.10)$$
-     $$\text{Total} = P_{\text{ex}} + \text{GST}$$
-   - Itemized lines on Stripe Checkout: Subtotal ($50.00 AUD) + 10% GST ($5.00 AUD) = Total ($55.00 AUD).
-   - Stripe Tax Invoice generated (`invoice_creation: { enabled: true }`) with custom fields `Price (Ex-GST)` and `GST (10%)`.
-3. **Non-AU / NZ Geolocation**:
-   - Zero tax added or deducted (`tax_rates` omitted, `gstAmount = 0`).
-   - Total charged is strictly the base amount entered ($50.00 AUD).
-   - Invoice custom field states `Tax: No Tax (<country>)`.
+#### Stripe AUD + Automatic Tax Invariants
+1. **Default Currency**: `'aud'` across all Stripe Checkout sessions.
+2. **Automatic Stripe Tax**: `automatic_tax: { enabled: true }`. Stripe Checkout automatically detects the buyer's country on the payment page without requiring country parameters to be passed in advance.
+3. **Tax Behavior**: `tax_behavior: 'exclusive'` inside `price_data`. Stripe adds 10% GST on top if the buyer is in Australia, and $0 tax if the buyer is outside Australia.
+4. **Official Tax Invoices**: `invoice_creation: { enabled: true }` and `customer_creation: 'always'` on one-time payments (`mode: 'payment'`).
+5. **No Manual Tax Rates**: All manual `tax_rates` (`txr_...` / `ensureAuGstTaxRateId`) logic is removed so Stripe Tax handles calculation and invoicing natively.
+6. **UI Pricing Label**: Support the AI Foundation notices state `Prices exc. GST (+10% GST for Australia)` / `(exc. GST)`, and AUD prices for Australia display `(+ GST)`. New Zealand is never referenced as having GST.
 
 ---
 

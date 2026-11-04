@@ -35,47 +35,6 @@ function getStripe() {
     return _stripe;
 }
 
-let _cachedAuGstTaxRateId = null;
-/**
- * Finds, reactivates, or creates the active 10% EXCLUSIVE Australian GST TaxRate in Stripe (txr_..., inclusive: false).
- * Used ONLY when buyer country is AU or NZ.
- */
-async function ensureAuGstTaxRateId(stripe) {
-    if (_cachedAuGstTaxRateId) return _cachedAuGstTaxRateId;
-    if (!stripe) return null;
-    try {
-        const existing = await stripe.taxRates.list({ limit: 50 });
-        const found = existing.data.find(
-            (tr) =>
-                tr.inclusive === false &&
-                tr.percentage === 10 &&
-                (tr.jurisdiction === "AU" || tr.country === "AU") &&
-                tr.display_name === "GST"
-        );
-        if (found) {
-            if (!found.active) {
-                await stripe.taxRates.update(found.id, { active: true });
-            }
-            _cachedAuGstTaxRateId = found.id;
-            return found.id;
-        }
-
-        const created = await stripe.taxRates.create({
-            display_name: "GST",
-            description: "Australian Goods and Services Tax",
-            jurisdiction: "AU",
-            country: "AU",
-            percentage: 10,
-            inclusive: false,
-            active: true,
-        });
-        _cachedAuGstTaxRateId = created.id;
-        return created.id;
-    } catch (err) {
-        console.error('[Stripe Tax] Error ensuring AU GST tax rate:', err.message);
-        return null;
-    }
-}
 // Log the full error server-side; send the browser a generic message.
 // Stripe card/validation errors are written for customers, so those are passed through.
 function sendServerError(res, err, publicMessage = 'Something went wrong. Please try again.') {
@@ -779,9 +738,14 @@ app.post('/api/tokens/checkout', requireAuth, async (req, res) => {
         };
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
+            currency: 'aud',
+            automatic_tax: { enabled: true },
+            customer_creation: 'always',
+            invoice_creation: { enabled: true },
             line_items: [{
                 price_data: {
-                    currency: total.currency.toLowerCase(),
+                    currency: 'aud',
+                    tax_behavior: 'exclusive',
                     product_data: { name: `${tokensText} AI Foundation tokens` },
                     unit_amount: Math.round(total.amount * 100)
                 },
@@ -1050,27 +1014,14 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         if (!stripe) {
             return res.status(500).json({ error: 'Stripe is not configured on the server.' });
         }
-        let { amount, returnPath, buyerCountry } = req.body;
+        let { amount, returnPath } = req.body;
         amount = parseDonationAmount(amount);
         if (!amount) {
             return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
         }
 
-        const detectedCountry = String(buyerCountry || visitorCountry(req) || 'AU').trim().toUpperCase();
-        const isAuNz = detectedCountry === 'AU' || detectedCountry === 'NZ';
-
-        let gstTaxRateId = null;
-        if (isAuNz) {
-            gstTaxRateId = await ensureAuGstTaxRateId(stripe);
-        }
-        const applyGst = isAuNz && Boolean(gstTaxRateId);
-
-        const exGstCents = amount * 100;
-        const gstCents = applyGst ? Math.round(exGstCents * 0.1) : 0;
-        const totalCents = exGstCents + gstCents;
-        const exGstFormatted = (exGstCents / 100).toFixed(2);
-        const gstFormatted = (gstCents / 100).toFixed(2);
-        const totalFormatted = (totalCents / 100).toFixed(2);
+        const unitAmountCents = amount * 100;
+        const amountFormatted = amount.toFixed(2);
 
         const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
         const basePath = (returnPath && returnPath.startsWith('/')) ? returnPath : '/';
@@ -1081,53 +1032,37 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
             businessName: 'AI Foundation',
             source: 'aifoundation',
             amount: String(amount),
-            buyerCountry: detectedCountry,
-            taxApplied: applyGst ? 'true' : 'false',
-            priceExGstAud: `$${exGstFormatted} AUD`,
-            gstTaxAud: `$${gstFormatted} AUD`,
-            totalIncGstAud: `$${totalFormatted} AUD`,
-            taxType: applyGst ? 'Australian GST 10% (Exclusive)' : `No Tax (${detectedCountry} — Non-AU/NZ)`
+            currency: 'aud',
+            taxBehavior: 'exclusive'
         };
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             currency: 'aud',
+            automatic_tax: { enabled: true },
             customer_creation: 'always',
             invoice_creation: {
                 enabled: true,
                 invoice_data: {
-                    description: applyGst
-                        ? `Tax Invoice — Support AI Foundation Australia ($${exGstFormatted} AUD + $${gstFormatted} AUD 10% GST = $${totalFormatted} AUD)`
-                        : `Invoice — Support AI Foundation Australia ($${exGstFormatted} AUD · No Tax · ${detectedCountry})`,
-                    custom_fields: applyGst
-                        ? [
-                            { name: 'Price (Ex-GST)', value: `$${exGstFormatted} AUD` },
-                            { name: 'GST (10%)', value: `$${gstFormatted} AUD` }
-                        ]
-                        : [{ name: 'Tax', value: `No Tax (${detectedCountry})` }],
+                    description: `Tax Invoice — Support AI Foundation Australia ($${amountFormatted} AUD)`,
                     metadata
                 }
             },
             client_reference_id: req.user?.uid || undefined,
             metadata,
             payment_intent_data: {
-                description: applyGst
-                    ? `Support AI Foundation — $${exGstFormatted} AUD + $${gstFormatted} AUD 10% GST = $${totalFormatted} AUD`
-                    : `Support AI Foundation — $${exGstFormatted} AUD (No Tax · ${detectedCountry})`,
+                description: `Support AI Foundation — $${amountFormatted} AUD`,
                 metadata
             },
             line_items: [{
                 quantity: 1,
-                ...(applyGst && gstTaxRateId ? { tax_rates: [gstTaxRateId] } : {}),
                 price_data: {
                     currency: 'aud',
                     tax_behavior: 'exclusive',
-                    unit_amount: exGstCents,
+                    unit_amount: unitAmountCents,
                     product_data: {
                         name: 'Support the AI Foundation',
-                        description: applyGst
-                            ? `Contribution of $${exGstFormatted} AUD + $${gstFormatted} AUD (10% GST) = $${totalFormatted} AUD`
-                            : `Contribution of $${exGstFormatted} AUD (No Tax · ${detectedCountry})`
+                        description: `Contribution to AI Foundation Australia ($${amountFormatted} AUD)`
                     }
                 }
             }],
@@ -1139,24 +1074,17 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         try {
             await firebaseService.recordTransaction({
                 transactionId: session.id,
-                amount: totalCents / 100,
-                exGstAmount: amount,
-                gstAmount: gstCents / 100,
+                amount: amount,
                 currency: 'aud',
                 paymentMethod: 'stripe',
                 paymentType: 'donation',
                 status: 'initiated',
-                description: applyGst
-                    ? `Support AI Foundation Australia ($${exGstFormatted} AUD + $${gstFormatted} AUD 10% GST = $${totalFormatted} AUD)`
-                    : `Support AI Foundation Australia ($${exGstFormatted} AUD)`,
+                description: `Support AI Foundation Australia ($${amountFormatted} AUD)`,
                 originUrl: `${origin}${basePath}`,
                 metadata: {
                     checkoutUrl: session.url,
-                    buyerCountry: detectedCountry,
-                    taxApplied: applyGst,
-                    exGstAmount: exGstFormatted,
-                    gstAmount: gstFormatted,
-                    totalAmount: totalFormatted
+                    taxBehavior: 'exclusive',
+                    automaticTax: true
                 }
             });
         } catch (fbErr) {
@@ -1165,12 +1093,7 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
 
         res.json({
             url: session.url,
-            sessionId: session.id,
-            exGstAud: exGstFormatted,
-            gstAud: gstFormatted,
-            totalAud: totalFormatted,
-            isAuNz: isAuNz,
-            buyerCountry: detectedCountry
+            sessionId: session.id
         });
     } catch (e) {
         console.error('Stripe Checkout Error:', e);
@@ -1310,21 +1233,14 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
         if (!stripe) {
             return res.status(500).json({ error: 'Stripe is not configured on the server.' });
         }
-        let { amount, buyerCountry } = req.body;
+        let { amount } = req.body;
         amount = parseDonationAmount(amount);
         if (!amount) {
             return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
         }
 
-        const detectedCountry = String(buyerCountry || visitorCountry(req) || 'AU').trim().toUpperCase();
-        const isAuNz = detectedCountry === 'AU' || detectedCountry === 'NZ';
-
-        const exGstCents = amount * 100;
-        const gstCents = isAuNz ? Math.round(exGstCents * 0.1) : 0;
-        const totalCents = exGstCents + gstCents;
-        const exGstFormatted = (exGstCents / 100).toFixed(2);
-        const gstFormatted = (gstCents / 100).toFixed(2);
-        const totalFormatted = (totalCents / 100).toFixed(2);
+        const unitAmountCents = amount * 100;
+        const amountFormatted = amount.toFixed(2);
 
         const metadata = {
             tag: 'aifoundation',
@@ -1332,21 +1248,14 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
             businessName: 'AI Foundation',
             source: 'aifoundation',
             amount: String(amount),
-            buyerCountry: detectedCountry,
-            taxApplied: isAuNz ? 'true' : 'false',
-            priceExGstAud: `$${exGstFormatted} AUD`,
-            gstTaxAud: `$${gstFormatted} AUD`,
-            totalIncGstAud: `$${totalFormatted} AUD`,
-            taxType: isAuNz ? 'Australian GST 10% (Exclusive)' : `No Tax (${detectedCountry} — Non-AU/NZ)`
+            currency: 'aud'
         };
 
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: totalCents,
+            amount: unitAmountCents,
             currency: 'aud',
             automatic_payment_methods: { enabled: true },
-            description: isAuNz
-                ? `Donation to AI Foundation Australia ($${exGstFormatted} AUD + $${gstFormatted} AUD 10% GST = $${totalFormatted} AUD)`
-                : `Donation to AI Foundation Australia ($${exGstFormatted} AUD)`,
+            description: `Donation to AI Foundation Australia ($${amountFormatted} AUD)`,
             metadata
         });
 
@@ -1354,16 +1263,12 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
         try {
             await firebaseService.recordTransaction({
                 transactionId: paymentIntent.id,
-                amount: totalCents / 100,
-                exGstAmount: amount,
-                gstAmount: gstCents / 100,
+                amount: amount,
                 currency: 'aud',
                 paymentMethod: 'stripe',
                 paymentType: 'donation',
                 status: 'initiated',
-                description: isAuNz
-                    ? `Donation to AI Foundation Australia ($${exGstFormatted} AUD + $${gstFormatted} AUD 10% GST = $${totalFormatted} AUD)`
-                    : `Donation to AI Foundation Australia ($${exGstFormatted} AUD)`
+                description: `Donation to AI Foundation Australia ($${amountFormatted} AUD)`
             });
         } catch (fbErr) {
             console.warn('[Firebase] Warning recording payment intent:', fbErr.message);
@@ -1373,10 +1278,7 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
             clientSecret: paymentIntent.client_secret,
             paymentIntentId: paymentIntent.id,
             publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-            exGstAud: exGstFormatted,
-            gstAud: gstFormatted,
-            totalAud: totalFormatted,
-            isAuNz
+            amountAud: amountFormatted
         });
     } catch (e) {
         console.error('Stripe PaymentIntent Error:', e);
