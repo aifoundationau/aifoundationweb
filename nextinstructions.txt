@@ -2,11 +2,14 @@
 
 ## Current Status:
 1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-1724).
-2. High-Quality SEO Metadata Implemented:
+2. MIT Licence Added:
+   - Added `mitlicence.txt` with standard MIT License terms (Copyright 2026 AI Foundation Australia).
+   - Updated `package.json` license property to "MIT".
+3. High-Quality SEO Metadata Implemented:
    - Added SEO titles, meta descriptions, canonical URLs, favicon links, Open Graph cards, and Twitter Cards to `public/index.html`, `public/projects.html`, `public/services.html`, `public/privacy.html`, and `public/terms.html`.
-3. All Token Balances Refreshed to 0:
+4. All Token Balances Refreshed to 0:
    - All 30 user accounts across all applications in Firestore (`users` collection) have their `token_balance` set to 0.
-4. SuperAdmin-Only 'Messages' in Special Sections & Unified Multi-Database Message Box Implemented:
+5. SuperAdmin-Only 'Messages' in Special Sections & Unified Multi-Database Message Box Implemented:
    - Added SuperAdmin-only `Messages` item (`#sidebarMessagesItem`) to Special Sections in `public/index.html`, `public/projects.html`, and `public/services.html`.
    - Clicking `Messages` in Special Sections opens `#section-messages` right in the main content area and loads all SuperAdmin messages across all apps and databases.
    - All website database tag buttons listed under the Message Box heading and tenant badges are compact (`0.62rem` / `2px 6px` padding).
@@ -16,4 +19,4 @@
    - All 76 unit and integration tests passing (`npm test`).
 
 ## Next Step for Developer:
-- Inspect page source or view http://localhost:3002 to verify the new SEO meta tags and social card preview tags.
+- Review mitlicence.txt in the project root.
