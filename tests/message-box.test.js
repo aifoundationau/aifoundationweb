@@ -3,7 +3,19 @@
 // Usage: npm test. The fixtures mirror the formats found in the shared collection; nothing touches Firestore.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeMessage, buildConversations, summarizeTenants, loadMessageBox } = require('../message-box');
+const {
+    KNOWN_WEBSITE_TAGS,
+    normalizeMessage,
+    normalizeAdRadarMessage,
+    normalizeHrConversationMessages,
+    normalizeSimpleJobMessage,
+    normalizeTrainerDavidMessage,
+    normalizeRtoMessage,
+    buildConversations,
+    summarizeTenants,
+    loadMessageBox,
+    replyToConversation
+} = require('../message-box');
 
 const SA_UID = 'L5euSJAfNKdDOX6mT0qmrCGjUA53';
 const SA_UID_2 = 'ZK79FRQoVlYhsgvMibhi81dRUWj2';
@@ -83,7 +95,7 @@ test('the SuperAdmin is found in participants given as objects too, and untagged
     assert.equal(m.conversationKey, 'unknown:conv_z1');
 });
 
-test('conversations: grouped per tenant thread, newest first, messages oldest first, replies only on this site', () => {
+test('conversations: grouped per tenant thread, newest first, messages oldest first, replyable across all apps', () => {
     const docs = [
         ['m1', siteQuestion], ['m2', siteReply], ['l1', lmsSupport],
         ['w2', lmsWelcome(2, Date.parse('2026-10-14T01:00:00Z'))], ['w1', lmsWelcome(1, Date.parse('2026-10-14T00:00:00Z'))],
@@ -93,8 +105,8 @@ test('conversations: grouped per tenant thread, newest first, messages oldest fi
     assert.deepEqual(conversations.map(c => c.key), ['lms:thr_support_1', 'lms:thr_welcome_1', 'aifoundation:conv_user1']);
 
     const [support, welcome, site] = conversations;
-    assert.equal(support.replyable, false);
-    assert.equal(welcome.replyable, false);
+    assert.equal(support.replyable, true);
+    assert.equal(welcome.replyable, true);
     assert.equal(site.replyable, true);
     assert.equal(site.conversationId, 'conv_user1');
     assert.deepEqual(welcome.messages.map(m => m.text), ['Welcome message 1', 'Welcome message 2']);
@@ -149,6 +161,98 @@ test('loadMessageBox reads the whole collection, and reports when Firestore is u
     assert.deepEqual(calls, ['chat_interactions']);
     assert.equal(box.conversations.length, 2);
     assert.deepEqual(box.tenants.map(t => t.tag).sort(), ['aifoundation', 'lms']);
+    assert.deepEqual(box.websiteTags, KNOWN_WEBSITE_TAGS);
 
     assert.equal(await loadMessageBox({ firebase: { listDocuments: async () => null } }), null);
+});
+
+test('multi-database normalizers convert ad-radar, hr, itsasimplejob, trainerdavid, and rto-ai messages', () => {
+    const adMsg = normalizeAdRadarMessage('msg_1', {
+        uid: 'u_ad',
+        senderEmail: 'mark@radar.io',
+        recipientEmail: 'davidrobertson.info@gmail.com',
+        direction: 'user_to_admin',
+        subject: 'Ad campaign support',
+        body: 'Need help with my campaign.',
+        createdAt: '2026-10-20T10:00:00.000Z'
+    });
+    assert.equal(adMsg.tenant, 'ad-radar');
+    assert.equal(adMsg.fromSuperAdmin, false);
+    assert.equal(adMsg.counterpart.email, 'mark@radar.io');
+
+    const hrMsgs = normalizeHrConversationMessages(
+        'conv_hr_1',
+        { kind: 'admin', buyerUid: SA_UID, buyerRole: 'superadmin', jobseekerUid: 'js_1', jobseekerName: 'Alex HR', recipientEmail: 'alex@hr.com' },
+        [{ id: 'm_1', fields: { kind: 'text', senderUid: 'js_1', senderRole: 'jobseeker', text: 'Can I update my CV?', sentAt: '2026-10-21T10:00:00.000Z' } }]
+    );
+    assert.equal(hrMsgs.length, 1);
+    assert.equal(hrMsgs[0].tenant, 'hr');
+    assert.equal(hrMsgs[0].counterpart.email, 'alex@hr.com');
+
+    const iasjMsg = normalizeSimpleJobMessage('job_1', {
+        from: { uid: 'tradie_1', name: 'Tom Tradie', email: 'tom@trades.au', role: 'user' },
+        to: { uid: null, name: 'Superadmin', role: 'superadmin' },
+        subject: 'Verification',
+        body: 'My license is uploaded.',
+        createdAt: '2026-10-22T10:00:00.000Z'
+    }, 'inbox');
+    assert.equal(iasjMsg.tenant, 'itsasimplejob');
+    assert.equal(iasjMsg.fromSuperAdmin, false);
+    assert.equal(iasjMsg.counterpart.name, 'Tom Tradie');
+
+    const ptMsg = normalizeTrainerDavidMessage('pt_1', {
+        senderUid: 'client_1',
+        senderEmail: 'chris@gym.au',
+        senderName: 'Chris Fit',
+        creatorUid: SA_UID,
+        creatorName: 'Trainer David',
+        message: 'Ready for week 3!',
+        createdAt: '2026-10-23T10:00:00.000Z'
+    });
+    assert.equal(ptMsg.tenant, 'trainerdavid');
+    assert.equal(ptMsg.counterpart.email, 'chris@gym.au');
+
+    const rtoMsg = normalizeRtoMessage('rto_1', {
+        senderUid: 'st_rto',
+        senderEmail: 'pat@rto.edu.au',
+        senderName: 'Pat Learner',
+        subject: 'USI question',
+        message: 'How do I verify my USI?',
+        createdAt: '2026-10-24T10:00:00.000Z'
+    });
+    assert.equal(rtoMsg.tenant, 'rto-ai');
+    assert.equal(rtoMsg.counterpart.email, 'pat@rto.edu.au');
+});
+
+test('replyToConversation writes native replies to each target database and collection', async () => {
+    const writes = [];
+    const mockFirebase = {
+        async writeDatabaseDocument(db, col, docId, data, merge) {
+            writes.push({ db, col, docId, data, merge });
+            return { success: true, path: `${db}/${col}/${docId}` };
+        }
+    };
+
+    const hrReply = await replyToConversation({
+        tenant: 'hr',
+        conversationId: 'conv_hr_1',
+        counterpart: { uid: 'js_1', email: 'alex@hr.com', name: 'Alex HR' },
+        text: 'Yes, upload it in your profile.'
+    }, { firebase: mockFirebase });
+    assert.equal(hrReply.success, true);
+    assert.equal(writes[0].db, 'human-resources');
+    assert.equal(writes[0].col, 'hr_conversations/conv_hr_1/messages');
+
+    const adReply = await replyToConversation({
+        tenant: 'ad-radar',
+        conversationId: 'adradar_mark@radar.io',
+        counterpart: { uid: 'u_ad', email: 'mark@radar.io', name: 'Mark' },
+        subject: 'Ad campaign support',
+        text: 'Campaign is now approved.'
+    }, { firebase: mockFirebase });
+    assert.equal(adReply.success, true);
+    const lastWrite = writes[writes.length - 1];
+    assert.equal(lastWrite.db, 'ad-radar');
+    assert.equal(lastWrite.col, 'admin_messages');
+    assert.equal(lastWrite.data.direction, 'admin_to_user');
 });

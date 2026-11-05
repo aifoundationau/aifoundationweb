@@ -418,6 +418,11 @@ const postObserver = new IntersectionObserver((entries) => {
         } else if (targetId === 'admin-database-activity') {
             if (typeof loadDatabaseRecentInputs === 'function') loadDatabaseRecentInputs();
         } else if (targetId === 'admin-supporter-chat') {
+            const coreBox = document.getElementById('messageBoxCoreContainer');
+            const modalHost = document.getElementById('admin-supporter-chat');
+            if (coreBox && modalHost && coreBox.parentElement !== modalHost) {
+                modalHost.appendChild(coreBox);
+            }
             if (typeof loadMessageBox === 'function') loadMessageBox();
         } else if (targetId === 'admin-services-pricing') {
             if (typeof loadAdminServicePrices === 'function') loadAdminServicePrices();
@@ -1107,6 +1112,13 @@ const postObserver = new IntersectionObserver((entries) => {
             // Role badge display: SuperAdmin or Supporter
             let isSuper = checkIsSuperAdmin(user);
             let isAdmin = isSuper || checkIsAdmin(user);
+            const sidebarMessagesItem = document.getElementById('sidebarMessagesItem');
+            if (sidebarMessagesItem) {
+                sidebarMessagesItem.style.display = isSuper ? '' : 'none';
+            }
+            if (isSuper && window.location.hash === '#messages' && typeof handleHash === 'function') {
+                handleHash();
+            }
             if (menuUserRoleBadge) {
                 if (isSuper) {
                     menuUserRoleBadge.className = 'user-role-badge role-admin';
@@ -1168,6 +1180,12 @@ const postObserver = new IntersectionObserver((entries) => {
                     if (adminMenuSection) {
                         adminMenuSection.style.display = (isFirebaseAdmin || isFirebaseSuper) ? 'block' : 'none';
                     }
+                    if (sidebarMessagesItem) {
+                        sidebarMessagesItem.style.display = isFirebaseSuper ? '' : 'none';
+                    }
+                    if (isFirebaseSuper && window.location.hash === '#messages' && typeof handleHash === 'function') {
+                        handleHash();
+                    }
                     if (isFirebaseAdmin || isFirebaseSuper) {
                         document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
                     } else {
@@ -1186,6 +1204,12 @@ const postObserver = new IntersectionObserver((entries) => {
             }
             if (adminModal) adminModal.style.display = 'none';
             if (userDetailsModal) userDetailsModal.style.display = 'none';
+            const sidebarMessagesItem = document.getElementById('sidebarMessagesItem');
+            if (sidebarMessagesItem) sidebarMessagesItem.style.display = 'none';
+            const sectionMessages = document.getElementById('section-messages');
+            if (sectionMessages && sectionMessages.style.display !== 'none' && typeof activateSection === 'function') {
+                activateSection('section-overview');
+            }
             document.cookie = "adminAuth=; max-age=0; path=/";
             document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             document.cookie = "userAuth=; max-age=0; path=/";
@@ -1799,8 +1823,24 @@ const postObserver = new IntersectionObserver((entries) => {
     const messageBoxReplyBanner = adminReplyForm ? adminReplyForm.parentElement.querySelector('.chat-constraints-banner') : null;
     const messageBoxRetentionTag = document.querySelector('#admin-supporter-chat .admin-thread-retention-tag');
 
+    const DEFAULT_WEBSITE_TAGS = [
+        'aifoundation',
+        'lms',
+        'hr',
+        'ad-radar',
+        'itsasimplejob',
+        'trainerdavid',
+        'rto-ai',
+        'health',
+        'nihongo',
+        'finance',
+        'kangoorental',
+        'lawyerselect'
+    ];
+
     let messageBoxConversations = [];
     let messageBoxTenantList = [];
+    let messageBoxWebsiteTags = [...DEFAULT_WEBSITE_TAGS];
     let messageBoxTenant = 'all';
     let messageBoxActiveKey = null;
     let messageBoxPersonal = false;
@@ -1823,16 +1863,33 @@ const postObserver = new IntersectionObserver((entries) => {
         return words.every(word => haystack.includes(word));
     }
 
-    function renderMessageBoxTenants() {
-        if (!messageBoxTenants) return;
-        const chip = (tag, label, count) => `
-            <button type="button" class="message-box-chip${messageBoxTenant === tag ? ' active' : ''}" data-tenant="${escapeHtmlChat(tag)}" aria-pressed="${messageBoxTenant === tag}">
-                ${label} <span class="message-box-chip-count">${count}</span>
-            </button>`;
-        messageBoxTenants.innerHTML = chip('all', 'All apps', messageBoxConversations.length) +
-            messageBoxTenantList.map(t => chip(t.tag, escapeHtmlChat(t.tag), t.conversations)).join('');
+    function getCombinedWebsiteTags() {
+        const countByTag = new Map();
+        for (const t of messageBoxTenantList) {
+            countByTag.set(t.tag, t.conversations || 0);
+        }
+        const allTags = Array.from(new Set([
+            ...messageBoxWebsiteTags,
+            ...messageBoxTenantList.map(t => t.tag)
+        ].filter(Boolean)));
+        return allTags.map(tag => ({
+            tag,
+            conversations: countByTag.get(tag) || 0
+        }));
     }
 
+    function renderMessageBoxTenants() {
+        if (!messageBoxTenants) return;
+        const chip = (tag, label, count, showTagIcon = false) => `
+            <button type="button" class="message-box-chip${messageBoxTenant === tag ? ' active' : ''}" data-tenant="${escapeHtmlChat(tag)}" aria-pressed="${messageBoxTenant === tag}">
+                ${showTagIcon ? '<i class="fa-solid fa-tag"></i> ' : ''}${label} <span class="message-box-chip-count">${count}</span>
+            </button>`;
+        const combined = getCombinedWebsiteTags();
+        messageBoxTenants.innerHTML = chip('all', 'All apps', messageBoxConversations.length, false) +
+            combined.map(t => chip(t.tag, escapeHtmlChat(t.tag), t.conversations, true)).join('');
+    }
+
+    // Conversations Box: Smaller Text, Name and Email only
     function renderMessageBoxList() {
         if (!adminThreadsList) return;
         const words = (messageBoxSearch ? messageBoxSearch.value : '').toLowerCase().split(/\s+/).filter(Boolean);
@@ -1851,52 +1908,38 @@ const postObserver = new IntersectionObserver((entries) => {
         }
         adminThreadsList.innerHTML = shown.map(c => `
             <div class="admin-thread-item${c.key === messageBoxActiveKey ? ' active' : ''}" data-key="${escapeHtmlChat(c.key)}" role="button" tabindex="0">
-                <div class="admin-thread-top">
-                    <span class="admin-thread-name">${escapeHtmlChat(messageBoxPersonName(c))}</span>
-                    <span class="admin-thread-time">${formatChatTimestamp(c.lastMessageAt)}</span>
-                </div>
-                <div class="admin-thread-email-row">
-                    <span class="admin-thread-email">${escapeHtmlChat(c.counterpart.email)}</span>
-                    ${tenantBadgeHtml(c.tenant)}
-                </div>
-                ${c.subject ? `<div class="admin-thread-subject">${escapeHtmlChat(c.subject)}</div>` : ''}
-                <div class="admin-thread-preview">${c.lastFromSuperAdmin ? '<strong>You:</strong> ' : ''}${escapeHtmlChat(c.preview)}</div>
+                <div class="admin-thread-name">${escapeHtmlChat(messageBoxPersonName(c))}</div>
+                <div class="admin-thread-email">${escapeHtmlChat(c.counterpart.email || 'No email')}</div>
             </div>`).join('');
     }
 
-    // items: [{ mine, senderName, role, subject, text, createdAt }], oldest first
-    function renderMessageBoxFeed(items, tenant) {
+    // items: [{ mine, text }], oldest first — renders just the message text inside each bubble
+    function renderMessageBoxFeed(items) {
         if (!adminThreadFeed) return;
-        const cssTag = String(tenant || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
         adminThreadFeed.innerHTML = items.map(m => `
             <div class="chat-message-row ${m.mine ? 'sent' : 'received'}">
-                <div class="chat-avatar-icon"${m.role ? ' style="background: #004ecc;"' : ''}><i class="fa-solid ${m.role ? 'fa-shield-halved' : 'fa-user'}"></i></div>
                 <div class="chat-bubble">
-                    <div class="chat-bubble-sender">
-                        <span>${escapeHtmlChat(m.mine ? 'You' : (m.senderName || 'Sender'))}</span>
-                        ${m.role ? `<span class="role-tag">${escapeHtmlChat(m.role)}</span>` : ''}
-                        ${tenant ? `<span class="chat-tenant-tag-badge tag-${cssTag}"><i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tenant)}</span>` : ''}
-                    </div>
-                    ${m.subject ? `<div class="chat-bubble-subject">${escapeHtmlChat(m.subject)}</div>` : ''}
                     <div class="chat-bubble-text">${renderMessageWithLinks(m.text)}</div>
-                    <div class="chat-bubble-footer"><span>${formatChatTimestamp(m.createdAt)}</span></div>
                 </div>
             </div>`).join('');
         adminThreadFeed.scrollTop = adminThreadFeed.scrollHeight;
     }
 
-    // Only this site's conversations take a reply here; other apps' threads say where to answer instead
+    // SuperAdmin can reply directly from this app to conversations across all connected databases & apps
     function setMessageBoxReplyState(c) {
         const canReply = messageBoxPersonal || Boolean(c && c.replyable);
         if (adminReplyForm) adminReplyForm.style.display = canReply ? '' : 'none';
         if (messageBoxReplyBanner) messageBoxReplyBanner.style.display = canReply ? '' : 'none';
+        if (adminReplyInput && !messageBoxPersonal && c) {
+            adminReplyInput.placeholder = `Reply as SuperAdmin to ${messageBoxPersonName(c)} (${c.tenant})... (links allowed, no file uploads)`;
+        }
         if (!messageBoxReadOnlyNote) return;
         messageBoxReadOnlyNote.style.display = canReply ? 'none' : 'block';
         if (canReply || !c) return;
         const email = c.counterpart.email;
         const mailto = email ? `mailto:${email}${c.subject ? `?subject=${encodeURIComponent(`Re: ${c.subject}`)}` : ''}` : '';
-        messageBoxReadOnlyNote.innerHTML = `<i class="fa-solid fa-circle-info"></i> This conversation belongs to the <strong>${escapeHtmlChat(c.tenant)}</strong> app, so reply there` +
-            (email ? `, or by email to <a href="${escapeHtmlChat(mailto)}">${escapeHtmlChat(email)}</a>.` : '.');
+        messageBoxReadOnlyNote.innerHTML = `<i class="fa-solid fa-circle-info"></i> This conversation belongs to the <strong>${escapeHtmlChat(c.tenant)}</strong> app` +
+            (email ? ` &mdash; <a href="${escapeHtmlChat(mailto)}">${escapeHtmlChat(email)}</a>.` : '.');
     }
 
     function openMessageBoxConversation(key) {
@@ -1908,16 +1951,15 @@ const postObserver = new IntersectionObserver((entries) => {
         }
         if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'none';
         if (adminThreadConversationView) adminThreadConversationView.style.display = 'flex';
-        if (adminThreadUserName) adminThreadUserName.textContent = messageBoxPersonName(c);
-        if (adminThreadUserEmail) adminThreadUserEmail.textContent = c.counterpart.email || '';
+        if (adminThreadUserName) adminThreadUserName.textContent = '';
+        if (adminThreadUserEmail) adminThreadUserEmail.textContent = '';
         if (adminThreadTenantBadge) adminThreadTenantBadge.innerHTML = tenantBadgeHtml(c.tenant);
-        // The 7-year retention is this site's policy; other apps keep their own records
-        if (messageBoxRetentionTag) messageBoxRetentionTag.style.display = c.tenant === 'aifoundation' ? '' : 'none';
+        if (messageBoxRetentionTag) messageBoxRetentionTag.style.display = '';
         if (messageBoxThreadSubject) {
-            messageBoxThreadSubject.textContent = c.subject;
-            messageBoxThreadSubject.hidden = !c.subject;
+            messageBoxThreadSubject.textContent = '';
+            messageBoxThreadSubject.hidden = true;
         }
-        renderMessageBoxFeed(c.messages.map(m => ({ ...m, mine: m.fromSuperAdmin, role: m.fromSuperAdmin ? 'SuperAdmin' : '' })), c.tenant);
+        renderMessageBoxFeed(c.messages.map(m => ({ ...m, mine: m.fromSuperAdmin })));
         setMessageBoxReplyState(c);
     }
 
@@ -1945,16 +1987,16 @@ const postObserver = new IntersectionObserver((entries) => {
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             if (adminNoThreadSelected) adminNoThreadSelected.style.display = 'none';
             if (adminThreadConversationView) adminThreadConversationView.style.display = 'flex';
-            if (adminThreadUserName) adminThreadUserName.textContent = 'SuperAdmin';
-            if (adminThreadUserEmail) adminThreadUserEmail.textContent = 'Your messages to the SuperAdmin';
+            if (adminThreadUserName) adminThreadUserName.textContent = '';
+            if (adminThreadUserEmail) adminThreadUserEmail.textContent = '';
             if (adminThreadTenantBadge) adminThreadTenantBadge.innerHTML = '';
             if (messageBoxRetentionTag) messageBoxRetentionTag.style.display = '';
             if (messageBoxThreadSubject) messageBoxThreadSubject.hidden = true;
             const items = (data.messages || []).map(m => {
                 const mine = m.senderUid === uid;
-                return { mine, senderName: mine ? '' : 'SuperAdmin', role: mine ? '' : 'SuperAdmin', text: m.userMessage, createdAt: m.createdAt || m.timestamp };
+                return { mine, text: m.userMessage };
             });
-            renderMessageBoxFeed(items, '');
+            renderMessageBoxFeed(items);
             if (!items.length && adminThreadFeed) {
                 adminThreadFeed.innerHTML = '<div class="message-box-empty"><i class="fa-solid fa-paper-plane"></i> No messages yet. Write to the SuperAdmin below.</div>';
             }
@@ -1975,7 +2017,13 @@ const postObserver = new IntersectionObserver((entries) => {
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             messageBoxConversations = data.conversations || [];
             messageBoxTenantList = data.tenants || [];
-            if (!messageBoxTenantList.some(t => t.tag === messageBoxTenant)) messageBoxTenant = 'all';
+            if (Array.isArray(data.websiteTags) && data.websiteTags.length) {
+                messageBoxWebsiteTags = data.websiteTags;
+            }
+            const validTags = getCombinedWebsiteTags().map(t => t.tag);
+            if (messageBoxTenant !== 'all' && !validTags.includes(messageBoxTenant)) {
+                messageBoxTenant = 'all';
+            }
             renderMessageBoxTenants();
             renderMessageBoxList();
             if (messageBoxActiveKey && messageBoxConversations.some(c => c.key === messageBoxActiveKey)) {
@@ -2016,8 +2064,7 @@ const postObserver = new IntersectionObserver((entries) => {
         });
     }
 
-    // Reply (SuperAdmin, this site's conversations) or write to the SuperAdmin (everyone else). The server
-    // decides which from the signed-in account, so the recipient fields only matter for a SuperAdmin's reply
+    // Reply (SuperAdmin across any app's conversation) or write to the SuperAdmin (everyone else)
     if (adminReplyForm) {
         adminReplyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -2033,6 +2080,8 @@ const postObserver = new IntersectionObserver((entries) => {
             try {
                 const body = messageBoxPersonal ? { userMessage: replyText } : {
                     userMessage: replyText,
+                    tenant: c.tenant,
+                    subject: c.subject || '',
                     conversationId: c.conversationId,
                     recipientUid: c.counterpart.uid,
                     recipientEmail: c.counterpart.email,
@@ -3723,6 +3772,11 @@ const postObserver = new IntersectionObserver((entries) => {
     }
 
     function activateSection(targetId) {
+        if (targetId === 'section-messages') {
+            const currentUser = window.firebaseService?.getCurrentUser?.();
+            if (!checkIsSuperAdmin(currentUser)) return;
+        }
+
         sidebarItems.forEach(nav => {
             if (nav.getAttribute('data-target') === targetId) {
                 nav.classList.add('active');
@@ -3737,7 +3791,16 @@ const postObserver = new IntersectionObserver((entries) => {
 
         const targetSection = document.getElementById(targetId);
         if (targetSection) {
-            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services' || targetId === 'section-services2' || targetId === 'section-apps' || targetId === 'section-david') ? 'flex' : 'block';
+            targetSection.style.display = (targetId === 'section-overview' || targetId === 'section-projects' || targetId === 'section-services' || targetId === 'section-services2' || targetId === 'section-apps' || targetId === 'section-david' || targetId === 'section-messages') ? 'flex' : 'block';
+        }
+
+        if (targetId === 'section-messages') {
+            const coreBox = document.getElementById('messageBoxCoreContainer');
+            const pageMount = document.getElementById('sectionMessagesMount');
+            if (coreBox && pageMount && coreBox.parentElement !== pageMount) {
+                pageMount.appendChild(coreBox);
+            }
+            if (typeof loadMessageBox === 'function') loadMessageBox();
         }
     }
     window.activateSection = activateSection;
@@ -3785,6 +3848,10 @@ const postObserver = new IntersectionObserver((entries) => {
             targetId = 'section-education';
         } else if (hash === 'david' || hash === 'contact') {
             targetId = 'section-david';
+        } else if (hash === 'messages') {
+            if (checkIsSuperAdmin(window.firebaseService?.getCurrentUser?.())) {
+                targetId = 'section-messages';
+            }
         } else if (hash === 'articles' || hash === 'overview') {
             targetId = 'section-overview';
         }

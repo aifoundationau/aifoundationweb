@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Foundation Australia - Social & Web Updates</title>
-    <link rel="stylesheet" href="style.css?v=57">
+    <link rel="stylesheet" href="style.css?v=61">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -222,6 +222,10 @@
                     <li class="sidebar-item" data-target="section-david">
                         <i class="fa-solid fa-address-card"></i>
                         <span>Contact</span>
+                    </li>
+                    <li class="sidebar-item" id="sidebarMessagesItem" data-target="section-messages" data-agent-id="sidebar-messages-item" data-testid="sidebar-messages-item" style="display: none;">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Messages</span>
                     </li>
                 </ul>
             </div>
@@ -968,6 +972,11 @@
                         </button>
                     </form>
                 </div>
+            </div>
+
+            <!-- Messages Section (SuperAdmin only, opened by Messages in Special Sections, #messages) -->
+            <div id="section-messages" class="content-section" style="display: none; flex-direction: column; gap: 20px;">
+                <div id="sectionMessagesMount" class="dashboard-card" style="display: flex; flex-direction: column;"></div>
             </div>
 
             <!-- Donation & Payment Bar -->
@@ -1998,7 +2007,8 @@
 
                         <!-- Message Box: SuperAdmin inbox across all tenant apps -->
                         <div id="admin-supporter-chat" class="admin-tab-content" data-display="flex" style="display: none;">
-                            <div class="admin-chat-header-bar">
+                            <div id="messageBoxCoreContainer" class="message-box-core-container" style="display: flex; flex-direction: column; flex: 1;">
+                                <div class="admin-chat-header-bar">
                                 <div>
                                     <h2 style="font-size: 1.25rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
                                         <i class="fa-solid fa-comments" style="color: #004ecc;"></i> Message Box
@@ -2012,13 +2022,13 @@
                                 </button>
                             </div>
 
-                            <!-- Search and app (tenant) filter -->
+                            <!-- Website database tags and search filter -->
                             <div class="message-box-toolbar" id="messageBoxToolbar">
+                                <div class="message-box-tenants" id="messageBoxTenants" role="group" aria-label="Show conversations from"></div>
                                 <label class="message-box-search">
                                     <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                                     <input type="search" id="messageBoxSearch" placeholder="Search names, emails, subjects and messages" aria-label="Search the Message Box" autocomplete="off">
                                 </label>
-                                <div class="message-box-tenants" id="messageBoxTenants" role="group" aria-label="Show conversations from"></div>
                             </div>
 
                             <div class="admin-chat-layout">
@@ -2086,6 +2096,7 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
                             </div>
                         </div>
 
@@ -2193,7 +2204,7 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="site-locale.js?v=1"></script>
     <script src="service-pricing.js?v=7"></script>
-    <script src="app.js?v=70"></script>
+    <script src="app.js?v=73"></script>
 </body>
 
 </html>

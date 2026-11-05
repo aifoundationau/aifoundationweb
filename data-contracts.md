@@ -346,6 +346,19 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 
 - **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. Odd last child (item 11: `socialradar`) centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
 
+#### Unified Multi-Database SuperAdmin Message Box (`GET /api/message-box`, `POST /api/chat/send`)
+- **Aggregated Databases & Tags**:
+  - `aifoundation`: `(default)` database, `chat_interactions` collection (`tag: "aifoundation"`).
+  - `lms`: `(default)` database, `chat_interactions` collection (`kind: "lms_message"`, `tag: "lms"`).
+  - `hr`: `human-resources` database, `hr_conversations/{convId}` + `messages` subcollection (`tag: "hr"`).
+  - `ad-radar`: `ad-radar` database, `admin_messages` collection (`tag: "ad-radar"`).
+  - `itsasimplejob`: `itsasimplejob` database, `mailboxes/superadmin/inbox` & `sent` (`tag: "itsasimplejob"`).
+  - `trainerdavid`: `trainerdavid` database, `creator_messages` collection (`tag: "trainerdavid"`).
+  - `rto-ai`: `(default)` database, `superadmin_messages` & `notifications` collections (`tag: "rto-ai"`).
+  - Additional named databases (`finance`, `kangoorental`, `lawyerselect`) and tags (`health`, `nihongo`): `chat_interactions` / `admin_messages`.
+- **Two-Way Reply Contract (`replyToConversation`)**: SuperAdmin replies from the Message Box write directly back to the originating Firestore database and collection in that app's native schema with 7-year statutory retention.
+- **UI Presentation Invariants**: All website database tags (`KNOWN_WEBSITE_TAGS`) are listed directly under the Message Box heading. The Conversations Box displays smaller text with Name and Email only (`0.78rem` / `0.7rem`), and message bubbles inside `.admin-thread-feed` use compact `0.8rem` typography for readability.
+
 ---
 
 ## 3. Regulatory Compliance & Governance Alignment

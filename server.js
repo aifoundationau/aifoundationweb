@@ -21,7 +21,7 @@ const servicePricing = require('./public/service-pricing');
 const { createServicePriceStore } = require('./service-prices');
 const tokenBalances = require('./token-balances');
 const { createExchangeRates } = require('./exchange-rates');
-const { loadMessageBox } = require('./message-box');
+const { loadMessageBox, replyToConversation } = require('./message-box');
 console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
@@ -1503,6 +1503,8 @@ app.get('/api/admin/database-inputs', requireAdmin, async (req, res) => {
 app.post('/api/chat/send', requireAuth, async (req, res) => {
     try {
         let {
+            tenant,
+            subject,
             recipientUid,
             recipientEmail,
             recipientName,
@@ -1530,35 +1532,45 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
         const senderRole = req.user.isSuperAdmin ? 'superadmin' : 'supporter';
 
         // Anyone signed in (supporters and site admins alike) messages the SuperAdmin in their own conversation.
-        // Only the two SuperAdmins reply into other people's conversations, and only this site's ones
-        // (other apps' threads are read in the Message Box and answered in their own app)
+        // The two SuperAdmins can reply into any conversation across all AI Foundation apps and databases.
+        let result;
         if (!req.user.isSuperAdmin) {
-            recipientUid = 'superadmin';
-            recipientEmail = 'support@aifoundation.net.au';
-            recipientName = 'SuperAdmin';
-            conversationId = `conv_${senderUid}`;
-        } else if (!/^conv_[A-Za-z0-9_-]+$/.test(String(conversationId || ''))) {
-            return res.status(400).json({ error: 'Replies can only be sent to AI Foundation conversations.' });
+            result = await firebaseService.sendChatMessage({
+                senderUid,
+                senderEmail,
+                senderName,
+                senderPhoto,
+                senderRole,
+                recipientUid: 'superadmin',
+                recipientEmail: 'support@aifoundation.net.au',
+                recipientName: 'SuperAdmin',
+                conversationId: `conv_${senderUid}`,
+                userMessage: msgText,
+                tag: 'aifoundation',
+                businessId: 'aifoundation',
+                businessName: 'AI Foundation',
+                source: 'aifoundation'
+            });
+        } else {
+            if (!conversationId && !recipientUid && !recipientEmail) {
+                return res.status(400).json({ error: 'A target conversation or recipient is required to send a reply.' });
+            }
+            result = await replyToConversation({
+                tenant: tenant || 'aifoundation',
+                conversationId: conversationId || '',
+                counterpart: {
+                    uid: recipientUid || '',
+                    email: recipientEmail || '',
+                    name: recipientName || ''
+                },
+                subject: subject || '',
+                text: msgText,
+                senderUid,
+                senderEmail,
+                senderName,
+                senderPhoto
+            });
         }
-
-        const result = await firebaseService.sendChatMessage({
-            senderUid,
-            senderEmail,
-            senderName,
-            senderPhoto,
-            senderRole,
-            recipientUid: recipientUid || 'superadmin',
-            recipientEmail: recipientEmail || 'support@aifoundation.net.au',
-            recipientName: recipientName || 'SuperAdmin',
-            conversationId: conversationId || `conv_${senderUid}`,
-            userMessage: msgText,
-            // Messages written by this site always carry its own tenant tag (data-contracts.md, Invariant Rule 1),
-            // whatever the request says, so the Message Box shows where each message really came from
-            tag: 'aifoundation',
-            businessId: 'aifoundation',
-            businessName: 'AI Foundation',
-            source: 'aifoundation'
-        });
 
         if (!result.success) {
             return res.status(500).json({ error: result.error || 'Failed to record chat message in Firebase.' });
@@ -1568,7 +1580,7 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
             success: true,
             message: result.message,
             retentionYears: 7,
-            retainedUntil: result.message.retainedUntil
+            retainedUntil: result.message?.retainedUntil
         });
     } catch (e) {
         console.error('[Chat Send] Error:', e);

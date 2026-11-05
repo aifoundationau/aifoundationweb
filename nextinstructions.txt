@@ -1,12 +1,15 @@
 # Next Instructions - AI Foundation
 
 ## Current Status:
-1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-953).
-2. 'support@aifoundation.net.au' Footer Email Link Updated to 'https://www.aifoundation.net.au/#david':
-   - Set exact canonical destination `href="https://www.aifoundation.net.au/#david"` on the footer email link in `public/index.html`, `public/projects.html`, `public/services.html`, `public/terms.html`, and `public/privacy.html`.
-   - Added anchor `<a id="david"></a>` on `public/index.html` right above `#section-david` to ensure browser anchor alignment.
-   - Enhanced `public/app.js` (`v=70`) to handle `#david` and `#contact` routing, activate `#section-david` with flex layout, and focus the Contact Us form.
-   - All 74 unit and integration tests passing (`npm test`).
+1. Dev server is running on http://localhost:3002 (Task ID: 68341dba-d99e-472c-9573-e438c9bc7fee/task-1537).
+2. SuperAdmin-Only 'Messages' in Special Sections & Unified Multi-Database Message Box Implemented:
+   - Added SuperAdmin-only `Messages` item (`#sidebarMessagesItem`) to Special Sections in `public/index.html`, `public/projects.html`, and `public/services.html`.
+   - Clicking `Messages` in Special Sections opens `#section-messages` right in the main content area and loads all SuperAdmin messages across all apps and databases.
+   - All website database tag buttons listed under the Message Box heading and tenant badges are now compact and smaller (`0.62rem` / `2px 6px` padding).
+   - Conversations Box displays smaller text with Name and Email only.
+   - Messages inside the feed are smaller (`0.8rem`) and contain only the message text without repeating the sender's name or email.
+   - SuperAdmin replies route directly back to each app's native Firestore database and collection schema via `replyToConversation`.
+   - All 76 unit and integration tests passing (`npm test`).
 
 ## Next Step for Developer:
-- Hard refresh (Ctrl+F5) http://localhost:3002 and click 'support@aifoundation.net.au' at the bottom to verify it targets https://www.aifoundation.net.au/#david and opens the contact form without launching an email client.
+- Hard refresh (Ctrl+F5) http://localhost:3002 while signed in as SuperAdmin and click 'Messages' under Special Sections to view and reply to all messages.

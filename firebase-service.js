@@ -324,18 +324,29 @@ async function commitWrites(writes) {
  * Returns [{ id, fields }] with plain values, or null when Firestore can't be reached or a page fails
  */
 async function listDocuments(collectionId, { pageSize = 300, maxPages = 40 } = {}) {
+    return listDatabaseDocuments('(default)', collectionId, { pageSize, maxPages });
+}
+
+/**
+ * Read every document in a collection or subcollection path within any named Firestore database.
+ * Returns [{ id, fields }] with plain values, or null when Firestore can't be reached or a page fails.
+ */
+async function listDatabaseDocuments(databaseId = '(default)', collectionPath, { pageSize = 300, maxPages = 40 } = {}) {
     const token = await getAccessToken();
     if (!token) return null;
 
+    const dbSegment = encodeURIComponent(databaseId || '(default)');
+    const safePath = String(collectionPath || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
     const docs = [];
     let pageToken = '';
     try {
         for (let page = 0; page < maxPages; page++) {
-            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionId}?pageSize=${pageSize}` +
+            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${dbSegment}/documents/${safePath}?pageSize=${pageSize}` +
                 (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '');
             const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.status === 404) return [];
             if (!res.ok) {
-                console.warn(`[Firebase] Listing ${collectionId} failed (HTTP ${res.status})`);
+                console.warn(`[Firebase] Listing ${databaseId}/${collectionPath} failed (HTTP ${res.status})`);
                 return null;
             }
             const data = await res.json();
@@ -345,11 +356,102 @@ async function listDocuments(collectionId, { pageSize = 300, maxPages = 40 } = {
             pageToken = data.nextPageToken || '';
             if (!pageToken) return docs;
         }
-        console.warn(`[Firebase] Listing ${collectionId} stopped after ${maxPages} pages (${docs.length} documents)`);
+        console.warn(`[Firebase] Listing ${databaseId}/${collectionPath} stopped after ${maxPages} pages (${docs.length} documents)`);
         return docs;
     } catch (err) {
-        console.error(`[Firebase] Error listing ${collectionId}:`, err.message);
+        console.error(`[Firebase] Error listing ${databaseId}/${collectionPath}:`, err.message);
         return null;
+    }
+}
+
+/**
+ * Write a document to any named Firestore database and collection/subcollection path.
+ */
+async function writeDatabaseDocument(databaseId = '(default)', collectionPath, documentId, data, merge = true) {
+    const token = await getAccessToken();
+    if (!token) return { success: false, error: 'Authentication unavailable' };
+
+    const dbSegment = encodeURIComponent(databaseId || '(default)');
+    const safePath = String(collectionPath || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    const baseUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${dbSegment}/documents`;
+    const docPath = `${safePath}/${encodeURIComponent(documentId)}`;
+
+    try {
+        if (merge) {
+            const maskParams = Object.keys(data).map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+            const url = `${baseUrl}/${docPath}?${maskParams}`;
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ fields: toFirestoreFields(data) })
+            });
+            const result = await res.json().catch(() => ({}));
+            return res.ok
+                ? { success: true, path: result.name }
+                : { success: false, error: result.error?.message || `Firestore write error (HTTP ${res.status})` };
+        } else {
+            const url = `${baseUrl}/${safePath}?documentId=${encodeURIComponent(documentId)}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ fields: toFirestoreFields(data) })
+            });
+            const result = await res.json().catch(() => ({}));
+            return res.ok
+                ? { success: true, path: result.name }
+                : { success: false, error: result.error?.message || `Firestore write error (HTTP ${res.status})` };
+        }
+    } catch (err) {
+        console.error(`[Firebase] Network error writing ${databaseId}/${docPath}:`, err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+/**
+ * Commit atomic writes to any named Firestore database.
+ */
+async function commitDatabaseWrites(databaseId = '(default)', writes = []) {
+    const token = await getAccessToken();
+    if (!token) return { success: false, error: 'Authentication unavailable' };
+
+    const dbSegment = encodeURIComponent(databaseId || '(default)');
+    const documentsRoot = `projects/${PROJECT_ID}/databases/${dbSegment}/documents`;
+    const body = {
+        writes: writes.map(w => {
+            const data = w.data || {};
+            const write = { update: { name: `${documentsRoot}/${w.path}`, fields: toFirestoreFields(data) } };
+            if (!w.replace) write.updateMask = { fieldPaths: Object.keys(data) };
+            if (w.mustNotExist) write.currentDocument = { exists: false };
+            else if (w.updateTime) write.currentDocument = { updateTime: w.updateTime };
+            else if (w.mustExist) write.currentDocument = { exists: true };
+            const transforms = [
+                ...Object.entries(w.increment || {}).map(([fieldPath, by]) => ({ fieldPath, increment: toFirestoreValue(by) })),
+                ...Object.entries(w.arrayUnion || {}).map(([fieldPath, values]) => ({ fieldPath, appendMissingElements: { values: values.map(toFirestoreValue) } })),
+                ...Object.entries(w.arrayRemove || {}).map(([fieldPath, values]) => ({ fieldPath, removeAllFromArray: { values: values.map(toFirestoreValue) } }))
+            ];
+            if (transforms.length) write.updateTransforms = transforms;
+            return write;
+        })
+    };
+
+    try {
+        const res = await fetch(`https://firestore.googleapis.com/v1/${documentsRoot}:commit`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) return { success: true };
+        const result = await res.json().catch(() => ({}));
+        return { success: false, error: result.error?.message || `Firestore commit failed (HTTP ${res.status})` };
+    } catch (err) {
+        console.error(`[Firebase] Network error committing writes to ${databaseId}:`, err.message);
+        return { success: false, error: err.message };
     }
 }
 
@@ -1136,6 +1238,9 @@ module.exports = {
     writeDocument,
     deleteDocument,
     listDocuments,
+    listDatabaseDocuments,
+    writeDatabaseDocument,
+    commitDatabaseWrites,
     queryDocuments,
     readDocument,
     commitWrites

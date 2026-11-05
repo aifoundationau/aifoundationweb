@@ -5057,21 +5057,21 @@ html.admin-panel-open body {
 .admin-threads-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .admin-thread-item {
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   transition: all 0.15s ease;
   text-align: left;
 }
@@ -5084,20 +5084,30 @@ html.admin-panel-open body {
 .admin-thread-item.active {
   background: #ffffff;
   border-color: #004ecc;
-  box-shadow: 0 2px 8px rgba(0, 78, 204, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 78, 204, 0.08);
+}
+
+.admin-thread-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-thread-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #0f172a;
 }
 
 .admin-thread-time {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 500;
   color: #94a3b8;
 }
@@ -5110,28 +5120,31 @@ html.admin-panel-open body {
 }
 
 .admin-thread-email {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: #64748b;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* Tenant Badges (Visible to SuperAdmin only) */
-.tenant-badge {
+.tenant-badge,
+.chat-tenant-tag-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.65rem;
+  gap: 3px;
+  font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 2px 6px;
+  letter-spacing: 0.2px;
+  padding: 1px 5px;
   border-radius: 4px;
   border: 1px solid #cbd5e1;
   background: #f1f5f9;
   color: #475569;
   flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .tenant-badge.tag-aifoundation,
@@ -5141,8 +5154,10 @@ html.admin-panel-open body {
   color: #1d4ed8;
 }
 
+.tenant-badge.tag-health,
 .tenant-badge.tag-healthlms,
 .tenant-badge.tag-teachmehealthcare,
+.chat-tenant-tag-badge.tag-health,
 .chat-tenant-tag-badge.tag-healthlms,
 .chat-tenant-tag-badge.tag-teachmehealthcare {
   background: #fdf2f8;
@@ -5173,10 +5188,59 @@ html.admin-panel-open body {
   color: #6d28d9;
 }
 
+.tenant-badge.tag-hr,
+.chat-tenant-tag-badge.tag-hr {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+
+.tenant-badge.tag-ad-radar,
+.chat-tenant-tag-badge.tag-ad-radar {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+}
+
+.tenant-badge.tag-trainerdavid,
+.chat-tenant-tag-badge.tag-trainerdavid {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.tenant-badge.tag-nihongo,
+.chat-tenant-tag-badge.tag-nihongo {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.tenant-badge.tag-finance,
+.chat-tenant-tag-badge.tag-finance {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+  color: #0f766e;
+}
+
+.tenant-badge.tag-kangoorental,
+.chat-tenant-tag-badge.tag-kangoorental {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+
+.tenant-badge.tag-lawyerselect,
+.chat-tenant-tag-badge.tag-lawyerselect {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
 .admin-thread-preview {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: #475569;
-  line-height: 1.35;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -5215,7 +5279,7 @@ html.admin-panel-open body {
 }
 
 .admin-thread-meta-bar {
-  padding: 12px 20px;
+  padding: 6px 14px;
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
   display: flex;
@@ -5226,11 +5290,18 @@ html.admin-panel-open body {
 .admin-thread-user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+#adminThreadAvatar,
+#adminThreadUserName,
+#adminThreadUserEmail,
+#messageBoxThreadSubject {
+  display: none !important;
 }
 
 .admin-thread-retention-tag {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #047857;
   background: #ecfdf5;
@@ -5245,15 +5316,60 @@ html.admin-panel-open body {
 .admin-thread-feed {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px;
+  padding: 12px 14px;
   background: #fafafa;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+}
+
+/* Smaller, easier-to-read message bubbles inside the Message Box */
+.admin-thread-feed .chat-message-row {
+  gap: 8px;
+  max-width: 86%;
+}
+
+.admin-thread-feed .chat-avatar-icon {
+  width: 26px;
+  height: 26px;
+  font-size: 0.72rem;
+}
+
+.admin-thread-feed .chat-bubble {
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.admin-thread-feed .chat-bubble-sender {
+  font-size: 0.69rem;
+  margin-bottom: 2px;
+  gap: 5px;
+}
+
+.admin-thread-feed .chat-bubble-sender .role-tag {
+  font-size: 0.62rem;
+  padding: 1px 5px;
+}
+
+.admin-thread-feed .chat-tenant-tag-badge {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+}
+
+.admin-thread-feed .chat-bubble-subject {
+  font-size: 0.74rem;
+  margin-bottom: 2px;
+}
+
+.admin-thread-feed .chat-bubble-footer {
+  margin-top: 4px;
+  font-size: 0.64rem;
 }
 
 .admin-thread-reply-wrap {
-  padding: 14px 20px;
+  padding: 10px 14px;
   border-top: 1px solid #e2e8f0;
   background: #ffffff;
 }
@@ -5269,19 +5385,19 @@ html.admin-panel-open body {
   flex-direction: column;
 }
 
-/* Message Box: search and app (tenant) filter above the conversations */
+/* Message Box: website database tags listed directly under Message Box, followed by search */
 .message-box-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 .message-box-toolbar[hidden] {
   display: none;
 }
 .message-box-search {
-  flex: 1 1 260px;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -5289,6 +5405,7 @@ html.admin-panel-open body {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
+  box-sizing: border-box;
 }
 .message-box-search:focus-within {
   border-color: #0066ff;
@@ -5296,38 +5413,43 @@ html.admin-panel-open body {
 }
 .message-box-search i {
   color: #94a3b8;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 .message-box-search input {
   flex: 1;
   min-width: 0;
-  padding: 9px 0;
+  padding: 7px 0;
   border: none;
   outline: none;
   background: transparent;
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   color: #0f172a;
 }
 .message-box-tenants {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
+  width: 100%;
 }
 .message-box-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+  gap: 3px;
+  padding: 2px 6px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
   background: #f8fafc;
   color: #475569;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.62rem;
   font-weight: 600;
+  line-height: 1.15;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+.message-box-chip i {
+  font-size: 0.55rem;
 }
 .message-box-chip:hover {
   border-color: #bfdbfe;
@@ -5339,11 +5461,12 @@ html.admin-panel-open body {
   color: #ffffff;
 }
 .message-box-chip-count {
-  min-width: 18px;
-  padding: 0 5px;
+  min-width: 14px;
+  padding: 0 4px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.08);
-  font-size: 0.72rem;
+  font-size: 0.58rem;
+  line-height: 1.15;
   text-align: center;
 }
 .message-box-chip.active .message-box-chip-count {
