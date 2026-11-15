@@ -87,6 +87,16 @@ test('saving prices needs an admin sign-in', async () => {
     assert.equal((await put({ Authorization: 'Bearer not-a-real-token' })).status, 401);
 });
 
+test('extracting metadata needs an admin sign-in', async () => {
+    const post = headers => get('/api/extract-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ url: 'https://www.linkedin.com/feed/update/urn:li:share:7520768453159407616/' })
+    });
+    assert.equal((await post({})).status, 401);
+    assert.equal((await post({ Authorization: 'Bearer not-a-real-token' })).status, 401);
+});
+
 test('Message Box and chat routes refuse callers without a valid sign-in', async () => {
     const forged = { Authorization: 'Bearer not-a-real-token' };
     for (const [method, urlPath] of [['GET', '/api/message-box'], ['GET', '/api/chat/conversations'], ['GET', '/api/chat/messages'], ['POST', '/api/chat/send']]) {

@@ -3194,27 +3194,27 @@ const postObserver = new IntersectionObserver((entries) => {
             <div class="admin-form" style="margin: 0;">
                 <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                     <h4 style="margin: 0; font-size: 1rem; color: #0f172a;">Link Entry</h4>
-                    <button type="button" class="removeRowBtn" style="background: none; color: #ef4444; border: none; cursor: pointer; font-size: 1.3rem; padding: 4px 8px; line-height: 1;">&times;</button>
+                    <button type="button" class="removeRowBtn" data-agent-id="remove-link-row-btn" data-testid="remove-link-row-btn" aria-label="Remove link entry" style="background: none; color: #ef4444; border: none; cursor: pointer; font-size: 1.3rem; padding: 4px 8px; line-height: 1;">&times;</button>
                 </div>
-                <input type="text" class="multiLinkInput" placeholder="Enter URL to scrape" style="margin-bottom: 8px;" />
-                <button type="button" class="multiExtractBtn" style="background: #0f172a; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; border: none; cursor: pointer;">Extract Metadata</button>
+                <input type="text" class="multiLinkInput" data-agent-id="link-entry-url-input" data-testid="link-entry-url-input" aria-label="Enter URL to scrape" placeholder="Enter URL to scrape" style="margin-bottom: 8px;" />
+                <button type="button" class="multiExtractBtn" data-agent-id="extract-metadata-btn" data-testid="extract-metadata-btn" aria-label="Extract Metadata" style="background: #0f172a; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; border: none; cursor: pointer;">Extract Metadata</button>
                 
                 <div class="multiPreviewCard" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
-                        <img class="multiImagePreview" src="" style="width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; flex-shrink: 0;" />
+                        <img class="multiImagePreview" src="assets/logo.png" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='assets/logo.png'" style="width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; flex-shrink: 0;" />
                         <div style="display: flex; flex-direction: column; gap: 6px;">
                             <label style="background: #0284c7; color: white; padding: 7px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: fit-content;">
                                 <i class="fa-solid fa-cloud-arrow-up"></i> Upload to ImgBB
-                                <input type="file" class="multiFileImgbb" accept="image/*" style="display: none;" />
+                                <input type="file" class="multiFileImgbb" data-agent-id="link-entry-imgbb-file" data-testid="link-entry-imgbb-file" aria-label="Upload image to ImgBB" accept="image/*" style="display: none;" />
                             </label>
                             <span class="multiImgbbStatus" style="font-size: 0.8rem; color: #64748b;">Direct ImgBB Host</span>
                         </div>
                     </div>
-                    <input type="text" class="multiImageUrl" placeholder="Image URL (ImgBB / Web)" required style="width: 100%; box-sizing: border-box;"/>
-                    <input type="text" class="multiPostTitle" placeholder="Title" required style="width: 100%; box-sizing: border-box;"/>
-                    <textarea class="multiPostSummary" placeholder="Summary" style="width: 100%; box-sizing: border-box; min-height: 80px;"></textarea>
-                    <input type="text" class="multiPostPlatform" placeholder="Platform" required style="width: 100%; box-sizing: border-box;"/>
-                    <input type="text" class="multiPostLink" placeholder="Final Link URL" required style="width: 100%; box-sizing: border-box;"/>
+                    <input type="text" class="multiImageUrl" data-agent-id="link-entry-image-url" data-testid="link-entry-image-url" aria-label="Image URL (ImgBB or Web)" placeholder="Image URL (ImgBB / Web)" required style="width: 100%; box-sizing: border-box;"/>
+                    <input type="text" class="multiPostTitle" data-agent-id="link-entry-title" data-testid="link-entry-title" aria-label="Post Title" placeholder="Title" required style="width: 100%; box-sizing: border-box;"/>
+                    <textarea class="multiPostSummary" data-agent-id="link-entry-summary" data-testid="link-entry-summary" aria-label="Post Summary" placeholder="Summary" style="width: 100%; box-sizing: border-box; min-height: 80px;"></textarea>
+                    <input type="text" class="multiPostPlatform" data-agent-id="link-entry-platform" data-testid="link-entry-platform" aria-label="Platform" placeholder="Platform" required style="width: 100%; box-sizing: border-box;"/>
+                    <input type="text" class="multiPostLink" data-agent-id="link-entry-final-link" data-testid="link-entry-final-link" aria-label="Final Link URL" placeholder="Final Link URL" required style="width: 100%; box-sizing: border-box;"/>
                 </div>
             </div>
         `;
@@ -3223,16 +3223,21 @@ const postObserver = new IntersectionObserver((entries) => {
         extractBtn.addEventListener('click', async () => {
             const url = row.querySelector('.multiLinkInput').value.trim();
             if (!url) return alert('Enter a link');
-            
+
+            extractBtn.disabled = true;
             extractBtn.innerHTML = 'Extracting...';
+            extractBtn.style.background = '#0f172a';
             try {
                 const res = await fetch('/api/extract-metadata', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url })
                 });
-                const data = await res.json();
-                
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to extract metadata');
+                }
+
                 row.querySelector('.multiPostTitle').value = data.title || '';
                 row.querySelector('.multiPostSummary').value = data.summary || '';
                 row.querySelector('.multiPostPlatform').value = data.platform || '';
@@ -3240,13 +3245,21 @@ const postObserver = new IntersectionObserver((entries) => {
                 const img = data.imageUrl || 'assets/logo.png';
                 row.querySelector('.multiImagePreview').src = img;
                 row.querySelector('.multiImageUrl').value = img;
-                
+
                 row.querySelector('.multiPreviewCard').style.display = 'flex';
-                extractBtn.innerHTML = 'Metadata Extracted';
-                extractBtn.style.background = '#10b981';
+                if (data.partial) {
+                    extractBtn.innerHTML = 'Partial — Check Fields';
+                    extractBtn.style.background = '#d97706';
+                } else {
+                    extractBtn.innerHTML = 'Metadata Extracted';
+                    extractBtn.style.background = '#10b981';
+                }
             } catch (err) {
-                alert('Failed to extract');
+                alert(err.message || 'Failed to extract');
                 extractBtn.innerHTML = 'Extract Metadata';
+                extractBtn.style.background = '#0f172a';
+            } finally {
+                extractBtn.disabled = false;
             }
         });
 

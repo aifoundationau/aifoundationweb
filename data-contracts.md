@@ -115,17 +115,36 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 ### Domain 4: Web Scraping & Open Graph Metadata Extraction
 
 #### Target Endpoints
-- API Endpoint: `POST /api/extract-metadata`
+- API Endpoint: `POST /api/extract-metadata` (Admin authentication required via Firebase ID token; implemented in [metadata-extractor.js](file:///Y:/Antigravity%20Projects/ai-foundation/metadata-extractor.js))
 - Ingestion Context: Real-time metadata preview generator for bulk publishing.
 
 #### Data Fields Specification
 | Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Security Boundary |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `url` | String (URI) | UI Scrape Input / API | Internal System | Required. Must be valid HTTP/HTTPS URL. Max length 2,048 chars. Automatically maps `x.com` and `twitter.com` to `fxtwitter.com`. | **SSRF Protection Rule**: Connections to RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), Loopback (`127.0.0.0/8`), Link-Local (`169.254.0.0/16`), and Cloud Metadata services are strictly rejected. |
-| Return: `title` | String | Server Response | Public | Output length clamped to 300 chars. Decoded from HTML entities. | In-memory transient; returned to client. |
-| Return: `summary` | String | Server Response | Public | Output length clamped to 1,000 chars. Extracted from `og:description` or `meta[name=description]`. | In-memory transient. |
-| Return: `imageUrl` | String (URI) | Server Response | Public | Extracted from `og:image` or `twitter:image`. HTML entities for `&` decoded (`&amp;` → `&`). | In-memory transient. |
-| Return: `platform` | String Enum | Server Response | Public | Classified based on hostname analysis (`detectPlatform`). | In-memory transient. |
+| `url` | String (URI / Snippet) | UI Scrape Input / API | Internal System | Required. Raw input max 4,096 chars; extracts embedded `https?://` URLs (including `<iframe src="...">`) and prepends `https://` to bare domains. Normalized HTTP/HTTPS URL max 2,048 chars. Maps `x.com` / `twitter.com` to `fxtwitter.com`, and canonicalizes LinkedIn `/embed/feed/update/<urn>` URLs. | **SSRF Protection Rule**: Enforced before fetch and on every manual redirect hop (max 5 hops) plus DNS lookup (`dns.promises.lookup`). Rejects `localhost`, `.local`/`.internal` hostnames, RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), CGNAT (`100.64.0.0/10`), Loopback (`127.0.0.0/8`), Link-Local (`169.254.0.0/16`), IPv6 private/link-local (`::`, `::1`, `fc00::/7`, `fe80::/10`, `::ffff:`-mapped private IPv4), and Cloud Metadata endpoints with HTTP 400. |
+| Return: `title` | String | Server Response | Public | Output length clamped to 250 chars. Decoded from HTML named, decimal, and hex entities; LinkedIn author/topic boilerplate stripped; falls back to `'Update from link'`. | In-memory transient; returned to client. |
+| Return: `summary` | String | Server Response | Public | Output length clamped to 3,000 chars. Extracted across OpenGraph (`og:description`), Twitter Cards (`twitter:description`), `meta[name=description]`, Schema.org `application/ld+json` (`SocialMediaPosting`/`Article`), and LinkedIn public embed fallback (`main-feed-activity-embed-card__commentary`). | In-memory transient. |
+| Return: `imageUrl` | String (URI) | Server Response | Public | Extracted from `og:image`, `og:image:secure_url`, `twitter:image`, `application/ld+json` media, or LinkedIn embed media (`data-delayed-url` / video `poster`). Placeholder `static.licdn.com` ghosts and actor avatars deprioritized; HTML `&` entities decoded (`&amp;` → `&`). | In-memory transient. |
+| Return: `platform` | String Enum | Server Response | Public | Classified based on resolved hostname (`detectPlatform`), including `linkedin.com` and `lnkd.in` → `'linkedin'`. | In-memory transient. |
+| Return: `link` | String (URI) | Server Response | Public | Normalized input URL, or resolved canonical URL for `lnkd.in` shortlinks and LinkedIn embed URLs. | In-memory transient. |
+| Return: `partial` | Boolean | Server Response | Internal UI State | `true` only when neither a real title, summary, nor image could be extracted; `false` otherwise. | In-memory transient. |
+
+#### Strict Output Schema (`additionalProperties: false`)
+```json
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "summary", "imageUrl", "platform", "link", "partial"],
+  "properties": {
+    "title": { "type": "string", "maxLength": 250 },
+    "summary": { "type": "string", "maxLength": 3000 },
+    "imageUrl": { "type": "string" },
+    "platform": { "type": "string", "enum": ["linkedin", "instagram", "facebook", "twitter", "google", "google_business", "youtube", "website"] },
+    "link": { "type": "string", "maxLength": 2048 },
+    "partial": { "type": "boolean" }
+  }
+}
+```
 
 ---
 

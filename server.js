@@ -22,6 +22,7 @@ const { createServicePriceStore } = require('./service-prices');
 const tokenBalances = require('./token-balances');
 const { createExchangeRates } = require('./exchange-rates');
 const { loadMessageBox, replyToConversation } = require('./message-box');
+const { extractMetadata, detectPlatform } = require('./metadata-extractor');
 console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
@@ -330,18 +331,6 @@ async function withImgBBBackup(imageUrl, imageBackupUrl) {
         return { imageUrl, imageBackupUrl: '' };
     }
     return imageUrl.startsWith('data:') ? { imageUrl: backupUrl, imageBackupUrl: '' } : { imageUrl, imageBackupUrl: backupUrl };
-}
-
-function detectPlatform(url) {
-    const lower = url.toLowerCase();
-    if (lower.includes('linkedin.com')) return 'linkedin';
-    if (lower.includes('instagram.com')) return 'instagram';
-    if (lower.includes('facebook.com')) return 'facebook';
-    if (lower.includes('twitter.com') || lower.includes('x.com')) return 'twitter';
-    if (lower.includes('google.com/maps') || lower.includes('g.page')) return 'google_business';
-    if (lower.includes('share.google') || lower.includes('google.com')) return 'google';
-    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube';
-    return 'website';
 }
 
 // GET all posts
@@ -909,62 +898,22 @@ app.get('/data-contracts.md', (req, res) => {
 });
 
 app.post('/api/extract-metadata', requireAdmin, async (req, res) => {
-    let { url } = req.body;
-    if (!url) return res.status(400).json({ error: 'URL is required' });
-    
-    let fetchUrl = url;
-    if (fetchUrl.includes('x.com/') || fetchUrl.includes('twitter.com/')) {
-        fetchUrl = fetchUrl.replace('x.com', 'fxtwitter.com').replace('twitter.com', 'fxtwitter.com');
-    }
-
+    const rawUrl = req.body?.url;
     try {
-        const fetchRes = await fetch(fetchUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            },
-            redirect: 'follow'
-        });
-        
-        const html = await fetchRes.text();
-        
-        let title = '';
-        const ogTitle = html.match(/<meta\s+(?:property|name)=["']og:title["']\s+content=["'](.*?)["']/i);
-        if (ogTitle) title = ogTitle[1];
-        else {
-            const tMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-            title = tMatch ? tMatch[1] : '';
-        }
-        
-        let imageUrl = '';
-        const ogImg = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["'](.*?)["']/i) ||
-            html.match(/<meta\s+(?:property|name)=["']twitter:image["']\s+content=["'](.*?)["']/i);
-        if (ogImg) imageUrl = ogImg[1];
-        
-        let summary = '';
-        const ogDesc = html.match(/<meta\s+(?:property|name)=["']og:description["']\s+content=["'](.*?)["']/i) ||
-                       html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i);
-        if (ogDesc) summary = ogDesc[1];
-
-        // Remove HTML entities
-        summary = summary.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
-        title = title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
-        // og:image URLs carry "&amp;" as well; LinkedIn's CDN returns 403 unless they are plain "&"
-        imageUrl = imageUrl.replace(/&(?:amp|#0*38|#x0*26);/gi, '&');
-        
-        res.json({
-            title: title || 'Update from link',
-            summary: summary || '',
-            imageUrl: imageUrl,
-            platform: detectPlatform(url),
-            link: url
-        });
+        const result = await extractMetadata(rawUrl);
+        res.json(result);
     } catch (e) {
+        if (e && e.statusCode === 400) {
+            return res.status(400).json({ error: e.message });
+        }
+        const safeFallbackUrl = typeof rawUrl === 'string' ? rawUrl.trim() : '';
         res.json({
             title: 'Update from link',
             summary: '',
             imageUrl: '',
-            platform: detectPlatform(url),
-            link: url
+            platform: detectPlatform(safeFallbackUrl),
+            link: safeFallbackUrl,
+            partial: true
         });
     }
 });
