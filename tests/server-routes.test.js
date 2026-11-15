@@ -255,3 +255,38 @@ test('public privacy and terms routes serve their pages with hashtag footers', a
         assert.match(html, /href="terms\.html".*?TermsOfService/s, `${page} links to terms.html`);
     }
 });
+
+test('SEO discovery files and head metadata (keywords, robots, OG, Twitter, JSON-LD) are valid across all pages', async () => {
+    const robotsRes = await get('/robots.txt');
+    assert.equal(robotsRes.status, 200);
+    const robotsTxt = await robotsRes.text();
+    assert.match(robotsTxt, /Sitemap: https:\/\/www\.aifoundation\.net\.au\/sitemap\.xml/);
+
+    const sitemapRes = await get('/sitemap.xml');
+    assert.equal(sitemapRes.status, 200);
+    const sitemapXml = await sitemapRes.text();
+    assert.match(sitemapXml, /<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
+    assert.match(sitemapXml, /<loc>https:\/\/www\.aifoundation\.net\.au\/<\/loc>/);
+
+    const manifestRes = await get('/site.webmanifest');
+    assert.equal(manifestRes.status, 200);
+    const manifest = JSON.parse(await manifestRes.text());
+    assert.equal(manifest.name, 'AI Foundation Australia');
+    assert.ok(Array.isArray(manifest.icons) && manifest.icons.length > 0);
+
+    for (const page of ['index.html', 'projects.html', 'services.html', 'privacy.html', 'terms.html']) {
+        const html = fs.readFileSync(path.join(root, 'public', page), 'utf8');
+        assert.match(html, /<title>.+?<\/title>/, `${page}: title`);
+        assert.match(html, /<meta name="description" content=".+?">/, `${page}: description`);
+        assert.match(html, /<meta name="keywords" content=".+?">/, `${page}: keywords`);
+        assert.match(html, /<meta name="robots" content=".+?">/, `${page}: robots`);
+        assert.match(html, /<link rel="canonical" href="https:\/\/www\.aifoundation\.net\.au\/.*?">/, `${page}: canonical`);
+        assert.match(html, /<meta property="og:site_name" content="AI Foundation Australia">/, `${page}: og:site_name`);
+        assert.match(html, /<meta property="og:locale" content="en_AU">/, `${page}: og:locale`);
+        assert.match(html, /<meta name="twitter:card" content="summary_large_image">/, `${page}: twitter:card`);
+        const ldMatch = html.match(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
+        assert.ok(ldMatch, `${page}: JSON-LD script block`);
+        const parsedLd = JSON.parse(ldMatch[1]);
+        assert.equal(parsedLd['@context'], 'https://schema.org', `${page}: Schema.org context`);
+    }
+});

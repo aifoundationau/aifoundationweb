@@ -1,0 +1,14 @@
+{
+  "name": "AI Foundation Australia",
+  "short_name": "AI Foundation",
+  "description": "Enterprise AI agents, automated workflow systems, RTO training engines, and sovereign cloud solutions for Australian business.",
+  "start_url": "/",
+  "display": "browser",
+  "icons": [
+    {
+      "src": "/assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
