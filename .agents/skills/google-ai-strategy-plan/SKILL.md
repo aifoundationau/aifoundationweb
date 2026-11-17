@@ -51,7 +51,7 @@ Gate consultation access behind a verified Stripe Checkout session:
   - `customer_creation: 'always'`
   - `invoice_creation: { enabled: true }`
   - `metadata`: `{ tag: 'aifoundation', businessId: '#aifoundation', businessName: 'AI Foundation', source: 'aifoundation', kind: 'strategy_plan', uid, userId, serviceName: 'Services - Google AI Strategy & First-Month Plan', serviceType: 'google_ai_strategy_advisory_30_day' }`
-- **Dual Atomic Unlock**: Verify payment atomically via both `POST /api/stripe/webhook` (`checkout.session.completed`) and `POST /api/strategy-plan/confirm` (`stripe.checkout.sessions.retrieve(sessionId)`) so customers never stall on webhook latency.
+- **Webhook-Free Unlock**: Never add Stripe webhooks or `STRIPE_WEBHOOK_SECRET`. Save the Checkout Session as pending before the redirect, then verify it idempotently with `stripe.checkout.sessions.retrieve(sessionId)` via `POST /api/strategy-plan/confirm`, on reload, or by SuperAdmin Verify pending payments (`POST /api/admin/payments/verify-pending`).
 
 ## 5. Stage 1 Runtime Agent: Grounded Search & 6-Step Advisory Intake
 - Explicitly introduce the session as an **advisory consultation that accesses none of the user's accounts or files**.

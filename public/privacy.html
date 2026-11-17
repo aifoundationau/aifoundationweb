@@ -75,7 +75,7 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="style.css?v=66">
+    <link rel="stylesheet" href="style.css?v=67">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -485,7 +485,7 @@
                                 <td><strong>Token Economy</strong></td>
                                 <td>Stripe Session ID (<code>cs_*</code>), PaymentIntent (<code>pi_*</code>), Tokens, Currency.</td>
                                 <td>Crediting token balances, transaction ledger auditing, anti-fraud reconciliations.</td>
-                                <td>Stripe Checkout &amp; Webhooks</td>
+                                <td>Stripe Checkout (verified with Stripe by our server)</td>
                             </tr>
                             <tr>
                                 <td><strong>Telemetry &amp; Locality</strong></td>
@@ -521,11 +521,11 @@
                 <a href="#4-pci-dss-payments" class="section-tag-anchor"><i class="fa-solid fa-hashtag"></i>PCI_DSS_SAQ_A</a>
                 <h2 class="section-h2"><i class="fa-solid fa-credit-card" style="color: #004ecc;"></i> 4. Payment Card Processing &amp; PCI DSS Scope Minimization</h2>
                 <p class="legal-p">
-                    Financial transactions, donations, and token purchases are processed with the highest assurance security protocols:
+                    Financial transactions, including paid services and token purchases, are processed with the highest assurance security protocols:
                 </p>
                 <ul class="legal-p" style="padding-left: 20px;">
                     <li><strong>Zero Cardholder Storage (PCI DSS SAQ A):</strong> The AI Foundation complies with the <strong>Payment Card Industry Data Security Standard (PCI DSS v4.0)</strong> under <strong>Self-Assessment Questionnaire A (SAQ A)</strong>. We never receive, process, store, or transmit raw credit card numbers (PAN, CVV/CVC, or expiration dates) on our servers.</li>
-                    <li><strong>Client-Side Tokenization:</strong> All payment fields are rendered in encrypted iframes hosted directly by Stripe (<code>js.stripe.com</code>) or PayPal. Our servers only handle tokenized references (<code>pi_*</code>, <code>cs_*</code>) and integer quantities.</li>
+                    <li><strong>Client-Side Tokenization:</strong> All payment details are entered on Stripe's secure hosted checkout page. Our servers never see card details and only handle tokenized checkout references (<code>cs_*</code>) and amounts.</li>
                 </ul>
             </section>
 
@@ -537,7 +537,7 @@
                     In compliance with statutory recordkeeping under the <strong>Corporations Act 2001 (Cth) Section 286</strong>, the <strong>Australian Taxation Office (ATO)</strong>, and <strong>Australian Privacy Principle 11.2</strong>:
                 </p>
                 <ul class="legal-p" style="padding-left: 20px;">
-                    <li><strong>Mandatory Retention Window:</strong> All financial transactions, donation records, receipts, supporter chat interactions, and identity verification logs are retained for exactly <strong>7 years (2,557 days)</strong> from generation.</li>
+                    <li><strong>Mandatory Retention Window:</strong> All financial transactions, receipts, supporter chat interactions, and identity verification logs are retained for exactly <strong>7 years (2,557 days)</strong> from generation.</li>
                     <li><strong>Immutable Audit Trails:</strong> During the 7-year lifecycle, records are preserved against modification or unauthorized erasure.</li>
                     <li><strong>Secure Disposal Routine:</strong> At the expiration of the 7-year statutory lifecycle, non-financial identifying personal records (PII) are permanently de-identified or irreversibly purged using cryptographically verified destruction routines.</li>
                 </ul>

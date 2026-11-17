@@ -206,7 +206,6 @@ const postObserver = new IntersectionObserver((entries) => {
     const SUPPORTER_TABS = [
         { id: 'supporter-tab-chat', icon: 'fa-solid fa-comments', title: 'Direct Chat with Team' },
         { id: 'admin-register-details', icon: 'fa-solid fa-id-card', title: 'Register Your Details' },
-        { id: 'supporter-tab-donate', icon: 'fa-solid fa-heart', title: 'Donation Option', iconColor: '#ef4444' },
         { id: 'admin-buy-tokens', icon: 'fa-solid fa-coins', title: 'Buy Tokens', iconColor: '#f59e0b' }
     ];
 
@@ -658,7 +657,6 @@ const postObserver = new IntersectionObserver((entries) => {
                 mobileSelect.innerHTML = `
                     <option value="supporter-tab-chat">Direct chat with administrative team</option>
                     <option value="admin-register-details">Register Your Details/ Update name, email &amp; phone</option>
-                    <option value="supporter-tab-donate">Donation option (same as website front page)</option>
                     <option value="admin-buy-tokens">Buy Tokens</option>
                 `;
             }
@@ -830,69 +828,6 @@ const postObserver = new IntersectionObserver((entries) => {
             }
         });
     });
-
-    // Panel Donation Option Input & Stripe Action
-    const panelDonationAmountInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
-    const panelPayWithStripeBtn = document.getElementById('panelPayWithStripeBtn');
-    const panelDonationStatusMsg = document.getElementById('panelDonationStatusMsg');
-
-    if (panelDonationAmountInput) {
-        panelDonationAmountInput.addEventListener('input', function() {
-            const cleanVal = this.value.replace(/\D/g, '');
-            this.value = cleanVal;
-            const parsed = parseInt(cleanVal, 10);
-            if (parsed >= 50) {
-                selectedDonationAmount = parsed;
-                if (panelDonationStatusMsg) panelDonationStatusMsg.style.display = 'none';
-            }
-            const mainInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
-            if (mainInput && mainInput !== this) {
-                mainInput.value = this.value;
-            }
-        });
-        panelDonationAmountInput.addEventListener('blur', function() {
-            const cleanVal = this.value.replace(/\D/g, '');
-            const parsed = parseInt(cleanVal, 10);
-            if (!parsed || parsed < 50) {
-                this.value = '50';
-                selectedDonationAmount = 50;
-                const mainInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
-                if (mainInput) mainInput.value = '50';
-            } else {
-                selectedDonationAmount = parsed;
-            }
-        });
-    }
-
-    if (panelPayWithStripeBtn) {
-        panelPayWithStripeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
-            const cleanVal = input ? input.value.replace(/\D/g, '') : '';
-            const parsed = parseInt(cleanVal, 10);
-            if (!parsed || parsed < 50) {
-                if (input) {
-                    input.value = '50';
-                    input.focus();
-                }
-                selectedDonationAmount = 50;
-                if (panelDonationStatusMsg) {
-                    panelDonationStatusMsg.style.display = 'block';
-                    panelDonationStatusMsg.style.color = '#ef4444';
-                    panelDonationStatusMsg.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Minimum donation amount is AUD $50.';
-                    setTimeout(() => { if (panelDonationStatusMsg) panelDonationStatusMsg.style.display = 'none'; }, 4000);
-                }
-                return;
-            }
-            selectedDonationAmount = parsed;
-            if (panelDonationStatusMsg) panelDonationStatusMsg.style.display = 'none';
-            if (typeof redirectToStripeCheckout === 'function') {
-                redirectToStripeCheckout(panelPayWithStripeBtn);
-            } else if (typeof openPaymentModal === 'function') {
-                openPaymentModal('stripe');
-            }
-        });
-    }
 
     if (adminModal) {
         adminModal.addEventListener('click', (e) => {
@@ -2189,7 +2124,7 @@ const postObserver = new IntersectionObserver((entries) => {
             const lines = service.parts.map(part => ({ part, price: pricing.resolvePrice(saved[part.key], country) }));
             const name = `<span class="service-price-name">${escapeHtml(service.name)}</span>`;
             if (lines.length > 1 && lines.some(line => line.price)) {
-                // e.g. AI Agent Hosting: the setup price and the monthly price on their own lines
+                // A service with more than one price shows each on its own line
                 box.innerHTML = name + lines.map(({ part, price }) => `
                     <span class="service-price-line">
                         <span class="service-price-label">${escapeHtml(part.label)}</span>
@@ -2685,6 +2620,44 @@ const postObserver = new IntersectionObserver((entries) => {
         }
         renderTokenAccounts();
         renderTokenGrant();
+    }
+
+    // Verify pending payments (Token Accounts, SuperAdmin). There are no Stripe webhooks, so this asks the server to check
+    // every unfinished checkout with Stripe (POST /api/admin/payments/verify-pending) and complete the paid ones
+    const verifyPaymentsBtn = document.getElementById('verifyPendingPaymentsBtn');
+    const verifyPaymentsStatus = document.getElementById('verifyPendingPaymentsStatus');
+    if (verifyPaymentsBtn && verifyPaymentsStatus) {
+        const showVerifyStatus = (message, type = 'info') => {
+            verifyPaymentsStatus.style.display = message ? 'block' : 'none';
+            verifyPaymentsStatus.className = `service-prices-status payments-verify-status is-${type}`;
+            verifyPaymentsStatus.textContent = message || '';
+        };
+        const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+        verifyPaymentsBtn.addEventListener('click', async () => {
+            const original = verifyPaymentsBtn.innerHTML;
+            verifyPaymentsBtn.disabled = true;
+            verifyPaymentsBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Checking with Stripe...';
+            showVerifyStatus('');
+            try {
+                const res = await fetch('/api/admin/payments/verify-pending', { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(String(data.error || `HTTP ${res.status}`).replace(/\.$/, ''));
+                if (!data.checked) {
+                    showVerifyStatus('No pending payments. Everything is up to date.', 'ok');
+                } else {
+                    const parts = [`${plural(data.paid, 'payment')} paid and completed`, `${data.pending} still waiting for payment`, `${data.expired} abandoned`];
+                    if (data.notFound) parts.push(`${data.notFound} not found in Stripe (made with other keys?)`);
+                    if (data.errors) parts.push(`${plural(data.errors, 'check')} failed (try again)`);
+                    showVerifyStatus(`Checked ${plural(data.checked, 'checkout')}: ${parts.join(', ')}.${data.more ? ' More are waiting, so run it again.' : ''}`, data.errors ? 'error' : 'ok');
+                }
+                if (data.paid) loadTokenAccounts(); // balances and counts may have changed
+            } catch (e) {
+                showVerifyStatus(`Could not verify payments: ${e.message}.`, 'error');
+            } finally {
+                verifyPaymentsBtn.disabled = false;
+                verifyPaymentsBtn.innerHTML = original;
+            }
+        });
     }
 
     // A new ID per click, so the server never adds the same click twice
@@ -3933,443 +3906,9 @@ const postObserver = new IntersectionObserver((entries) => {
         window.location.href = `mailto:support@aifoundation.net.au?subject=${mailtoSubject}&body=${mailtoBody}`;
     });
 
-    // ==========================================
-    // Donation & Payment Bar + Foreground Popup Modal Logic
-    // ==========================================
-    let selectedDonationAmount = 50;
-    const amountInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
-    const payStripeBtn = document.getElementById('payWithStripeBtn');
-    const payPayPalBtn = document.getElementById('payWithPayPalBtn');
-    const statusMsg = document.getElementById('donationStatusMsg');
-
-    // Modal elements
-    const paymentModal = document.getElementById('paymentPopupModal');
-    const closePaymentModalBtn = document.getElementById('closePaymentModalBtn');
-    const closePaymentFooterBtn = document.getElementById('closePaymentFooterBtn');
-    const cancelPaymentModalBtn = document.getElementById('cancelPaymentModalBtn');
-    const closeSuccessModalBtn = document.getElementById('closeSuccessModalBtn');
-    const popupSelectedAmount = document.getElementById('popupSelectedAmount');
-    const tabStripeBtn = document.getElementById('tabStripeBtn');
-    const tabPayPalBtn = document.getElementById('tabPayPalBtn');
-    const stripeMethodView = document.getElementById('stripeMethodView');
-    const paypalMethodView = document.getElementById('paypalMethodView');
-    const paymentSuccessView = document.getElementById('paymentSuccessView');
-    const stripePaymentForm = document.getElementById('stripePaymentForm');
-    const stripeLoadingIndicator = document.getElementById('stripeLoadingIndicator');
-    const stripePaymentError = document.getElementById('stripePaymentError');
-    const stripeSubmitBtn = document.getElementById('stripeSubmitBtn');
-    const stripeSubmitText = document.getElementById('stripeSubmitText');
-    const paypalLoadingIndicator = document.getElementById('paypalLoadingIndicator');
-    const paypalButtonsContainer = document.getElementById('paypalButtonsContainer');
-    const paypalPaymentError = document.getElementById('paypalPaymentError');
-
-    let stripeClient = null;
-    let stripeElements = null;
-    let stripePaymentElementInstance = null;
-    let currentLoadedStripeAmount = null;
-    let currentLoadedPayPalAmount = null;
-    let currentPaymentIntentId = null;
-
-    async function syncTransactionSuccess(txId, provider, amt) {
-        try {
-            const currentUser = window.firebaseService?.getCurrentUser?.();
-            const payload = {
-                transactionId: txId || `tx_${Date.now()}`,
-                status: 'succeeded',
-                paymentMethod: provider || 'stripe',
-                tag: 'aifoundation',
-                businessId: '#aifoundation',
-                amount: amt ? Number(amt) : (selectedDonationAmount || 50),
-                customerEmail: currentUser?.email || '',
-                customerName: currentUser?.displayName || '',
-                userId: currentUser?.uid || ''
-            };
-            if (window.firebaseService?.recordTransaction) {
-                await window.firebaseService.recordTransaction(payload);
-            } else {
-                await fetch('/api/transactions/confirm', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            }
-            console.log(`[Firebase] Transaction ${payload.transactionId} synced with tag: ${payload.tag}`);
-        } catch (e) {
-            console.warn('[Firebase Sync] Transaction sync note:', e);
-        }
-    }
-
-    function setDonationStatus(msg, isError = false) {
-        if (!statusMsg) return;
-        statusMsg.style.display = 'block';
-        statusMsg.style.color = isError ? '#ef4444' : '#059669';
-        statusMsg.innerHTML = msg;
-    }
-
-    if (amountInput) {
-        amountInput.addEventListener('input', function() {
-            const cleanVal = this.value.replace(/\D/g, '');
-            this.value = cleanVal;
-            const parsed = parseInt(cleanVal, 10);
-            if (parsed >= 50) {
-                selectedDonationAmount = parsed;
-                if (statusMsg) statusMsg.style.display = 'none';
-            }
-            const pInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
-            if (pInput && pInput !== this) {
-                pInput.value = this.value;
-            }
-        });
-        amountInput.addEventListener('blur', function() {
-            const cleanVal = this.value.replace(/\D/g, '');
-            const parsed = parseInt(cleanVal, 10);
-            if (!parsed || parsed < 50) {
-                this.value = '50';
-                selectedDonationAmount = 50;
-                const pInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
-                if (pInput) pInput.value = '50';
-            } else {
-                selectedDonationAmount = parsed;
-            }
-        });
-    }
-
-    // Preset amount buttons ($50 / $100 / $200) - drive the input so existing handlers keep both bars in sync
-    const presetBtns = document.querySelectorAll('.donation-preset-btn');
-    function syncPresetButtons(value) {
-        presetBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.amount === String(value)));
-    }
-    presetBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const input = btn.closest('.donation-bar-controls')?.querySelector('.donation-amount-input');
-            if (!input) return;
-            input.value = btn.dataset.amount;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        });
-    });
-    document.querySelectorAll('.donation-amount-input').forEach(input => {
-        input.addEventListener('input', () => syncPresetButtons(input.value));
-        input.addEventListener('blur', () => syncPresetButtons(input.value));
-    });
-
-    // Modal Control Functions
-    function openPaymentModal(method = 'stripe') {
-        if (!paymentModal) return;
-        if (!selectedDonationAmount || selectedDonationAmount < 50) {
-            selectedDonationAmount = 50;
-            const mInput = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
-            if (mInput) mInput.value = '50';
-            const pInput = document.getElementById('panelDonationAmountInput') || document.getElementById('panelDonationCustomAmount');
-            if (pInput) pInput.value = '50';
-        }
-
-        const amountFormatted = Number(selectedDonationAmount).toFixed(2);
-
-        if (popupSelectedAmount) {
-            popupSelectedAmount.innerHTML = `AUD $${amountFormatted} <small style="font-size: 0.85rem; font-weight: 500; color: #64748b;">(exc. GST)</small>`;
-        }
-        const gstBreakdownEl = document.getElementById('popupGstBreakdown');
-        if (gstBreakdownEl) {
-            gstBreakdownEl.innerHTML = `Prices exc. GST (+10% GST for Australia)`;
-        }
-        if (stripeSubmitText) stripeSubmitText.textContent = `Pay AUD $${amountFormatted} Securely`;
-        
-        // Reset Views
-        if (paymentSuccessView) paymentSuccessView.style.display = 'none';
-        if (tabStripeBtn && tabStripeBtn.parentElement) {
-            tabStripeBtn.parentElement.style.display = 'flex';
-        }
-        paymentModal.style.display = 'flex';
-
-        switchPaymentTab(method);
-    }
-
-    function closePaymentModal() {
-        if (!paymentModal) return;
-        paymentModal.style.display = 'none';
-    }
-
-    if (closePaymentModalBtn) closePaymentModalBtn.addEventListener('click', closePaymentModal);
-    if (closePaymentFooterBtn) closePaymentFooterBtn.addEventListener('click', closePaymentModal);
-    if (cancelPaymentModalBtn) cancelPaymentModalBtn.addEventListener('click', closePaymentModal);
-    if (closeSuccessModalBtn) closeSuccessModalBtn.addEventListener('click', closePaymentModal);
-    if (paymentModal) {
-        paymentModal.addEventListener('click', (e) => {
-            if (e.target === paymentModal) closePaymentModal();
-        });
-    }
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && paymentModal && paymentModal.style.display === 'flex') {
-            closePaymentModal();
-        }
-    });
-
-    function switchPaymentTab(targetMethod = 'stripe') {
-        if (targetMethod === 'stripe' || !paypalMethodView) {
-            if (tabStripeBtn) tabStripeBtn.classList.add('active');
-            if (tabPayPalBtn) tabPayPalBtn.classList.remove('active');
-            if (stripeMethodView) stripeMethodView.style.display = 'block';
-            if (paypalMethodView) paypalMethodView.style.display = 'none';
-            initStripeForm();
-        } else {
-            if (tabPayPalBtn) tabPayPalBtn.classList.add('active');
-            if (tabStripeBtn) tabStripeBtn.classList.remove('active');
-            if (paypalMethodView) paypalMethodView.style.display = 'block';
-            if (stripeMethodView) stripeMethodView.style.display = 'none';
-            initPayPalButtons();
-        }
-    }
-
-    if (tabStripeBtn) tabStripeBtn.addEventListener('click', () => switchPaymentTab('stripe'));
-    if (tabPayPalBtn) tabPayPalBtn.addEventListener('click', () => switchPaymentTab('paypal'));
-
-    // Initialize Stripe Form in Modal
-    async function initStripeForm() {
-        const fallbackView = document.getElementById('stripeFallbackView');
-        if (stripeLoadingIndicator) stripeLoadingIndicator.style.display = 'none';
-        if (stripePaymentForm) stripePaymentForm.style.display = 'block';
-        if (stripeSubmitBtn) stripeSubmitBtn.style.display = 'block';
-        if (fallbackView) fallbackView.style.display = 'none';
-        if (stripePaymentError) stripePaymentError.style.display = 'none';
-
-        const amountFormatted = Number(selectedDonationAmount || 50).toFixed(2);
-
-        if (stripeSubmitText) {
-            stripeSubmitText.textContent = `Pay AUD $${amountFormatted} via Stripe Checkout`;
-        }
-
-        const container = document.getElementById('stripePaymentElement');
-        if (container) {
-            container.innerHTML = `
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; font-size: 0.92rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #475569;">
-                        <span>Contribution Amount:</span>
-                        <strong style="color: #0f172a;">AUD $${amountFormatted} <span style="font-size: 0.8rem; font-weight: normal; color: #64748b;">(exc. GST)</span></strong>
-                    </div>
-                    <div style="margin-top: 10px; font-size: 0.8rem; color: #64748b; line-height: 1.4; display: flex; align-items: flex-start; gap: 6px;">
-                        <i class="fa-solid fa-file-invoice" style="color: #635bff; margin-top: 2px;"></i>
-                        <span>+10% GST applies for Australia only. Stripe Tax automatically calculates GST on the checkout page and issues an official Tax Invoice.</span>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    // Direct Stripe Hosted Checkout Redirect
-    async function redirectToStripeCheckout(triggerBtn = null) {
-        let origTriggerHtml = '';
-        if (triggerBtn) {
-            origTriggerHtml = triggerBtn.innerHTML;
-            triggerBtn.disabled = true;
-            triggerBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
-        }
-        const directBtn = document.getElementById('stripeDirectLinkBtn');
-        const fallbackBtn = document.getElementById('stripeFallbackBtn');
-        const origDirect = directBtn ? directBtn.innerHTML : '';
-        const origFallback = fallbackBtn ? fallbackBtn.innerHTML : '';
-
-        if (directBtn) directBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
-        if (fallbackBtn) fallbackBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to Stripe...';
-
-        try {
-            const res = await fetch('/api/stripe/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    amount: selectedDonationAmount,
-                    returnPath: window.location.pathname
-                })
-            });
-            const data = await res.json();
-            if (!res.ok || !data.url) {
-                throw new Error(data.error || 'Failed to create Stripe Checkout session');
-            }
-            window.location.href = data.url;
-        } catch (err) {
-            if (triggerBtn) {
-                triggerBtn.disabled = false;
-                triggerBtn.innerHTML = origTriggerHtml;
-            }
-            if (directBtn) directBtn.innerHTML = origDirect;
-            if (fallbackBtn) fallbackBtn.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i> Continue to Stripe Checkout';
-            const stripePaymentError = document.getElementById('stripePaymentError');
-            if (stripePaymentError) {
-                stripePaymentError.textContent = err.message || 'Failed to connect to Stripe checkout.';
-                stripePaymentError.style.display = 'block';
-            }
-            if (panelDonationStatusMsg) {
-                panelDonationStatusMsg.style.display = 'block';
-                panelDonationStatusMsg.style.color = '#ef4444';
-                panelDonationStatusMsg.textContent = err.message || 'Failed to connect to Stripe checkout.';
-            }
-            setDonationStatus(err.message || 'Failed to connect to Stripe checkout.', true);
-        }
-    }
-
-    // Stripe Submit Form
-    if (stripePaymentForm) {
-        stripePaymentForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            redirectToStripeCheckout(stripeSubmitBtn);
-        });
-    }
-
-    document.getElementById('stripeDirectLinkBtn')?.addEventListener('click', () => redirectToStripeCheckout(document.getElementById('stripeDirectLinkBtn')));
-    document.getElementById('stripeFallbackBtn')?.addEventListener('click', () => redirectToStripeCheckout(document.getElementById('stripeFallbackBtn')));
-
-    // Initialize PayPal Buttons in Modal
-    function initPayPalButtons() {
-        if (currentLoadedPayPalAmount === selectedDonationAmount && paypalButtonsContainer.children.length > 0) {
-            return;
-        }
-
-        paypalButtonsContainer.innerHTML = '';
-        paypalLoadingIndicator.style.display = 'block';
-        if (paypalPaymentError) paypalPaymentError.style.display = 'none';
-
-        if (!window.paypal || !window.paypal.Buttons) {
-            paypalLoadingIndicator.style.display = 'none';
-            if (paypalPaymentError) {
-                paypalPaymentError.textContent = 'PayPal SDK could not be loaded.';
-                paypalPaymentError.style.display = 'block';
-            }
-            return;
-        }
-
-        try {
-            window.paypal.Buttons({
-                style: {
-                    layout: 'vertical',
-                    color: 'gold',
-                    shape: 'rect',
-                    borderRadius: 12,
-                    label: 'donate'
-                },
-                createOrder: async () => {
-                    const res = await fetch('/api/paypal/create-order', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ amount: selectedDonationAmount })
-                    });
-                    const data = await res.json();
-                    if (!res.ok || !data.orderId) {
-                        throw new Error(data.error || 'Failed to create PayPal order');
-                    }
-                    return data.orderId;
-                },
-                onApprove: async (data) => {
-                    try {
-                        const captureRes = await fetch(`/api/paypal/capture-order/${data.orderID}`, {
-                            method: 'POST'
-                        });
-                        const captureData = await captureRes.json();
-                        syncTransactionSuccess(data.orderID, 'paypal', selectedDonationAmount);
-                        showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'PayPal');
-                    } catch (err) {
-                        syncTransactionSuccess(data.orderID, 'paypal', selectedDonationAmount);
-                        showPaymentSuccess(`AUD $${selectedDonationAmount}`, 'PayPal');
-                    }
-                },
-                onError: (err) => {
-                    if (paypalPaymentError) {
-                        paypalPaymentError.textContent = 'PayPal encountered an error. Please try again.';
-                        paypalPaymentError.style.display = 'block';
-                    }
-                }
-            }).render('#paypalButtonsContainer').then(() => {
-                paypalLoadingIndicator.style.display = 'none';
-                currentLoadedPayPalAmount = selectedDonationAmount;
-            });
-        } catch (err) {
-            paypalLoadingIndicator.style.display = 'none';
-            if (paypalPaymentError) {
-                paypalPaymentError.textContent = err.message || 'Error rendering PayPal buttons.';
-                paypalPaymentError.style.display = 'block';
-            }
-        }
-    }
-
-    function showPaymentSuccess(amountStr, provider) {
-        stripeMethodView.style.display = 'none';
-        paypalMethodView.style.display = 'none';
-        tabStripeBtn.parentElement.style.display = 'none';
-        paymentSuccessView.style.display = 'block';
-
-        const successMsg = document.getElementById('paymentSuccessMsg');
-        if (successMsg) {
-            successMsg.innerHTML = `Your contribution of <strong>${escapeHtml(amountStr)}</strong> via ${escapeHtml(provider)} was successful!<br>Your support powers open AI tools, educational equity, and community learning across Australia.`;
-        }
-    }
-
-    // Attach click events on the bottom footer bar buttons to trigger the popup
-    if (payStripeBtn) {
-        payStripeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
-            const cleanVal = input ? input.value.replace(/\D/g, '') : '';
-            const parsed = parseInt(cleanVal, 10);
-            if (!parsed || parsed < 50) {
-                if (input) {
-                    input.value = '50';
-                    input.focus();
-                }
-                selectedDonationAmount = 50;
-                setDonationStatus('<i class="fa-solid fa-circle-exclamation"></i> Minimum donation amount is AUD $50.', true);
-                setTimeout(() => { if (statusMsg) statusMsg.style.display = 'none'; }, 4000);
-                return;
-            }
-            selectedDonationAmount = parsed;
-            if (statusMsg) statusMsg.style.display = 'none';
-            if (typeof redirectToStripeCheckout === 'function') {
-                redirectToStripeCheckout(payStripeBtn);
-            } else if (typeof openPaymentModal === 'function') {
-                openPaymentModal('stripe');
-            }
-        });
-    }
-    if (payPayPalBtn) {
-        payPayPalBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('donationAmountInput') || document.getElementById('donationCustomAmount');
-            const cleanVal = input ? input.value.replace(/\D/g, '') : '';
-            const parsed = parseInt(cleanVal, 10);
-            if (!parsed || parsed < 50) {
-                if (input) {
-                    input.value = '50';
-                    input.focus();
-                }
-                selectedDonationAmount = 50;
-                setDonationStatus('<i class="fa-solid fa-circle-exclamation"></i> Minimum donation amount is AUD $50.', true);
-                setTimeout(() => { if (statusMsg) statusMsg.style.display = 'none'; }, 4000);
-                return;
-            }
-            selectedDonationAmount = parsed;
-            if (statusMsg) statusMsg.style.display = 'none';
-            openPaymentModal('paypal');
-        });
-    }
-
-    // Check for Return URLs (Success / Cancel)
+    // Return URLs from Stripe Checkout (tokens and the paid AI services)
     const urlParams = new URLSearchParams(window.location.search);
-    const donationStatus = urlParams.get('donation');
-    // Only accept a whole-number amount from the return URL
-    const donatedAmt = /^\d{1,7}$/.test(urlParams.get('amt') || '') ? urlParams.get('amt') : null;
-
     const sessionId = urlParams.get('session_id');
-
-    if (donationStatus === 'stripe_success' || donationStatus === 'paypal_success' || donationStatus === 'success') {
-        const amtStr = donatedAmt ? ` of AUD $${donatedAmt}` : '';
-        const providerStr = donationStatus === 'paypal_success' ? 'PayPal' : 'Stripe';
-        if (sessionId) {
-            syncTransactionSuccess(sessionId, 'stripe', donatedAmt);
-        }
-        openPaymentModal('stripe');
-        showPaymentSuccess(amtStr || 'your donation', providerStr);
-        window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (donationStatus === 'cancelled') {
-        setDonationStatus('Payment was cancelled. You can try again at any time.', true);
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
 
     // Back from Stripe after buying tokens: once the sign-in is restored, open Buy Tokens to confirm the payment
     const tokensReturnStatus = urlParams.get('tokens');

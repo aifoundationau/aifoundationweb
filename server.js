@@ -59,17 +59,6 @@ function sendServerError(res, err, publicMessage = 'Something went wrong. Please
     const isCustomerFacing = err && (err.type === 'StripeCardError' || err.type === 'StripeInvalidRequestError');
     res.status(500).json({ error: isCustomerFacing ? err.message : publicMessage });
 }
-// Donation limits (AUD, whole dollars). The maximum can be raised with MAX_DONATION_AUD in .env
-const MIN_DONATION_AUD = 50;
-const MAX_DONATION_AUD = Number(process.env.MAX_DONATION_AUD) || 100000;
-
-// Returns a whole-dollar amount within limits, or null. Rejects "50abc", "50.5", "1e3", negatives
-function parseDonationAmount(value) {
-    const text = String(value ?? '').trim();
-    if (!/^\d{1,9}$/.test(text)) return null;
-    const amount = Number(text);
-    return (amount >= MIN_DONATION_AUD && amount <= MAX_DONATION_AUD) ? amount : null;
-}
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'posts.json');
 const COMM_DATA_FILE = path.join(__dirname, 'data', 'community.json');
@@ -116,38 +105,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// Stripe Webhook (raw body required BEFORE express.json for signature verification)
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-    const stripe = getStripe();
-    const webhookSecret = String(process.env.STRIPE_WEBHOOK_SECRET || '').trim();
-    const signature = req.headers['stripe-signature'];
-    if (!stripe || !webhookSecret || !signature) {
-        return res.status(400).json({ error: 'Stripe webhook verification unavailable.' });
-    }
-    let event;
-    try {
-        event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
-    } catch (err) {
-        console.warn('[Stripe Webhook] Signature verification failed:', err.message);
-        return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
-    }
-    try {
-        await strategyPlan.handleWebhookEvent(event);
-        await regionalEduPlan.handleWebhookEvent(event);
-        await toolGovernancePlan.handleWebhookEvent(event);
-        await managedAgentPlan.handleWebhookEvent(event);
-        if (event.type === 'checkout.session.completed' && event.data?.object?.metadata?.kind === 'tokens') {
-            const session = event.data.object;
-            const result = await tokenStore.settleCheckout(session);
-            await syncTokenTransaction(session, result.status);
-        }
-        res.json({ received: true });
-    } catch (e) {
-        console.error('[Stripe Webhook] Handler error:', e);
-        res.status(500).json({ error: 'Webhook processing failed.' });
-    }
-});
-
+// Payments use no Stripe webhooks (and no STRIPE_WEBHOOK_SECRET). Every Checkout Session is saved as pending before
+// the redirect, then verified with stripe.checkout.sessions.retrieve() on return, on reload, or by the SuperAdmin's
+// Verify pending payments (POST /api/admin/payments/verify-pending). Settling is idempotent everywhere
 app.use(express.json({ limit: '10mb' }));
 
 // The owner's other apps may read and spend their users' tokens from the browser (GET /api/tokens, POST /api/tokens/spend).
@@ -796,6 +756,7 @@ app.post('/api/tokens/checkout', requireAuth, async (req, res) => {
         };
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
+            payment_method_types: ['card'], // instant payments only: there are no webhooks to hear about delayed ones
             currency: 'aud',
             automatic_tax: { enabled: true },
             customer_creation: 'always',
@@ -1417,363 +1378,6 @@ app.post('/api/upload-imgbb', requireAdmin, async (req, res) => {
     }
 });
 
-// Stripe Checkout Session Creation
-app.post('/api/stripe/create-checkout-session', async (req, res) => {
-    try {
-        const stripe = getStripe();
-        if (!stripe) {
-            return res.status(500).json({ error: 'Stripe is not configured on the server.' });
-        }
-        let { amount, returnPath } = req.body;
-        amount = parseDonationAmount(amount);
-        if (!amount) {
-            return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
-        }
-
-        const unitAmountCents = amount * 100;
-        const amountFormatted = amount.toFixed(2);
-
-        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-        const basePath = (returnPath && returnPath.startsWith('/')) ? returnPath : '/';
-
-        const metadata = {
-            tag: 'aifoundation',
-            businessId: '#aifoundation',
-            businessName: 'AI Foundation',
-            source: 'aifoundation',
-            amount: String(amount),
-            currency: 'aud',
-            taxBehavior: 'exclusive'
-        };
-
-        const session = await stripe.checkout.sessions.create({
-            mode: 'payment',
-            currency: 'aud',
-            automatic_tax: { enabled: true },
-            customer_creation: 'always',
-            invoice_creation: {
-                enabled: true,
-                invoice_data: {
-                    description: `Tax Invoice — Support AI Foundation Australia ($${amountFormatted} AUD)`,
-                    metadata
-                }
-            },
-            client_reference_id: req.user?.uid || undefined,
-            metadata,
-            payment_intent_data: {
-                description: `Support AI Foundation — $${amountFormatted} AUD`,
-                metadata
-            },
-            line_items: [{
-                quantity: 1,
-                price_data: {
-                    currency: 'aud',
-                    tax_behavior: 'exclusive',
-                    unit_amount: unitAmountCents,
-                    product_data: {
-                        name: 'Support the AI Foundation',
-                        description: `Contribution to AI Foundation Australia ($${amountFormatted} AUD)`
-                    }
-                }
-            }],
-            success_url: `${origin}${basePath}?donation=stripe_success&amt=${amount}&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${origin}${basePath}?donation=cancelled`
-        });
-
-        // Record initiated transaction in Firestore with tag 'aifoundation'
-        try {
-            await firebaseService.recordTransaction({
-                transactionId: session.id,
-                amount: amount,
-                currency: 'aud',
-                paymentMethod: 'stripe',
-                paymentType: 'donation',
-                status: 'initiated',
-                description: `Support AI Foundation Australia ($${amountFormatted} AUD)`,
-                originUrl: `${origin}${basePath}`,
-                metadata: {
-                    checkoutUrl: session.url,
-                    taxBehavior: 'exclusive',
-                    automaticTax: true
-                }
-            });
-        } catch (fbErr) {
-            console.warn('[Firebase] Warning recording checkout session:', fbErr.message);
-        }
-
-        res.json({
-            url: session.url,
-            sessionId: session.id
-        });
-    } catch (e) {
-        console.error('Stripe Checkout Error:', e);
-        sendServerError(res, e, 'Error creating Stripe session');
-    }
-});
-
-// Helper for PayPal OAuth Token
-async function getPayPalAccessToken() {
-    const clientId = process.env.PAYPAL_CLIENT_ID;
-    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-    if (!clientId || !clientSecret) return null;
-    const mode = process.env.PAYPAL_MODE || 'sandbox';
-    const baseUrl = mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    
-    const res = await fetch(`${baseUrl}/v1/oauth2/token`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: 'grant_type=client_credentials'
-    });
-    const data = await res.json();
-    return { token: data.access_token, baseUrl };
-}
-
-// PayPal Order Creation
-app.post('/api/paypal/create-order', async (req, res) => {
-    try {
-        let { amount } = req.body;
-        amount = parseDonationAmount(amount);
-        if (!amount) {
-            return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
-        }
-
-        const pp = await getPayPalAccessToken();
-        if (!pp || !pp.token) {
-            return res.status(500).json({ error: 'PayPal credentials are not configured.' });
-        }
-
-        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-        const orderRes = await fetch(`${pp.baseUrl}/v2/checkout/orders`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${pp.token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                intent: 'CAPTURE',
-                purchase_units: [{
-                    custom_id: 'aifoundation',
-                    invoice_id: `AIF-${Date.now()}`,
-                    amount: {
-                        currency_code: 'AUD',
-                        value: amount.toFixed(2)
-                    },
-                    description: `Support AI Foundation Australia (AUD $${amount}) [tag: aifoundation]`
-                }],
-                application_context: {
-                    brand_name: 'AI Foundation Australia',
-                    return_url: `${origin}/?donation=paypal_success&amt=${amount}`,
-                    cancel_url: `${origin}/?donation=cancelled`
-                }
-            })
-        });
-
-        const orderData = await orderRes.json();
-        const approveLink = orderData.links && orderData.links.find(l => l.rel === 'approve');
-        if (approveLink) {
-            // Record initiated transaction in Firestore with tag 'aifoundation'
-            try {
-                await firebaseService.recordTransaction({
-                    transactionId: orderData.id,
-                    amount: amount,
-                    currency: 'aud',
-                    paymentMethod: 'paypal',
-                    paymentType: 'donation',
-                    status: 'initiated',
-                    description: `Support AI Foundation Australia (AUD $${amount})`
-                });
-            } catch (fbErr) {
-                console.warn('[Firebase] Warning recording paypal order:', fbErr.message);
-            }
-            res.json({ url: approveLink.href, orderId: orderData.id });
-        } else {
-            res.status(400).json({ error: 'Could not create PayPal checkout order.', details: orderData });
-        }
-    } catch (e) {
-        console.error('PayPal Order Error:', e);
-        sendServerError(res, e, 'Error creating PayPal order');
-    }
-});
-
-// Capture PayPal Order
-app.post('/api/paypal/capture-order/:orderId', async (req, res) => {
-    try {
-        const { orderId } = req.params;
-        const pp = await getPayPalAccessToken();
-        if (!pp || !pp.token) {
-            return res.status(500).json({ error: 'PayPal credentials not configured.' });
-        }
-
-        const captureRes = await fetch(`${pp.baseUrl}/v2/checkout/orders/${orderId}/capture`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${pp.token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        const captureData = await captureRes.json();
-
-        // Update transaction in Firestore with tag 'aifoundation'
-        try {
-            const isCompleted = captureData.status === 'COMPLETED';
-            await firebaseService.updateTransactionStatus(orderId, isCompleted ? 'succeeded' : 'failed', {
-                paymentMethod: 'paypal',
-                tag: 'aifoundation',
-                captureId: captureData.purchase_units?.[0]?.payments?.captures?.[0]?.id || ''
-            });
-        } catch (fbErr) {
-            console.warn('[Firebase] Warning updating paypal capture:', fbErr.message);
-        }
-
-        res.json(captureData);
-    } catch (e) {
-        console.error('PayPal Capture Error:', e);
-        sendServerError(res, e);
-    }
-});
-
-// Stripe PaymentIntent for in-page popup modal
-app.post('/api/stripe/create-payment-intent', async (req, res) => {
-    try {
-        const stripe = getStripe();
-        if (!stripe) {
-            return res.status(500).json({ error: 'Stripe is not configured on the server.' });
-        }
-        let { amount } = req.body;
-        amount = parseDonationAmount(amount);
-        if (!amount) {
-            return res.status(400).json({ error: `Invalid donation amount. Please enter a whole number from AUD $${MIN_DONATION_AUD} to AUD $${MAX_DONATION_AUD.toLocaleString('en-AU')}.` });
-        }
-
-        const unitAmountCents = amount * 100;
-        const amountFormatted = amount.toFixed(2);
-
-        const metadata = {
-            tag: 'aifoundation',
-            businessId: '#aifoundation',
-            businessName: 'AI Foundation',
-            source: 'aifoundation',
-            amount: String(amount),
-            currency: 'aud'
-        };
-
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: unitAmountCents,
-            currency: 'aud',
-            automatic_payment_methods: { enabled: true },
-            description: `Donation to AI Foundation Australia ($${amountFormatted} AUD)`,
-            metadata
-        });
-
-        // Record initiated transaction in Firestore with tag 'aifoundation'
-        try {
-            await firebaseService.recordTransaction({
-                transactionId: paymentIntent.id,
-                amount: amount,
-                currency: 'aud',
-                paymentMethod: 'stripe',
-                paymentType: 'donation',
-                status: 'initiated',
-                description: `Donation to AI Foundation Australia ($${amountFormatted} AUD)`
-            });
-        } catch (fbErr) {
-            console.warn('[Firebase] Warning recording payment intent:', fbErr.message);
-        }
-
-        res.json({
-            clientSecret: paymentIntent.client_secret,
-            paymentIntentId: paymentIntent.id,
-            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-            amountAud: amountFormatted
-        });
-    } catch (e) {
-        console.error('Stripe PaymentIntent Error:', e);
-        sendServerError(res, e, 'Error creating payment intent');
-    }
-});
-
-// Look up a payment with the provider so status/amount never come from the browser
-async function fetchVerifiedPayment(transactionId) {
-    if (/^(pi|cs)_[A-Za-z0-9_]+$/.test(transactionId)) {
-        const stripe = getStripe();
-        if (!stripe) throw new Error('Stripe is not configured on the server.');
-        if (transactionId.startsWith('cs_')) {
-            const session = await stripe.checkout.sessions.retrieve(transactionId);
-            return {
-                paymentMethod: 'stripe',
-                status: session.payment_status === 'paid' ? 'succeeded' : (session.status === 'expired' ? 'failed' : 'pending'),
-                amount: (session.amount_total || 0) / 100,
-                providerEmail: session.customer_details?.email || '',
-                providerName: session.customer_details?.name || ''
-            };
-        }
-        const intent = await stripe.paymentIntents.retrieve(transactionId);
-        return {
-            paymentMethod: 'stripe',
-            status: intent.status === 'succeeded' ? 'succeeded' : (intent.status === 'canceled' ? 'failed' : 'pending'),
-            amount: (intent.amount_received || intent.amount || 0) / 100,
-            providerEmail: intent.receipt_email || '',
-            providerName: ''
-        };
-    }
-    if (/^[A-Z0-9]{10,30}$/.test(transactionId)) {
-        const pp = await getPayPalAccessToken();
-        if (!pp || !pp.token) throw new Error('PayPal credentials not configured.');
-        const orderRes = await fetch(`${pp.baseUrl}/v2/checkout/orders/${transactionId}`, {
-            headers: { 'Authorization': `Bearer ${pp.token}` }
-        });
-        if (!orderRes.ok) return null;
-        const order = await orderRes.json();
-        return {
-            paymentMethod: 'paypal',
-            status: order.status === 'COMPLETED' ? 'succeeded' : (order.status === 'VOIDED' ? 'failed' : 'pending'),
-            amount: Number(order.purchase_units?.[0]?.amount?.value || 0),
-            providerEmail: order.payer?.email_address || '',
-            providerName: [order.payer?.name?.given_name, order.payer?.name?.surname].filter(Boolean).join(' ')
-        };
-    }
-    return null;
-}
-
-// Confirm or sync a transaction with tag 'aifoundation'
-// Status and amount are verified with Stripe / PayPal; donor identity comes from the ID token or the provider
-app.post('/api/transactions/confirm', async (req, res) => {
-    try {
-        const transactionId = String(req.body.transactionId || '').trim();
-        if (!transactionId) {
-            return res.status(400).json({ error: 'transactionId is required' });
-        }
-
-        let verified;
-        try {
-            verified = await fetchVerifiedPayment(transactionId);
-        } catch (lookupErr) {
-            console.warn('[Transactions] Provider lookup failed:', lookupErr.message);
-            return res.status(404).json({ error: 'Transaction not found.' });
-        }
-        if (!verified) {
-            return res.status(404).json({ error: 'Transaction not found.' });
-        }
-
-        const result = await firebaseService.updateTransactionStatus(transactionId, verified.status, {
-            paymentMethod: verified.paymentMethod,
-            tag: 'aifoundation',
-            amount: verified.amount,
-            customerEmail: req.user?.email || verified.providerEmail,
-            customerName: req.user?.name || verified.providerName,
-            userId: req.user?.uid || ''
-        });
-        res.json({ success: true, status: verified.status, amount: verified.amount, recorded: Boolean(result.success) });
-    } catch (e) {
-        console.error('[Transactions] Confirm error:', e);
-        res.status(500).json({ error: 'Could not confirm transaction.' });
-    }
-});
-
 // Record a transaction directly into Firestore with tag 'aifoundation'
 app.post('/api/transactions/record', requireAdmin, async (req, res) => {
     try {
@@ -1797,6 +1401,77 @@ app.get('/api/transactions', requireAdmin, async (req, res) => {
         console.error('[Transactions] Query error:', e);
         sendServerError(res, e);
     }
+});
+
+// SuperAdmin: Verify pending payments. There are no Stripe webhooks, so this is the manual check. Every checkout is saved
+// as an 'initiated' transaction before the customer goes to Stripe; this looks each one up with
+// stripe.checkout.sessions.retrieve() and settles it through the same idempotent code as the return and reload checks:
+// tokens are credited, paid services unlocked, abandoned checkouts marked failed. Safe to run at any time, and again.
+// Up to 50 checkouts per run, 5 at a time; `more` says whether others are still waiting
+const VERIFY_BATCH = 50;
+const SERVICE_PLANS = [strategyPlan, regionalEduPlan, toolGovernancePlan, managedAgentPlan];
+
+// One pending checkout: 'paid' (settled, now or before), 'pending' (not paid yet), 'expired' (never will be) or
+// 'not-found' (Stripe doesn't know it with the current keys, e.g. it was made with test keys)
+async function verifyPendingCheckout(stripe, sessionId) {
+    let session;
+    try {
+        session = await stripe.checkout.sessions.retrieve(sessionId);
+    } catch (e) {
+        if (e && e.code === 'resource_missing') return 'not-found';
+        throw e;
+    }
+    const markRecord = status => firebaseService.updateTransactionStatus(session.id, status, status === 'succeeded'
+        ? { paymentMethod: 'stripe', amount: (session.amount_total || 0) / 100 }
+        : { paymentMethod: 'stripe' });
+
+    if (session.metadata?.kind === 'tokens') {
+        const result = await tokenStore.settleCheckout(session);
+        const outcome = result.status === 'credited' || result.status === 'already-credited' ? 'paid' : result.status;
+        await syncTokenTransaction(session, outcome === 'paid' ? 'credited' : result.status);
+        return outcome;
+    }
+    for (const plan of SERVICE_PLANS) {
+        const result = await plan.settleCheckoutSession(session);
+        if (!result.handled) continue;
+        if (result.status === 'paid') await markRecord('succeeded');
+        if (result.status === 'expired') await markRecord('failed');
+        return result.status;
+    }
+    // Any other checkout (e.g. an old donation): bring its record in line with Stripe
+    if (session.payment_status === 'paid') {
+        await markRecord('succeeded');
+        return 'paid';
+    }
+    if (session.status === 'expired') {
+        await markRecord('failed');
+        return 'expired';
+    }
+    return 'pending';
+}
+
+app.post('/api/admin/payments/verify-pending', requireSuperAdmin, async (req, res) => {
+    const stripe = getStripe();
+    if (!stripe) return res.status(503).json({ error: 'Stripe is not configured on the server.' });
+    const pending = await firebaseService.listPendingTransactions(200);
+    if (!pending) return res.status(503).json({ error: 'The database could not be reached. Please try again.' });
+
+    // Only Stripe Checkout Sessions can be verified; older records (PayPal orders, PaymentIntents) are left as they are
+    const sessionIds = [...new Set(pending.map(tx => String(tx.transactionId || '')).filter(id => /^cs_[A-Za-z0-9_]+$/.test(id)))];
+    const batch = sessionIds.slice(0, VERIFY_BATCH);
+    const counts = { checked: batch.length, paid: 0, pending: 0, expired: 0, notFound: 0, errors: 0 };
+    for (let i = 0; i < batch.length; i += 5) {
+        await Promise.all(batch.slice(i, i + 5).map(async id => {
+            try {
+                const outcome = await verifyPendingCheckout(stripe, id);
+                counts[outcome === 'not-found' ? 'notFound' : outcome] += 1;
+            } catch (e) {
+                counts.errors += 1;
+                console.warn(`[Verify Payments] Could not verify ${id}:`, e.message);
+            }
+        }));
+    }
+    res.json({ ...counts, skipped: pending.length - sessionIds.length, more: sessionIds.length > batch.length || pending.length >= 200 });
 });
 
 // Expose safe public Firebase config for frontend clients

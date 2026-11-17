@@ -30,7 +30,7 @@ In `#managedAgentModal`:
 
 ## 4. Stripe Checkout Gate (AUD + Exclusive GST)
 - Reads admin `ai-agent-hosting.setup` AUD price when positive, else `Number(process.env.MANAGED_AGENT_ADVISORY_PRICE_AUD_CENTS) || 34900` ($349.00 AUD ex GST).
-- Enforces `currency: 'aud'`, `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, `metadata` with `businessId: '#aifoundation'`, `workflow: 'advisory_with_superadmin_improvement'`, atomic unlock via webhook (`checkout.session.completed`) or `POST /api/managed-agent/confirm` (`status: 'paid_intake_ready'`).
+- Enforces `currency: 'aud'`, `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, `metadata` with `businessId: '#aifoundation'`, `workflow: 'advisory_with_superadmin_improvement'`, cards only (`payment_method_types: ['card']`), webhook-free idempotent unlock (`status: 'paid_intake_ready'`) via `stripe.checkout.sessions.retrieve()` on `POST /api/managed-agent/confirm`, on reload, or by SuperAdmin Verify pending payments. Never add Stripe webhooks or `STRIPE_WEBHOOK_SECRET`.
 
 ## 5. Stage 1, Stage 2 & Stage 3 Lifecycle
 - **Stage 1 (6 Questions)**: Uses `@google/genai` `interactions.create` (`process.env.GEMINI_MODEL` -> `gemini-3.5-flash-lite`) with `{ type: 'google_search' }` on Q1 (industry workflows & operational bottlenecks), covering Industry & Fragmented Workflows, Agent Tasks & MCP/Tool Specs, Zero-Downtime SLA/Latency/Concurrency, Hosting Boundary & Safety Guardrails, Live Tracing/Drift Evaluation & Maintenance Cadence, and AUD Budget & 30-Day Priorities, validated by strict `ManagedAgentIntakeSchema`.

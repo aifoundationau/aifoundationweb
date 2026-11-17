@@ -25,8 +25,9 @@ The application operates within a Google Cloud Firestore project (`ai-foundation
 
 ### 1.2 PCI DSS Scope Minimization (SAQ A)
 - Under no circumstances does raw cardholder data (Primary Account Number [PAN], Card Verification Value [CVV/CVC], or Expiration Date) touch the application server or its local storage.
-- All payment element inputs are rendered inside isolated iframes hosted directly by Stripe (`js.stripe.com`) or processed within PayPal's secure checkout environment (`paypal.com`).
-- The application server only handles tokenized PaymentIntent identifiers (`pi_*`), Checkout Session identifiers (`cs_*`), or PayPal Order identifiers.
+- All payment details are entered on Stripe's hosted Checkout page; the site loads no payment form of its own.
+- The application server only handles Stripe Checkout Session identifiers (`cs_*`).
+- Every payment is one-off (`mode: 'payment'`): there are no donations and no subscriptions. Historic donation records (including PayPal) remain in Firestore under the 7-year retention rule.
 
 ### 1.3 Uniform 7-Year Lifecycle & Retention Governance
 In strict compliance with statutory recordkeeping under the Australian Corporations Act 2001 (s 286), the Australian Taxation Office (ATO), and the Privacy Act 1988 (Cth):
@@ -37,11 +38,11 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 
 ## 2. Domain Entity Contracts
 
-### Domain 1: Billing & Financial Contributions
+### Domain 1: Billing & Payments
 
 #### Target Collections
 - Primary: `transactions/{transactionId}`
-- Provider Specific: `stripe_transactions/{transactionId}` and `paypal_transactions/{transactionId}`
+- Provider Specific: `stripe_transactions/{transactionId}` (`paypal_transactions/{transactionId}` holds historic PayPal donation records only; nothing new is written there)
 
 #### Data Fields Specification
 | Field Name | Type | Ingestion Channel | Classification | Invariants & Constraints | Storage & Encryption |
@@ -54,8 +55,8 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `amount` | Integer | UI Form / API Route | Financial | Required. Range: `1 <= amount <= 1,000,000`. Strictly positive whole integer (AUD $). Decimals rejected. | Firestore numeric integer. |
 | `currency` | String Enum | Server Default | Financial | Required. **Constant**: `'aud'`. Force lowercased. | Firestore root field. |
 | `paymentMethod` | String Enum | UI Selector / API Route | Internal Audit | Required. Enum: `['stripe', 'paypal']`. | Firestore root field. |
-| `paymentType` | String Enum | API Route | Financial Category | Required. Default: `'donation'`. | Firestore root field. |
-| `status` | String Enum | API Route / Webhook | Audit State | Required. State machine: `'initiated'` → `'processing'` → `'succeeded'` \| `'failed'` \| `'cancelled'`. | Firestore root field. Indexed. |
+| `paymentType` | String Enum | API Route | Financial Category | Required. Set by each checkout (`'tokens'` or the paid service's type). Default: `'payment'`. Historic records may hold `'donation'`. | Firestore root field. |
+| `status` | String Enum | API Route / Stripe verify | Audit State | Required. State machine: `'initiated'` → `'processing'` → `'succeeded'` \| `'failed'` \| `'cancelled'`. | Firestore root field. Indexed. |
 | `description` | String | API Route | Metadata | Max length: 255 characters. Default: `"Support AI Foundation Australia (AUD ${amount})"`. | Firestore root field. |
 | `originUrl` | String (URI) | API Route / Client Header | Metadata | Valid URL. Sanitized against path traversal. | Firestore `metadata.originUrl`. |
 | `customerEmail` | String (Email) | UI Form / API Route | PII | Optional. RFC 5322 regex. Trimmed, lowercased, max 254 characters. | Firestore `metadata.customerEmail`. AES-256 at rest. |
@@ -358,16 +359,16 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `pt` | PT & Fitness | `https://pt.aifoundation.net.au/` | `footer-portal-pt` |
 | `health` | Health Platforms | `https://health.aifoundation.net.au/` | `footer-portal-health` |
 | `edu` | Vocational RTO | `https://edu.aifoundation.net.au/` | `footer-portal-edu` |
-| `nihongo` | Nihongo Learning | `https://www.nihongokyoushitsu.com/` | `footer-portal-nihongo` |
-| `eikaiwa` | Eikaiwa (English Conversation) | `https://www.eikaiwakyoushitsu.com/` | `footer-portal-eikaiwa` |
+| `nihongo` | Nihongo Kyoushitsu | `https://www.nihongokyoushitsu.com/` | `footer-portal-nihongo` |
+| `eikaiwa` | Eikaiwa Kyoushitsu | `https://www.eikaiwakyoushitsu.com/` | `footer-portal-eikaiwa` |
 | `finance` | Finance Portal | `https://finance.aifoundation.net.au/` | `footer-portal-finance` |
 | `kangoo` | Kangoo Car Rental | `https://kangoo.aifoundation.net.au/` | `footer-portal-kangoo` |
 | `socialradar` | Social Media (Social Radar) | `https://adradarhq.com/` | `footer-portal-socialradar` |
 | `courier` | Courier | `https://itsasimplejob.com/` | `footer-portal-courier` |
 | `suburbreport` | Suburb Report | `https://suburbreport.com/` | `footer-portal-suburbreport` |
 
-- **Footer vs. Apps section**: `eikaiwa`, `courier` and `suburbreport` appear in `.footer-portal-nav` only; the `#section-apps` cards and quick buttons do not include them.
-- **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. The footer has 14 items (even, so its 2-column grid has no lone last item). Odd last child (item 11 in `#section-apps`: `socialradar`) centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
+- **Footer vs. Apps section**: `courier` and `suburbreport` appear in `.footer-portal-nav` only; the `#section-apps` cards and quick buttons (12 apps, including `eikaiwa`) do not include them.
+- **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. The footer has 14 items (even, so its 2-column grid has no lone last item). In the footer, an odd last child centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
 
 #### Header Download App (`#downloadAppBtn`)
 - **Placement**: Top header on `index.html`, `projects.html`, `services.html`, `terms.html` and `privacy.html`; `data-agent-id` / `data-testid` = `header-download-app`. Label "Download App", "Get App" at <= 600px, icon only at <= 359px (and at <= 600px on the Terms/Privacy pages, which have three header buttons).
@@ -396,7 +397,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
   - `POST /api/strategy-plan/checkout` (`requireAuth`)
   - `POST /api/strategy-plan/confirm` (`requireAuth`)
   - `POST /api/strategy-plan/message` (`requireAuth`, plain-text only)
-  - `POST /api/stripe/webhook` (`express.raw`, Stripe signature verified)
+  - `POST /api/admin/payments/verify-pending` (`requireSuperAdmin`; manual verification, as there are no Stripe webhooks)
   - `GET /api/strategy-plan/superadmin/briefs` (`requireSuperAdmin`)
   - `POST /api/strategy-plan/superadmin/briefs/:id/read` (`requireSuperAdmin`)
   - `DELETE /api/strategy-plan/superadmin/briefs/:id` (`requireSuperAdmin`, requires `confirmDelete: true`)
@@ -408,7 +409,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 #### Security, Redaction & Payment Invariants
 - **Zero External Access & Zero File Uploads**: Plain-text chat input only (`StrategyChatTurnInputSchema` with `.strict()` / `additionalProperties: false` rejecting any attachment or file key). Zero Google Workspace/GCP client OAuth scopes requested.
 - **Secret Scrubbing (`redactSecrets`)**: All user inputs matching Google API keys (`AIza...`), Stripe/AI secret keys (`sk-...`, `rk_...`, `whsec_...`), GitHub/Slack tokens, JWTs, PEM private keys, or labeled `password=/api_key=/secret=` values are scrubbed to `[REDACTED_SECRET]` prior to any Gemini API call or Firestore persistence, and the client receives a `redactedWarning` notice.
-- **Stripe AUD Exclusive GST Gate**: Always bills in `currency: 'aud'` with `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, using the admin `30-day-roadmap` AUD price when set or `STRATEGY_PLAN_PRICE_AUD_CENTS` (default `29900` = AUD $299.00 ex GST). Unlocked atomically by both `checkout.session.completed` webhook and `POST /api/strategy-plan/confirm`.
+- **Stripe AUD Exclusive GST Gate**: Always bills in `currency: 'aud'` with `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, using the admin `30-day-roadmap` AUD price when set or `STRATEGY_PLAN_PRICE_AUD_CENTS` (default `29900` = AUD $299.00 ex GST). Cards only (`payment_method_types: ['card']`). No Stripe webhooks: the session is saved as pending before the redirect and unlocked idempotently with `stripe.checkout.sessions.retrieve()` by `POST /api/strategy-plan/confirm`, on reload, or by SuperAdmin Verify pending payments.
 - **Stage 2 & Stage 3 Plain-Text `.txt` Deliverables**:
   - Customer `.txt`: `Preliminary_Google_AI_Strategy_30_Day_Advisory_[SanitizedBusinessName]_[YYYY-MM-DD].txt` (pure UTF-8, ASCII `===` dividers, zero Markdown/HTML, mandatory zero-access top disclaimer, 6 advisory sections).
   - SuperAdmin `.txt`: `SUPERADMIN_30_Day_Advisory_Recommendation_[SanitizedBusinessName]_[YYYY-MM-DD].txt` generated asynchronously via `GEMINI_FALLBACK_MODEL` (`gemini-4-hydrogen`) + public Google Search grounding and dispatched unread to SuperAdmin (`confirmDelete: true` required before deletion).
@@ -521,7 +522,7 @@ Strict zero-access, plain-text advisory consultation and SuperAdmin `.txt` refin
 }
 ```
 
-5. **`RegionalEduStripeMetadata`** (`POST /api/regional-edu/checkout` & `POST /api/stripe/webhook`):
+5. **`RegionalEduStripeMetadata`** (`POST /api/regional-edu/checkout` & `POST /api/admin/payments/verify-pending`):
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -600,7 +601,7 @@ Strict zero-access high-compliance AI tool evaluation, multimodal vetting, and a
 }
 ```
 
-3. **`ToolGovernanceStripeMetadata`** (`POST /api/tool-governance/checkout` & `POST /api/stripe/webhook`):
+3. **`ToolGovernanceStripeMetadata`** (`POST /api/tool-governance/checkout` & `POST /api/admin/payments/verify-pending`):
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -682,7 +683,7 @@ Strict zero-access agent runtime topology, MCP/prompt design, and continuous mai
 }
 ```
 
-3. **`ManagedAgentStripeMetadata`** (`POST /api/managed-agent/checkout` & `POST /api/stripe/webhook`):
+3. **`ManagedAgentStripeMetadata`** (`POST /api/managed-agent/checkout` & `POST /api/admin/payments/verify-pending`):
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -726,21 +727,21 @@ Strict zero-access agent runtime topology, MCP/prompt design, and continuous mai
 
 1. **Australian Privacy Act 1988 & Australian Privacy Principles (APPs)**:
    - **APP 1 (Open and transparent management)**: This data contract serves as the transparent architectural standard for all ingested information.
-   - **APP 3 & 5 (Collection of solicited personal information & notification)**: Contact inquiries and donation receipts collect only necessary contact identifiers.
+   - **APP 3 & 5 (Collection of solicited personal information & notification)**: Contact inquiries and payment receipts collect only necessary contact identifiers.
    - **APP 6 (Use or disclosure)**: Transaction metadata tagged with `'aifoundation'` is partitioned strictly for AI Foundation activities.
    - **APP 11 (Security of personal information)**: All communications use TLS 1.3 in transit; all Cloud Firestore documents are encrypted with AES-256 at rest.
 2. **PCI Data Security Standard (PCI DSS v4.0)**:
    - Evaluated under **Self-Assessment Questionnaire A (SAQ A)**.
-   - Web application servers do not store, process, or transmit cardholder data. All card inputs are hosted on Stripe servers via secure Elements.
+   - Web application servers do not store, process, or transmit cardholder data. All card inputs are entered on Stripe's hosted Checkout page.
 3. **Australian Taxation Office (ATO) & Corporations Act Recordkeeping**:
-   - All financial donation logs, receipts, order numbers, and Stripe/PayPal reference numbers are subject to the mandatory **7-year retention period** (Corporations Act 2001, section 286).
+   - All financial transaction logs, receipts, order numbers, and Stripe reference numbers (and historic PayPal references) are subject to the mandatory **7-year retention period** (Corporations Act 2001, section 286).
 
 ---
 
 ## 4. System Integrity Checklist for Engineers & Automated Agents
 
 - [x] **Partition Key Guarantee**: Verify `tag: "aifoundation"` is present on all Firestore writes.
-- [x] **Financial Integer Validation**: Ensure `amount` is an integer `>= 50` (minimum AUD $50) before invoking Stripe or PayPal APIs.
+- [x] **Server-Side Amounts**: Every checkout amount is worked out on the server from the admin price (paid services) or the price per token; the browser never sends an amount to charge.
 - [x] **SSRF Prevention**: Block private subnet resolution on `/api/extract-metadata`.
 - [x] **Sanitization Enforcement**: Run all HTML-rendered text through entity encodings.
 - [x] **Audit Durability**: Ensure all transactions log both initiated and completed states with 7-year storage lifecycle compliance.

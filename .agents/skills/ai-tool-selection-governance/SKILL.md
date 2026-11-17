@@ -30,7 +30,7 @@ In `#toolGovernanceModal`:
 
 ## 4. Stripe Checkout Gate (AUD + Exclusive GST)
 - Reads admin `stack-selection` AUD price when positive, else `Number(process.env.AI_TOOL_GOVERNANCE_PRICE_AUD_CENTS) || 39900` ($399.00 AUD ex GST).
-- Enforces `currency: 'aud'`, `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, `metadata` with `businessId: '#aifoundation'`, `workflow: 'advisory_with_superadmin_improvement'`, atomic unlock via webhook (`checkout.session.completed`) or `POST /api/tool-governance/confirm` (`status: 'paid_intake_ready'`).
+- Enforces `currency: 'aud'`, `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, `metadata` with `businessId: '#aifoundation'`, `workflow: 'advisory_with_superadmin_improvement'`, cards only (`payment_method_types: ['card']`), webhook-free idempotent unlock (`status: 'paid_intake_ready'`) via `stripe.checkout.sessions.retrieve()` on `POST /api/tool-governance/confirm`, on reload, or by SuperAdmin Verify pending payments. Never add Stripe webhooks or `STRIPE_WEBHOOK_SECRET`.
 
 ## 5. Stage 1, Stage 2 & Stage 3 Lifecycle
 - **Stage 1 (6 Questions)**: Uses `@google/genai` `interactions.create` (`process.env.GEMINI_MODEL` -> `gemini-3.5-flash-lite`) with `{ type: 'google_search' }` on Q1 (TGA/Ahpra/OAIC, TEQSA/research integrity, ASIC/AICD/ISO 42001/IRAP), covering Sector & Scale, Multimodal Workflows, Precision Thresholds, Deployment Boundary (Air-Gapped On-Premise vs Secure Cloud), Existing Environment & Local GPU/Server Readiness, and AUD Budget & 30-Day Procurement Decisions, validated by strict `ToolGovernanceIntakeSchema`.

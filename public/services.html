@@ -46,7 +46,7 @@
     <meta name="twitter:image" content="https://www.aifoundation.net.au/assets/logo.png">
     <meta name="twitter:image:alt" content="Services &amp; Capabilities | AI Foundation Australia">
 
-    <link rel="stylesheet" href="style.css?v=66">
+    <link rel="stylesheet" href="style.css?v=67">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script type="application/ld+json">
@@ -501,44 +501,6 @@
 
             </div>
 
-            <!-- Donation & Payment Bar -->
-            <div class="donation-bar-container">
-                <div class="donation-bar-card">
-                    <div class="donation-bar-info">
-                        <div class="donation-bar-title">
-                            <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
-                            <span>Support the AI Foundation</span>
-                        </div>
-                        <p class="donation-bar-subtitle">Every contribution directly powers AI literacy, community platforms, and education equity across Australia.</p>
-                    </div>
-
-                    <div class="donation-bar-controls">
-                        <div class="donation-presets">
-                            <button type="button" class="donation-preset-btn active" data-amount="50" data-agent-id="donation-preset-50" data-testid="donation-preset-50" aria-label="Donate $50">$50</button>
-                            <button type="button" class="donation-preset-btn" data-amount="100" data-agent-id="donation-preset-100" data-testid="donation-preset-100" aria-label="Donate $100">$100</button>
-                            <button type="button" class="donation-preset-btn" data-amount="200" data-agent-id="donation-preset-200" data-testid="donation-preset-200" aria-label="Donate $200">$200</button>
-                        </div>
-
-                        <div class="donation-amount-wrap" title="Enter contribution amount in AUD (exc. GST, +10% GST for Australia, minimum $50)">
-                            <span class="donation-amount-currency">AUD $</span>
-                            <input type="number" id="donationAmountInput" class="donation-amount-input" value="50" min="50" step="1" placeholder="50" inputmode="numeric" data-agent-id="donation-amount-input" data-testid="donation-amount-input" aria-label="Donation amount in AUD">
-                            <span class="donation-amount-min-badge">Min $50</span>
-                        </div>
-
-                        <div class="donation-actions">
-                            <button type="button" id="payWithStripeBtn" class="donation-pay-btn pay-stripe" data-agent-id="pay-with-stripe-btn" data-testid="pay-with-stripe-btn" aria-label="Pay with Card via Stripe">
-                                <i class="fa-solid fa-credit-card"></i> Pay with Card
-                            </button>
-                        </div>
-                    </div>
-                    <div class="donation-tax-notice" style="font-size: 0.8rem; color: #64748b; margin-top: 6px; display: flex; align-items: center; gap: 6px;">
-                        <i class="fa-solid fa-circle-info" style="color: #0066ff;"></i>
-                        <span>Prices exc. GST (+10% GST for Australia)</span>
-                    </div>
-                    <div id="donationStatusMsg" style="display: none; font-size: 0.9rem; font-weight: 600; padding-top: 4px;"></div>
-                </div>
-            </div>
-
             <!-- Footer -->
             <footer class="site-footer"
                 style="margin-top: 24px; padding-top: 20px; padding-bottom: 24px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 16px; color: var(--text-muted); font-size: 0.95rem;">
@@ -594,13 +556,13 @@
                         <i class="fa-solid fa-certificate" aria-hidden="true"></i>
                         <span>RTO</span>
                     </a>
-                    <a href="https://www.nihongokyoushitsu.com/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-nihongo" data-testid="footer-portal-nihongo" aria-label="Nihongo Japanese Learning Portal">
+                    <a href="https://www.nihongokyoushitsu.com/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-nihongo" data-testid="footer-portal-nihongo" aria-label="Nihongo Kyoushitsu Japanese Learning Portal">
                         <i class="fa-solid fa-language" aria-hidden="true"></i>
-                        <span>Nihongo</span>
+                        <span>Nihongo Kyoushitsu</span>
                     </a>
                     <a href="https://www.eikaiwakyoushitsu.com/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-eikaiwa" data-testid="footer-portal-eikaiwa" aria-label="Eikaiwa English Conversation Portal">
                         <i class="fa-solid fa-comments" aria-hidden="true"></i>
-                        <span>Eikaiwa</span>
+                        <span>Eikaiwa Kyoushitsu</span>
                     </a>
                     <a href="https://finance.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-finance" data-testid="footer-portal-finance" aria-label="Finance Portal">
                         <i class="fa-solid fa-coins" aria-hidden="true"></i>
@@ -621,6 +583,10 @@
                     <a href="https://suburbreport.com/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-suburbreport" data-testid="footer-portal-suburbreport" aria-label="Suburb Report">
                         <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
                         <span>Suburb Report</span>
+                    </a>
+                    <a href="https://phsar.aifoundation.net.au/" class="footer-portal-btn" target="_self" data-agent-id="footer-portal-phsar" data-testid="footer-portal-phsar" aria-label="Cambodian Marketplace">
+                        <i class="fa-solid fa-store" aria-hidden="true"></i>
+                        <span>Cambodian Marketplace</span>
                     </a>
                 </div>
 
@@ -912,10 +878,6 @@
                                     <i class="fa-solid fa-id-card"></i>
                                     <span>Register Your Details</span>
                                 </li>
-                                <li class="sidebar-item" data-target="supporter-tab-donate" title="Donation option (same as website front page)">
-                                    <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
-                                    <span>Donation Option</span>
-                                </li>
                                 <li class="sidebar-item" data-target="admin-buy-tokens" title="Buy tokens for your account">
                                     <i class="fa-solid fa-coins" style="color: #f59e0b;"></i>
                                     <span>Buy Tokens</span>
@@ -1202,50 +1164,6 @@
                             </div>
                         </div>
 
-                        <!-- Tab: Donation Option (Supporter Only, same as website front page) -->
-                        <div id="supporter-tab-donate" class="admin-tab-content" style="display: none;">
-                            <div style="margin-bottom: 24px;">
-                                <h2 style="font-size: 1.35rem; color: #0f172a; margin: 0 0 6px; display: flex; align-items: center; gap: 10px;">
-                                    <i class="fa-solid fa-heart" style="color: #ef4444;"></i>
-                                    Support the AI Foundation
-                                </h2>
-                                <p style="font-size: 0.92rem; color: #64748b; margin: 0; line-height: 1.5;">
-                                    Every contribution directly powers AI literacy, community platforms, and education equity across Australia.
-                                </p>
-                                <p style="font-size: 0.82rem; color: #0066ff; margin: 4px 0 0; font-weight: 600;">
-                                    <i class="fa-solid fa-circle-info"></i> Prices exc. GST (+10% GST for Australia)
-                                </p>
-                            </div>
-
-                            <div class="donation-bar-card" style="box-shadow: none; border: 1px solid #e2e8f0; background: #f8fafc; padding: 24px;">
-                                <div class="donation-bar-controls">
-                                    <div class="donation-presets">
-                                        <button type="button" class="donation-preset-btn active" data-amount="50" data-agent-id="panel-donation-preset-50" data-testid="panel-donation-preset-50" aria-label="Donate $50">$50</button>
-                                        <button type="button" class="donation-preset-btn" data-amount="100" data-agent-id="panel-donation-preset-100" data-testid="panel-donation-preset-100" aria-label="Donate $100">$100</button>
-                                        <button type="button" class="donation-preset-btn" data-amount="200" data-agent-id="panel-donation-preset-200" data-testid="panel-donation-preset-200" aria-label="Donate $200">$200</button>
-                                    </div>
-
-                                    <div class="donation-amount-wrap" title="Enter contribution amount in AUD (exc. GST, +10% GST for Australia, minimum $50)">
-                                        <span class="donation-amount-currency">AUD $</span>
-                                        <input type="number" id="panelDonationAmountInput" class="donation-amount-input" value="50" min="50" step="1" placeholder="50" inputmode="numeric" data-agent-id="panel-donation-amount-input" data-testid="panel-donation-amount-input" aria-label="Donation amount in AUD">
-                                        <span class="donation-amount-min-badge">Min $50</span>
-                                    </div>
-
-                                    <div class="donation-actions">
-                                        <button type="button" id="panelPayWithStripeBtn" class="donation-pay-btn pay-stripe" data-agent-id="panel-pay-with-stripe-btn" data-testid="panel-pay-with-stripe-btn" aria-label="Pay with Card via Stripe">
-                                            <i class="fa-solid fa-credit-card"></i> Pay with Card
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="panelDonationStatusMsg" style="display: none; font-size: 0.9rem; font-weight: 600; padding-top: 4px;"></div>
-                                
-                                <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: #94a3b8;">
-                                    <span><i class="fa-solid fa-shield-halved"></i> Secure payments powered by Stripe</span>
-                                    <span>Tax-deductible receipts issued instantly</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Buy Tokens Section (SuperAdmin and supporter panels; the price per 100 tokens is set in Services & Pricing) -->
                         <div id="admin-buy-tokens" class="admin-tab-content" style="display: none;">
                             <div style="margin-bottom: 20px;">
@@ -1302,6 +1220,17 @@
                                     <strong id="tokenCountAifoundation" class="token-count-value">-</strong>
                                     <small id="tokenCountAifoundationDetail" class="token-count-detail">Bought in AI Foundation, minus tokens paid to people here</small>
                                 </div>
+                            </div>
+                            <!-- Verify pending payments: there are no Stripe webhooks, so this checks unfinished checkouts with Stripe -->
+                            <div class="payments-verify-card">
+                                <div class="payments-verify-text">
+                                    <strong><i class="fa-solid fa-magnifying-glass-dollar" style="color: #0066ff;"></i> Pending payments</strong>
+                                    <span>Checks every unfinished Stripe checkout (tokens and paid AI services) and completes any that have been paid. Safe to run at any time.</span>
+                                </div>
+                                <button type="button" id="verifyPendingPaymentsBtn" class="service-prices-save-btn">
+                                    <i class="fa-solid fa-rotate"></i> Verify pending payments
+                                </button>
+                                <div id="verifyPendingPaymentsStatus" class="service-prices-status payments-verify-status" role="status" style="display: none;"></div>
                             </div>
                             <div class="token-accounts-layout">
                                 <div class="token-accounts-browse">
@@ -2041,91 +1970,12 @@
         </div>
     </div>
 
-    <!-- Payment Foreground Popup Modal -->
-    <div class="payment-popup-modal" id="paymentPopupModal" style="display: none;">
-        <div class="payment-popup-content">
-            <button type="button" class="close" id="closePaymentModalBtn" data-agent-id="close-payment-modal-btn" data-testid="close-payment-modal-btn" aria-label="Close modal">&times;</button>
-            
-            <div class="payment-popup-header">
-                <div class="payment-popup-badge">
-                    <i class="fa-solid fa-heart"></i>
-                    <span>Support AI Foundation</span>
-                </div>
-                <h2 style="margin: 10px 0 4px; font-size: 1.4rem; color: #0f172a;">Complete Contribution</h2>
-                <div class="payment-amount-display">
-                    <span style="font-size: 0.95rem; color: #64748b;">Selected Amount:</span>
-                    <span id="popupSelectedAmount" style="font-size: 1.45rem; font-weight: 800; color: #0066ff;">AUD $50.00 <small style="font-size: 0.85rem; font-weight: 500; color: #64748b;">(exc. GST)</small></span>
-                    <div id="popupGstBreakdown" style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
-                        Prices exc. GST (+10% GST for Australia)
-                    </div>
-                </div>
-            </div>
-
-            <!-- Payment Method Views -->
-            <div id="stripeMethodView" class="payment-method-view" style="display: block;">
-                <div id="stripeLoadingIndicator" style="padding: 20px 0; text-align: center; color: #64748b;">
-                    <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: #635bff; margin-bottom: 10px;"></i>
-                    <p style="margin: 0; font-size: 0.9rem; font-weight: 500;">Loading secure card payment form...</p>
-                </div>
-                <form id="stripePaymentForm" style="display: block;">
-                    <div id="stripePaymentElement" style="min-height: 160px; margin-bottom: 16px;"></div>
-                    <div id="stripePaymentError" style="display: none; color: #ef4444; font-size: 0.88rem; margin-bottom: 12px; font-weight: 600;"></div>
-                    <div class="payment-action-row">
-                        <button type="submit" id="stripeSubmitBtn" class="payment-submit-btn" style="background: #635bff; color: white; box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35); flex: 1;">
-                            <i class="fa-solid fa-lock"></i> <span id="stripeSubmitText">Pay AUD $50 Securely</span>
-                        </button>
-                        <button type="button" id="cancelPaymentModalBtn" class="payment-cancel-btn" data-agent-id="cancel-payment-modal-btn" data-testid="cancel-payment-modal-btn" aria-label="Close payment modal">
-                            Close
-                        </button>
-                    </div>
-                </form>
-                <div style="margin-top: 14px; text-align: center;">
-                    <button type="button" class="stripe-direct-link-btn" id="stripeDirectLinkBtn" style="background: none; border: none; color: #635bff; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; transition: opacity 0.2s;">
-                        <span>Prefer direct checkout?</span> <span style="text-decoration: underline;">Open Stripe Checkout <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.78rem;"></i></span>
-                    </button>
-                </div>
-                <div id="stripeFallbackView" style="display: none; text-align: center; padding: 12px 0;">
-                    <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 12px;">You can proceed safely via Stripe's official hosted checkout page:</p>
-                    <button type="button" id="stripeFallbackBtn" class="payment-submit-btn" style="background: #635bff; color: white;">
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Continue to Stripe Checkout
-                    </button>
-                </div>
-            </div>
-
-            <!-- Success State View -->
-            <div id="paymentSuccessView" style="display: none; text-align: center; padding: 20px 8px;">
-                <div style="width: 60px; height: 60px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px;">
-                    <i class="fa-solid fa-check"></i>
-                </div>
-                <h3 style="font-size: 1.3rem; margin-bottom: 8px; color: #0f172a;">Thank You for Your Support!</h3>
-                <p id="paymentSuccessMsg" style="color: #64748b; line-height: 1.6; max-width: 400px; margin: 0 auto 20px; font-size: 0.95rem;">
-                    Your contribution directly powers AI literacy, community platforms, and education equity across Australia.
-                </p>
-                <button type="button" id="closeSuccessModalBtn" style="background: #0f172a; color: white; border: none; padding: 10px 24px; border-radius: 999px; font-weight: 600; cursor: pointer;">
-                    Done
-                </button>
-            </div>
-
-            <div class="payment-popup-footer">
-                <div class="payment-popup-security">
-                    <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i>
-                    <span>Direct 256-bit encrypted checkout via Stripe</span>
-                </div>
-                <button type="button" class="payment-popup-close-btn" id="closePaymentFooterBtn" data-agent-id="close-payment-footer-btn" data-testid="close-payment-footer-btn" aria-label="Close payment modal">
-                    <i class="fa-solid fa-xmark"></i> Close
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Firebase SDK & Client Integration -->
-    <script type="module" src="firebase-client.js?v=40"></script>
+    <script type="module" src="firebase-client.js?v=41"></script>
 
-    <!-- Payment SDKs -->
-    <script src="https://js.stripe.com/v3/"></script>
     <script src="site-locale.js?v=1"></script>
-    <script src="service-pricing.js?v=7"></script>
-    <script src="app.js?v=78"></script>
+    <script src="service-pricing.js?v=8"></script>
+    <script src="app.js?v=80"></script>
     <script src="install-app.js?v=1"></script>
 </body>
 </html>

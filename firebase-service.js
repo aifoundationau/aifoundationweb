@@ -537,9 +537,9 @@ async function recordTransaction(txData) {
         amount: Number(txData.amount) || 0,
         currency: (txData.currency || 'aud').toLowerCase(),
         paymentMethod: txData.paymentMethod || 'stripe', // 'stripe' or 'paypal'
-        paymentType: txData.paymentType || 'donation',
+        paymentType: txData.paymentType || 'payment',
         status: txData.status || 'initiated', // 'initiated', 'succeeded', 'failed', 'cancelled'
-        description: txData.description || `AI Foundation Contribution of AUD $${txData.amount || 0}`,
+        description: txData.description || `AI Foundation payment of ${(txData.currency || 'aud').toUpperCase()} $${txData.amount || 0}`,
         recordedAt: txData.recordedAt || now,
         updatedAt: now,
         metadata: {
@@ -648,6 +648,42 @@ async function listAIFoundationTransactions(limit = 50) {
     } catch (err) {
         console.error('[Firebase] Failed to query transactions:', err.message);
         return [];
+    }
+}
+
+/**
+ * AI Foundation transactions still waiting for payment (status 'initiated'), for the SuperAdmin's Verify pending
+ * payments. Every checkout is recorded this way before the customer is sent to Stripe. null when Firestore can't be reached
+ */
+async function listPendingTransactions(limit = 200) {
+    const token = await getAccessToken();
+    if (!token) return null;
+
+    const equals = (fieldPath, value) => ({ fieldFilter: { field: { fieldPath }, op: 'EQUAL', value: { stringValue: value } } });
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
+    const queryPayload = {
+        structuredQuery: {
+            from: [{ collectionId: 'transactions' }],
+            where: { compositeFilter: { op: 'AND', filters: [equals('tag', TRANSACTION_TAG), equals('status', 'initiated')] } },
+            limit
+        }
+    };
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(queryPayload)
+        });
+        if (!res.ok) {
+            console.warn('[Firebase] Pending transactions query failed:', await res.text());
+            return null;
+        }
+        const rawList = await res.json();
+        return rawList.filter(item => item.document && item.document.fields).map(item => fromFirestoreFields(item.document.fields));
+    } catch (err) {
+        console.error('[Firebase] Failed to query pending transactions:', err.message);
+        return null;
     }
 }
 
@@ -1223,6 +1259,7 @@ module.exports = {
     updateTransactionStatus,
     getDocument,
     listAIFoundationTransactions,
+    listPendingTransactions,
     syncUser,
     getUser,
     getAdminEmailsFromFirebase,

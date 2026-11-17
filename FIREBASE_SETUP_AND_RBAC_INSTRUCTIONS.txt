@@ -86,7 +86,7 @@ These rules immediately allow:
   1. Anyone visiting your website to view published articles, projects, and posts.
   2. Any authenticated user (e.g., support@aifoundation.net.au logged in via Google)
      to publish, edit, or delete posts.
-  3. Logged-in users to manage their own user profiles and record donation/checkout transactions.
+  3. Logged-in users to manage their own user profiles and record checkout transactions.
 
 INSTRUCTIONS TO APPLY:
 1. Go to Firebase Console > Firestore Database.
@@ -268,7 +268,7 @@ service cloud.firestore {
 
     // 3. TRANSACTIONS & PAYMENTS
     match /transactions/{txId} {
-      // Authenticated users can record transactions (checkout/donations)
+      // Authenticated users can record transactions (checkout)
       allow create: if isAuthenticated();
 
       // Users can only view their own transactions; Admins can view all

@@ -27,7 +27,7 @@
   * [11. Ecosystem Portals & Connected Applications](#11-ecosystem-portals-and-connected-applications)
   * [12. Authentication, Account Roles & SuperAdmin Powers](#12-authentication-account-roles-and-superadmin-powers)
   * [13. Universal Token Economy & Balance Terms](#13-universal-token-economy-and-balance-terms)
-  * [14. Financial Contributions, Donations & Tax Compliance](#14-financial-contributions-donations-and-tax-compliance)
+  * [14. Payments & Tax Compliance](#14-payments-and-tax-compliance)
   * [15. Acceptable Use Policy (AUP) & Security Rules](#15-acceptable-use-policy-and-security-rules)
   * [16. Intellectual Property & License Grants](#16-intellectual-property-and-license-grants)
   * [17. Australian Consumer Law (ACL) Guarantees & Disclaimers](#17-australian-consumer-law-guarantees-and-disclaimers)
@@ -77,7 +77,7 @@ In accordance with APP 3 (Collection of solicited personal information) and APP 
 | **Supporter Profile (Optional)** | Full Name, Phone Number (E.164 format), Residential/Postal Address (unit, street, suburb, state, postcode, country). | Supporter engagement, issuance of statutory gift receipts, verification. | Supporter Registration Form in User Portal. |
 | **Direct Communication** | First Name, Last Name, Subject Line, Message Body, Timestamp. | Responding to public inquiries, technical support, community feedback. | Contact Us Form (`mailto:support@aifoundation.net.au`). |
 | **Supporter Chat Interactions** | Sender UID, Sender Email, Sender Display Name, Thread Identifier (`conv_{uid}`), Message Text, Embedded Links. | Asynchronous messaging between supporters and AI Foundation SuperAdmins. | Supporter Chat Console (`/api/chat/send`). |
-| **Token Economy & Purchases** | Stripe Checkout Session ID (`cs_*`), Stripe PaymentIntent (`pi_*`), Token Quantities, Currency (`aud`/`usd`), Ledger Event IDs. | Crediting token balances, transaction history, audit trails, anti-fraud reconciliations. | Stripe Checkout webhooks and server sync. |
+| **Token Economy & Purchases** | Stripe Checkout Session ID (`cs_*`), Stripe PaymentIntent (`pi_*`), Token Quantities, Currency (`aud`/`usd`), Ledger Event IDs. | Crediting token balances, transaction history, audit trails, anti-fraud reconciliations. | Stripe Checkout, verified by the server with Stripe (no webhooks). |
 | **Technical Telemetry & Locality** | Country Code (`x-vercel-ip-country`), Suburb/State (from geo widget), Browser User-Agent, Session IP. | Correct statutory currency display (AUD in Australia vs USD international), localized weather/time widgets, abuse prevention. | Edge HTTP headers & client browser settings. |
 
 > [!NOTE]
@@ -100,9 +100,9 @@ Our integrated platform features a centralized administrative Message Box design
 ### 4. Payment Card Processing & PCI DSS Scope Minimization
 `#PCIDSS` `#SAQ_A` `#StripeSecurity`
 
-Financial contributions, donation payments, and token purchases are processed with the highest assurance security protocols:
+Paid services and token purchases are processed with the highest assurance security protocols:
 1. **Zero Cardholder Storage**: The AI Foundation complies with the **Payment Card Industry Data Security Standard (PCI DSS v4.0)** under the **Self-Assessment Questionnaire A (SAQ A)** profile. We never receive, process, store, or transmit raw credit or debit card numbers (Primary Account Numbers, CVV/CVC, or card expiration dates).
-2. **End-to-End Client Tokenization**: All payment inputs are entered directly into encrypted iframes hosted by Stripe (`js.stripe.com`) or within PayPal's secure checkout environment. Our servers receive and store only opaque, tokenized references (`pi_*`, `cs_*`, or PayPal Order IDs) with associated integer amounts.
+2. **Hosted Checkout Only**: All payment details are entered on Stripe's secure hosted checkout page. Our servers receive and store only opaque, tokenized checkout references (`cs_*`) with their amounts.
 
 ---
 
@@ -111,7 +111,7 @@ Financial contributions, donation payments, and token purchases are processed wi
 `#SevenYearRetention` `#CorporationsAct2001` `#APP11`
 
 In compliance with statutory recordkeeping requirements under the **Corporations Act 2001 (Cth) Section 286**, the **Australian Taxation Office (ATO)**, and **Australian Privacy Principle 11.2**:
-1. **Retention Period**: All financial transaction logs, tax receipts, donation records, payment audit entries, supporter chat interactions, and identity verification logs must be retained for exactly **7 years (2,557 days)** from the date of record generation.
+1. **Retention Period**: All financial transaction logs, tax receipts, payment audit entries, supporter chat interactions, and identity verification logs must be retained for exactly **7 years (2,557 days)** from the date of record generation.
 2. **Immutable Audit Trails**: During the 7-year retention cycle, records are preserved against modification or unauthorized erasure to ensure legal compliance, financial auditability, and system integrity.
 3. **Disposal & Anonymization Routine**: Upon the expiration of the 7-year lifecycle, non-financial personally identifiable records are securely deleted or irreversibly de-identified using cryptographically verified destruction protocols.
 
@@ -206,7 +206,7 @@ These Terms govern user interaction across all connected AI Foundation platforms
 * **PT & Fitness**: [pt.aifoundation.net.au](https://pt.aifoundation.net.au/) &mdash; Physical Training & Athletic Workflows.
 * **Health Platforms**: [health.aifoundation.net.au](https://health.aifoundation.net.au/) &mdash; Health & Wellbeing Applications.
 * **Vocational RTO**: [edu.aifoundation.net.au](https://edu.aifoundation.net.au/) &mdash; Vocational Education & RTO AI Workspaces.
-* **Nihongo Portal**: [nihongokyoushitsu.com](https://www.nihongokyoushitsu.com/) &mdash; Japanese Language Learning Tools.
+* **Nihongo Kyoushitsu**: [nihongokyoushitsu.com](https://www.nihongokyoushitsu.com/) &mdash; Japanese Language Learning Tools.
 * **Finance Portal**: [finance.aifoundation.net.au](https://finance.aifoundation.net.au/) &mdash; Financial Modeling & Token Accounting.
 
 ---
@@ -246,13 +246,13 @@ The AI Foundation implements a unified, integer-based utility token economy acro
 
 ---
 
-<a id="14-financial-contributions-donations-and-tax-compliance"></a>
-### 14. Financial Contributions, Donations & Tax Compliance
-`#Contributions` `#Donations` `#ATOCompliance`
+<a id="14-payments-and-tax-compliance"></a>
+### 14. Payments & Tax Compliance
+`#Payments` `#ATOCompliance`
 
-1. **Voluntary Support**: Contributions and donations made through our portal directly fund community educational outreach, AI literacy research, and platform infrastructure.
-2. **Contribution Boundaries**: The minimum single contribution accepted via our automated checkout is **AUD $50.00**.
-3. **Receipting**: Automated electronic receipts are issued upon payment completion. Contributors are advised to seek independent advice from a registered Australian tax agent regarding personal or business deductibility.
+1. **One-Off Payments**: Paid services and token purchases are one-off payments processed securely by Stripe. We do not accept donations or offer subscriptions, and no payment renews automatically.
+2. **Prices & GST**: Prices are shown excluding GST. GST is calculated and added at checkout where it applies.
+3. **Tax Invoices**: An electronic tax invoice is issued by Stripe once payment clears.
 
 ---
 

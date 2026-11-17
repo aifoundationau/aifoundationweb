@@ -11,19 +11,13 @@
 (function (root) {
     'use strict';
 
-    // One entry per priced service on Services 2. Each part is one price; AI Agent Hosting has two
+    // One entry per priced service on Services 2. Each part is one price, and every price is a one-off payment:
+    // there are no subscriptions. AI Agent Hosting lists only its setup price; ongoing hosting is quoted per client
     const SERVICES = [
         { id: '30-day-roadmap', name: '30 Day Roadmap', parts: [{ key: 'price', label: 'Price' }] },
         { id: 'regulatory-roadmap', name: 'Regulatory Roadmap', parts: [{ key: 'price', label: 'Price' }] },
         { id: 'stack-selection', name: 'Stack Selection', parts: [{ key: 'price', label: 'Price' }] },
-        {
-            id: 'ai-agent-hosting',
-            name: 'AI Agent Hosting',
-            parts: [
-                { key: 'setup', label: 'Setup' },
-                { key: 'monthly', label: 'Monthly servicing', suffix: ' / month' }
-            ]
-        }
+        { id: 'ai-agent-hosting', name: 'AI Agent Hosting', parts: [{ key: 'setup', label: 'Setup' }] }
     ];
 
     // Token pricing: the price of one token, saved with the service prices and edited in the same form.

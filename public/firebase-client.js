@@ -259,48 +259,6 @@ export function onAuthChange(callback) {
 }
 
 /**
- * Record or sync transaction in Firestore and server
- * MANDATORY REQUIREMENT: Every transaction MUST have tag: 'aifoundation'
- */
-export async function recordTransaction(txRecord) {
-  const payload = {
-    ...txRecord,
-    tag: TRANSACTION_TAG, // CRITICAL: 'aifoundation'
-    businessId: BUSINESS_ID, // 'aifoundation'
-    businessName: 'AI Foundation',
-    source: 'aifoundation',
-    recordedAt: txRecord.recordedAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-
-  console.log(`🔥 [Firestore] Recording transaction ${payload.transactionId} with tag: ${payload.tag}`);
-
-  // 1. Dual-layer: Send to Server (authorized with Service Account)
-  try {
-    await fetch('/api/transactions/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-  } catch (err) {
-    console.warn("⚠️ [Server Sync] Could not sync transaction to server:", err.message);
-  }
-
-  // 2. Direct client Firestore write (if permitted by rules)
-  if (db && isConnected && payload.transactionId) {
-    try {
-      const docRef = doc(collection(db, 'transactions'), payload.transactionId);
-      await setDoc(docRef, payload, { merge: true });
-      console.log(`✅ [Firestore] Client wrote transaction ${payload.transactionId} with tag 'aifoundation'`);
-    } catch (e) {
-      console.info("ℹ️ [Firestore] Client-direct write managed via server admin endpoint.");
-    }
-  }
-
-  return payload;
-}
-
-/**
  * Retrieve user profile from server or Firestore
  */
 export async function getUserProfile(uid) {
@@ -390,7 +348,6 @@ window.firebaseService = {
   getUserProfile,
   onAuthChange,
   syncUserProfile,
-  recordTransaction,
   sendChatMessage,
   getChatMessages,
   getChatConversations,

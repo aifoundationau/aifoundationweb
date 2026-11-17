@@ -12,13 +12,14 @@ const BLANK_PRICES = {
     '30-day-roadmap': { price: { usd: null, aud: null } },
     'regulatory-roadmap': { price: { usd: null, aud: null } },
     'stack-selection': { price: { usd: null, aud: null } },
-    'ai-agent-hosting': { setup: { usd: null, aud: null }, monthly: { usd: null, aud: null } },
+    'ai-agent-hosting': { setup: { usd: null, aud: null } },
     tokens: { perToken: { usd: null, aud: null } }
 };
 
-test('the four services, with a setup and a monthly price for AI Agent Hosting', () => {
+test('the four services, each with one one-off price (AI Agent Hosting: setup only, no monthly subscription)', () => {
     assert.deepEqual(pricing.SERVICES.map(s => s.name), ['30 Day Roadmap', 'Regulatory Roadmap', 'Stack Selection', 'AI Agent Hosting']);
-    assert.deepEqual(pricing.SERVICES.map(s => s.parts.map(p => p.key)), [['price'], ['price'], ['price'], ['setup', 'monthly']]);
+    assert.deepEqual(pricing.SERVICES.map(s => s.parts.map(p => p.key)), [['price'], ['price'], ['price'], ['setup']]);
+    assert.ok(pricing.SERVICES.every(s => s.parts.every(p => !p.suffix)), 'no recurring (/ month) prices');
 });
 
 test('Services & Pricing has a card per service, then token pricing (a price per token, bought 10 at a time)', () => {
@@ -58,6 +59,7 @@ test('parseAmount: anything that is not a price is NaN', () => {
     }
 });
 
+// The old AI Agent Hosting monthly price is an unknown key now, so a saved one is dropped
 test('cleanPrices: every service and part is filled in; unknown keys are dropped', () => {
     const { prices, errors } = pricing.cleanPrices({
         '30-day-roadmap': { price: { usd: '1,500', aud: 2300 } },
@@ -70,7 +72,7 @@ test('cleanPrices: every service and part is filled in; unknown keys are dropped
         '30-day-roadmap': { price: { usd: 1500, aud: 2300 } },
         'regulatory-roadmap': { price: { usd: null, aud: null } },
         'stack-selection': { price: { usd: 900, aud: null } },
-        'ai-agent-hosting': { setup: { usd: 2000, aud: null }, monthly: { usd: 300, aud: 451 } },
+        'ai-agent-hosting': { setup: { usd: 2000, aud: null } },
         tokens: { perToken: { usd: null, aud: null } }
     });
 });
@@ -97,16 +99,16 @@ test('cleanPrices: token prices keep their cents while service prices are rounde
 
 test('cleanPrices: each invalid box is reported by service, part and currency', () => {
     const { prices, errors } = pricing.cleanPrices({
-        'ai-agent-hosting': { monthly: { aud: '-20' } },
+        'ai-agent-hosting': { setup: { aud: '-20' } },
         'regulatory-roadmap': { price: { usd: 'free' } }
     });
     assert.deepEqual(errors.map(e => [e.serviceId, e.part, e.currency]), [
         ['regulatory-roadmap', 'price', 'usd'],
-        ['ai-agent-hosting', 'monthly', 'aud']
+        ['ai-agent-hosting', 'setup', 'aud']
     ]);
     assert.match(errors[0].message, /^Regulatory Roadmap: the USD price/);
-    assert.match(errors[1].message, /^AI Agent Hosting \(Monthly servicing\): the AUD price/);
-    assert.equal(prices['ai-agent-hosting'].monthly.aud, null);
+    assert.match(errors[1].message, /^AI Agent Hosting: the AUD price/);
+    assert.equal(prices['ai-agent-hosting'].setup.aud, null);
 });
 
 test('cleanPrices: missing or malformed input gives blank prices', () => {
@@ -252,7 +254,7 @@ function tempPricesFile() {
 
 const SAMPLE = pricing.cleanPrices({
     '30-day-roadmap': { price: { usd: 1500, aud: 2300 } },
-    'ai-agent-hosting': { setup: { usd: 2000 }, monthly: { usd: 300, aud: 450 } }
+    'ai-agent-hosting': { setup: { usd: 2000, aud: 2953 } }
 }).prices;
 
 test('store: nothing saved yet gives blank prices', async () => {

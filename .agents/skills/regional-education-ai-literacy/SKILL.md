@@ -49,7 +49,7 @@ In `#regionalEduModal`, display:
   - `invoice_creation: { enabled: true }`
   - `allow_promotion_codes: true`
   - `metadata`: `{ userId, businessId: '#aifoundation', tag: 'aifoundation', source: 'aifoundation', serviceSlug: 'regulatory-roadmap', serviceName: 'Services - Regional Education & AI Literacy', workflow: 'advisory_with_superadmin_improvement' }`
-- **Session Unlock**: Handle both raw Stripe webhook `checkout.session.completed` (mounted before `express.json()`) and `POST /api/regional-edu/confirm` return-route verification to unlock `aifoundation_regional_edu_sessions/{sessionId}` at `status: 'paid_intake_ready'`.
+- **Session Unlock (no webhooks)**: Never add Stripe webhooks or `STRIPE_WEBHOOK_SECRET`. Save the Checkout Session as pending before the redirect, then verify it idempotently with `stripe.checkout.sessions.retrieve()` via `POST /api/regional-edu/confirm`, on reload, or by SuperAdmin Verify pending payments to unlock `aifoundation_regional_edu_sessions/{sessionId}` at `status: 'paid_intake_ready'`.
 
 ## 5. Stage 1 & Stage 2: 6-Step Needs Discovery & Preliminary `.txt` + Async Research
 - **Model & SDK**: Use `@google/genai` `interactions.create({ model, input, system_instruction, tools: [{ type: 'google_search' }] })` dynamically imported (`await import('@google/genai')`).

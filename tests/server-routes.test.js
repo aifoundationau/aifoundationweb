@@ -65,7 +65,7 @@ test('GET /api/services/prices lists every service and is never cached', async (
     const body = await res.json();
     assert.equal(body.country, '');
     assert.deepEqual(Object.keys(body.prices), PRICE_GROUPS.map(s => s.id));
-    assert.deepEqual(Object.keys(body.prices['ai-agent-hosting']), ['setup', 'monthly']);
+    assert.deepEqual(Object.keys(body.prices['ai-agent-hosting']), ['setup']);
     assert.deepEqual(Object.keys(body.prices.tokens), ['perToken']);
     assert.ok(!('updatedBy' in body), 'the admin email is never public');
 });
@@ -85,6 +85,14 @@ test('saving prices needs an admin sign-in', async () => {
     });
     assert.equal((await put({})).status, 401);
     assert.equal((await put({ Authorization: 'Bearer not-a-real-token' })).status, 401);
+});
+
+test('there is no Stripe webhook route, and verifying pending payments needs a SuperAdmin sign-in', async () => {
+    const hook = await get('/api/stripe/webhook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    assert.equal(hook.status, 404);
+    const verify = headers => get('/api/admin/payments/verify-pending', { method: 'POST', headers });
+    assert.equal((await verify({})).status, 401);
+    assert.equal((await verify({ Authorization: 'Bearer not-a-real-token' })).status, 401);
 });
 
 test('extracting metadata needs an admin sign-in', async () => {

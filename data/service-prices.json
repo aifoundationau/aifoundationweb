@@ -22,10 +22,6 @@
       "setup": {
         "usd": 2000,
         "aud": 2953
-      },
-      "monthly": {
-        "usd": 1000,
-        "aud": 1426
       }
     },
     "tokens": {

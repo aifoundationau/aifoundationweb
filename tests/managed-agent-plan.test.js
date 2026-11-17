@@ -239,10 +239,8 @@ test('Managed Agent 6-step scoping -> preliminary TXT -> async Cloud/MCP researc
             user: { uid: 'uid_rto_1', email: 'it@pacificrto.edu.au', name: 'Sam Ops' },
             origin: 'https://www.aifoundation.net.au'
         });
-        await service.handleWebhookEvent({
-            type: 'checkout.session.completed',
-            data: { object: sessions.get(checkout.stripeSessionId) }
-        });
+        // No webhooks: the session is settled as the SuperAdmin's Verify pending payments would
+        assert.equal((await service.settleCheckoutSession(sessions.get(checkout.stripeSessionId))).status, 'paid');
 
         const answers = [
             'Pacific Vocational RTO handling 1,200 weekly student enrollment inquiries manually.',

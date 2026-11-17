@@ -16,7 +16,7 @@
 3. **Stripe Payment Gate (AUD + 10% Exclusive GST)**:
    - Configured via admin `30-day-roadmap` AUD pricing or `STRATEGY_PLAN_PRICE_AUD_CENTS` (default `29900` = AUD $299.00 ex GST).
    - Enforces `currency: 'aud'`, `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, and `invoice_creation: { enabled: true }`.
-   - Dual atomic session unlock via `POST /api/stripe/webhook` (`express.raw`, `STRIPE_WEBHOOK_SECRET` verified) and `POST /api/strategy-plan/confirm`.
+   - Webhook-free session unlock: the Checkout Session is saved as pending before the redirect and verified with `stripe.checkout.sessions.retrieve()` by `POST /api/strategy-plan/confirm`, on reload, or by SuperAdmin Verify pending payments (`POST /api/admin/payments/verify-pending`). No Stripe webhooks or `STRIPE_WEBHOOK_SECRET`.
 4. **Grounded Gemini Advisory & Multi-Model Fallbacks**:
    - Uses `@google/genai` `interactions.create` with `tools: [{ type: 'google_search' }]`, `GEMINI_MODEL` (`gemini-3.5-flash-lite`) for Stage 1/2, and `GEMINI_FALLBACK_MODEL` (`gemini-4-hydrogen`) for async Stage 3 public documentation research.
    - Deterministic offline/keyless fallback preserves full 6-step functionality whenever `GEMINI_API_KEY` is blank or unavailable.
@@ -47,7 +47,7 @@
 3. **Stripe Payment Gate (AUD + 10% Exclusive GST + Promo Codes)**:
    - Reads admin `regulatory-roadmap` AUD pricing or falls back to `REGIONAL_EDU_PLAN_PRICE_AUD_CENTS` (`19900` = AUD $199.00 ex GST).
    - Enforces `currency: 'aud'`, `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, and `allow_promotion_codes: true`.
-   - Unlocks `aifoundation_regional_edu_sessions/{sessionId}` to `status: 'paid_intake_ready'` via raw Stripe webhook (`checkout.session.completed`) or `POST /api/regional-edu/confirm`.
+   - Unlocks `aifoundation_regional_edu_sessions/{sessionId}` to `status: 'paid_intake_ready'` webhook-free, verified with `stripe.checkout.sessions.retrieve()` by `POST /api/regional-edu/confirm`, on reload, or by SuperAdmin Verify pending payments.
 4. **Grounded 6-Step Discovery, Preliminary `.txt` & Async Regulatory Research**:
    - Uses `@google/genai` `interactions.create` with `{ type: 'google_search' }`: `GEMINI_MODEL` (`gemini-3.5-flash-lite`) for Q1 regional search & preliminary draft generation (`PRELIMINARY_Regional_Education_AI_Advisory_[Org]_[Date].txt`), and `GEMINI_FALLBACK_MODEL` (`gemini-4-hydrogen`) for async public regulatory research (Australian Schools AI Framework, TEQSA/ASQA, APPs, UNESCO/ASEAN AI Governance, low-bandwidth Google tools) + unread dispatch to `aifoundation_regional_edu_reviews` and `chat_interactions`.
    - Seamless deterministic keyless fallback whenever `GEMINI_API_KEY` is blank.

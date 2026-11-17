@@ -239,10 +239,8 @@ test('Tool Governance 6-step medical/air-gapped discovery -> preliminary TXT -> 
             user: { uid: 'uid_clinic_1', email: 'lead@regionalmed.com.au', name: 'Dr Taylor' },
             origin: 'https://www.aifoundation.net.au'
         });
-        await service.handleWebhookEvent({
-            type: 'checkout.session.completed',
-            data: { object: sessions.get(checkout.stripeSessionId) }
-        });
+        // No webhooks: the session is settled as the SuperAdmin's Verify pending payments would
+        assert.equal((await service.settleCheckoutSession(sessions.get(checkout.stripeSessionId))).status, 'paid');
 
         const answers = [
             'Regional Medical Clinic in NSW with 45 clinicians under Ahpra and OAIC oversight.',

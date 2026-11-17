@@ -241,11 +241,10 @@ test('Full 6-step AI discovery -> preliminary TXT -> async research -> SuperAdmi
             returnPath: '/'
         });
 
-        const webhookRes = await service.handleWebhookEvent({
-            type: 'checkout.session.completed',
-            data: { object: stripeSessions.get(checkout.stripeSessionId) }
-        });
-        assert.equal(webhookRes.handled, true);
+        // No webhooks: the session is settled as the SuperAdmin's Verify pending payments would
+        const settled = await service.settleCheckoutSession(stripeSessions.get(checkout.stripeSessionId));
+        assert.equal(settled.handled, true);
+        assert.equal(settled.status, 'paid');
 
         const sessionId = checkout.sessionId;
         const answers = [

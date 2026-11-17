@@ -123,7 +123,7 @@ test('redactSecrets scrubs API keys, Stripe secrets, JWTs, PEM keys, and labeled
     assert.equal(clean.hadSecrets, false);
 });
 
-test('Stripe checkout uses AUD exclusive GST, respects admin override or $299 fallback, and unlocks atomically via webhook or confirm', async () => {
+test('Stripe checkout uses AUD exclusive GST and cards only, respects admin override or $299 fallback, and unlocks idempotently via settle (manual verify) or confirm', async () => {
     const stores = tempStorePaths();
     const firebase = makeFakeFirebase();
     const stripe = makeFakeStripe({ paid: true, ownerUid: 'user_123' });
@@ -155,6 +155,7 @@ test('Stripe checkout uses AUD exclusive GST, respects admin override or $299 fa
     assert.equal(stripe.createdSessions.length, 1);
     const params = stripe.createdSessions[0];
     assert.equal(params.currency, 'aud');
+    assert.deepEqual(params.payment_method_types, ['card']);
     assert.equal(params.automatic_tax.enabled, true);
     assert.equal(params.invoice_creation.enabled, true);
     assert.equal(params.line_items[0].price_data.currency, 'aud');
@@ -167,12 +168,18 @@ test('Stripe checkout uses AUD exclusive GST, respects admin override or $299 fa
     assert.equal(params.metadata.serviceType, SERVICE_TYPE);
     assert.match(checkout.url, /^https:\/\/checkout\.stripe\.com/);
 
-    // Webhook unlock works idempotently; subsequent confirm returns the same unlocked session
-    const webhookRes = await service.handleWebhookEvent({
-        type: 'checkout.session.completed',
-        data: { object: stripe.retrievedSessions.get('cs_test_strategy123') }
-    });
-    assert.equal(webhookRes.handled, true);
+    // No webhooks: settling a retrieved session (SuperAdmin's Verify pending payments) unlocks it, a second run changes
+    // nothing, and another service's checkout is left alone. A later confirm returns the same unlocked session
+    const settled = await service.settleCheckoutSession(stripe.retrievedSessions.get('cs_test_strategy123'));
+    assert.equal(settled.handled, true);
+    assert.equal(settled.status, 'paid');
+    const settledAgain = await service.settleCheckoutSession(stripe.retrievedSessions.get('cs_test_strategy123'));
+    assert.deepEqual(settledAgain, settled);
+    assert.deepEqual(await service.settleCheckoutSession({ id: 'cs_other', metadata: { kind: 'tokens' }, payment_status: 'paid' }), { handled: false });
+    assert.deepEqual(
+        await service.settleCheckoutSession({ id: 'cs_unpaid', metadata: { kind: 'strategy_plan' }, payment_status: 'unpaid', status: 'expired' }),
+        { handled: true, status: 'expired', sessionId: null }
+    );
 
     const confirmed = await service.confirmCheckoutSession({
         uid: 'user_123',

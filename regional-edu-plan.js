@@ -656,6 +656,7 @@ function createRegionalEduService(options = {}) {
 
         const stripeSession = await stripe.checkout.sessions.create({
             mode: 'payment',
+            payment_method_types: ['card'], // instant payments only: there are no webhooks to hear about delayed ones
             currency: 'aud',
             automatic_tax: { enabled: true },
             customer_creation: 'always',
@@ -828,16 +829,18 @@ function createRegionalEduService(options = {}) {
         return unlockPaidCheckout(stripeSession);
     }
 
-    async function handleWebhookEvent(event) {
-        if (!event || event.type !== 'checkout.session.completed') {
-            return { handled: false };
-        }
-        const session = event.data?.object;
+    // Settle a Checkout Session already fetched with stripe.checkout.sessions.retrieve() (SuperAdmin's Verify pending
+    // payments; there are no Stripe webhooks). Unlocks it when paid, and running it again changes nothing.
+    // status: 'paid', 'pending' (not paid yet) or 'expired' (never will be). { handled: false } when it isn't this service's
+    async function settleCheckoutSession(session) {
         if (!session || session.metadata?.kind !== 'regional_edu_advisory') {
             return { handled: false };
         }
+        if (session.payment_status !== 'paid') {
+            return { handled: true, status: session.status === 'expired' ? 'expired' : 'pending', sessionId: null };
+        }
         const unlocked = await unlockPaidCheckout(session);
-        return { handled: true, sessionId: unlocked?.id || null };
+        return { handled: true, status: 'paid', sessionId: unlocked?.id || null };
     }
 
     async function getLatestUserSession(uid) {
@@ -1327,7 +1330,7 @@ function createRegionalEduService(options = {}) {
         getRegionalEduPricing,
         createCheckoutSession,
         confirmCheckoutSession,
-        handleWebhookEvent,
+        settleCheckoutSession,
         getLatestUserSession,
         getSessionById,
         submitIntakeAnswer,
