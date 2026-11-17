@@ -201,7 +201,7 @@ By accessing our sites, registering an account, purchasing tokens, or utilizing 
 These Terms govern user interaction across all connected AI Foundation platforms and child portals, including but not limited to:
 * **AI Core**: [www.aifoundation.net.au](https://www.aifoundation.net.au/) &mdash; AI Literacy, Community Platforms & Public Showcase.
 * **LMS Portal**: [lms.aifoundation.net.au](https://lms.aifoundation.net.au/) &mdash; Learning Management Systems & AI Course Delivery.
-* **HR Solutions**: [hr.aifoundation.net.au](http://hr.aifoundation.net.au/) &mdash; Human Resources & Talent Orchestration.
+* **HR Solutions**: [easyhragency.com](https://easyhragency.com/) &mdash; Human Resources & Talent Orchestration.
 * **Trades & Work**: [jobs.aifoundation.net.au](https://jobs.aifoundation.net.au/) &mdash; Field Work & "It's a Simple Job" Platforms.
 * **PT & Fitness**: [pt.aifoundation.net.au](https://pt.aifoundation.net.au/) &mdash; Physical Training & Athletic Workflows.
 * **Health Platforms**: [health.aifoundation.net.au](https://health.aifoundation.net.au/) &mdash; Health & Wellbeing Applications.

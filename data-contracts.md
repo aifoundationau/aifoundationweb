@@ -353,7 +353,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | :--- | :--- | :--- | :--- |
 | `ai` | AI Core Portal | `https://www.aifoundation.net.au/` | `footer-portal-ai` |
 | `lms` | LMS Portal | `https://lms.aifoundation.net.au/` | `footer-portal-lms` |
-| `hr` | HR Solutions | `http://hr.aifoundation.net.au/` | `footer-portal-hr` |
+| `hr` | HR Solutions | `https://easyhragency.com/` | `footer-portal-hr` |
 | `jobs` | Trades & Work | `https://jobs.aifoundation.net.au/` | `footer-portal-jobs` |
 | `pt` | PT & Fitness | `https://pt.aifoundation.net.au/` | `footer-portal-pt` |
 | `health` | Health Platforms | `https://health.aifoundation.net.au/` | `footer-portal-health` |
@@ -361,9 +361,12 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `nihongo` | Nihongo Learning | `https://nihongo.aifoundation.net.au/` | `footer-portal-nihongo` |
 | `finance` | Finance Portal | `https://finance.aifoundation.net.au/` | `footer-portal-finance` |
 | `kangoo` | Kangoo Car Rental | `https://kangoo.aifoundation.net.au/` | `footer-portal-kangoo` |
-| `socialradar` | Social Media (Social Radar) | `https://socialradar.aifoundation.net.au/` | `footer-portal-socialradar` |
+| `socialradar` | Social Media (Social Radar) | `https://adradarhq.com/` | `footer-portal-socialradar` |
+| `courier` | Courier | `https://itsasimplejob.com/` | `footer-portal-courier` |
+| `suburbreport` | Suburb Report | `https://suburbreport.com/` | `footer-portal-suburbreport` |
 
-- **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. Odd last child (item 11: `socialradar`) centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
+- **Footer vs. Apps section**: `courier` and `suburbreport` appear in `.footer-portal-nav` only; the `#section-apps` cards and quick buttons do not include them.
+- **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. Odd last child (item 13 in the footer: `suburbreport`; item 11 in `#section-apps`: `socialradar`) centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
 
 #### Unified Multi-Database SuperAdmin Message Box (`GET /api/message-box`, `POST /api/chat/send`)
 - **Aggregated Databases & Tags**:

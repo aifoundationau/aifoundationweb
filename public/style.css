@@ -607,7 +607,7 @@ p { margin: 0; }
   border-top: 1px solid var(--border-color, #e2e8f0);
 }
 
-/* Padding and gap sized so all 11 buttons fit smoothly across screens */
+/* Padding and gap sized so all 13 buttons fit smoothly across screens */
 .footer-portal-btn {
   display: inline-flex;
   align-items: center;
