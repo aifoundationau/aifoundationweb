@@ -196,7 +196,9 @@ const postObserver = new IntersectionObserver((entries) => {
         { id: 'admin-services-pricing', icon: 'fa-solid fa-tags', title: 'Services & Pricing' },
         { id: 'admin-database-activity', icon: 'fa-solid fa-database', title: 'Database Activity' },
         { id: 'admin-buy-tokens', icon: 'fa-solid fa-coins', title: 'Buy Tokens' },
-        { id: 'admin-token-accounts', icon: 'fa-solid fa-wallet', title: 'Token Accounts' }
+        { id: 'admin-token-accounts', icon: 'fa-solid fa-wallet', title: 'Token Accounts' },
+        { id: 'admin-strategy-briefs', icon: 'fa-solid fa-wand-magic-sparkles', title: 'Strategy Briefs' },
+        { id: 'admin-regional-edu-studio', icon: 'fa-solid fa-graduation-cap', title: 'Regional Edu Studio' }
     ];
 
     const SUPPORTER_TABS = [
@@ -430,6 +432,10 @@ const postObserver = new IntersectionObserver((entries) => {
             if (typeof loadBuyTokens === 'function') loadBuyTokens();
         } else if (targetId === 'admin-token-accounts') {
             if (typeof loadTokenAccounts === 'function') loadTokenAccounts();
+        } else if (targetId === 'admin-strategy-briefs') {
+            if (typeof loadStrategyBriefs === 'function') loadStrategyBriefs();
+        } else if (targetId === 'admin-regional-edu-studio') {
+            if (typeof loadRegionalEduStudio === 'function') loadRegionalEduStudio();
         } else if (targetId === 'supporter-tab-chat') {
             if (currentUser && typeof loadSupporterChatMessages === 'function') {
                 loadSupporterChatMessages(currentUser.uid);
@@ -609,6 +615,8 @@ const postObserver = new IntersectionObserver((entries) => {
                     <option value="admin-database-activity">Database Activity</option>
                     <option value="admin-buy-tokens">Buy Tokens</option>
                     <option value="admin-token-accounts">Token Accounts</option>
+                    <option value="admin-strategy-briefs">Strategy Briefs</option>
+                    <option value="admin-regional-edu-studio">Regional Edu Studio</option>
                 `;
             }
 
@@ -4372,6 +4380,1113 @@ const postObserver = new IntersectionObserver((entries) => {
             window.addEventListener('firebaseAuthChanged', onSignedIn);
         }
     }
+
+    // =========================================================================
+    // Services: Google AI Strategy & First-Month Plan (Advisory-Only Modal & Briefs)
+    // =========================================================================
+    function downloadPlainTextFile(fileName, content) {
+        const blob = new Blob([String(content || '')], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = fileName || 'strategy-advisory-report.txt';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    const strategyModal = document.getElementById('strategyPlanModal');
+    const openStrategyModalBtn = document.getElementById('openStrategyPlanModalBtn');
+    const closeStrategyModalBtn = document.getElementById('closeStrategyModalBtn');
+    const strategyAuthGate = document.getElementById('strategyAuthGate');
+    const strategySignInBtn = document.getElementById('strategySignInBtn');
+    const strategyPaymentGate = document.getElementById('strategyPaymentGate');
+    const strategyPricingBreakdown = document.getElementById('strategyPricingBreakdown');
+    const strategyCheckoutBtn = document.getElementById('strategyCheckoutBtn');
+    const strategyIntakeView = document.getElementById('strategyIntakeView');
+    const strategyProgressLabel = document.getElementById('strategyProgressLabel');
+    const strategyProgressEta = document.getElementById('strategyProgressEta');
+    const strategyProgressFill = document.getElementById('strategyProgressFill');
+    const strategyRedactionBanner = document.getElementById('strategyRedactionBanner');
+    const strategyDropzoneNotice = document.getElementById('strategyDropzoneNotice');
+    const strategyChatFeed = document.getElementById('strategyChatFeed');
+    const strategyChatForm = document.getElementById('strategyChatForm');
+    const strategyChatInput = document.getElementById('strategyChatInput');
+    const strategySendBtn = document.getElementById('strategySendBtn');
+    const strategyReportCard = document.getElementById('strategyReportCard');
+    const strategyReportFileName = document.getElementById('strategyReportFileName');
+    const strategyReportPreview = document.getElementById('strategyReportPreview');
+    const strategyDownloadTxtBtn = document.getElementById('strategyDownloadTxtBtn');
+    const strategyStatusMsg = document.getElementById('strategyStatusMsg');
+
+    let activeStrategySession = null;
+    let activeStrategyPricing = null;
+
+    function setStrategyStatus(msg, isError = false) {
+        if (!strategyStatusMsg) return;
+        if (!msg) {
+            strategyStatusMsg.style.display = 'none';
+            strategyStatusMsg.textContent = '';
+            return;
+        }
+        strategyStatusMsg.textContent = msg;
+        strategyStatusMsg.style.display = 'block';
+        strategyStatusMsg.className = `service-prices-status ${isError ? 'is-error' : 'is-success'}`;
+    }
+
+    function renderStrategyModalState() {
+        if (!strategyModal) return;
+        const user = window.firebaseService?.getCurrentUser?.();
+        setStrategyStatus('');
+
+        if (!user) {
+            if (strategyAuthGate) strategyAuthGate.style.display = 'flex';
+            if (strategyPaymentGate) strategyPaymentGate.style.display = 'none';
+            if (strategyIntakeView) strategyIntakeView.style.display = 'none';
+            if (strategyReportCard) strategyReportCard.style.display = 'none';
+            return;
+        }
+
+        if (strategyAuthGate) strategyAuthGate.style.display = 'none';
+
+        const session = activeStrategySession;
+        if (!session || session.paymentStatus !== 'paid') {
+            if (strategyPaymentGate) strategyPaymentGate.style.display = 'flex';
+            if (strategyIntakeView) strategyIntakeView.style.display = 'none';
+            if (strategyReportCard) strategyReportCard.style.display = 'none';
+            if (strategyPricingBreakdown && activeStrategyPricing) {
+                const p = activeStrategyPricing;
+                strategyPricingBreakdown.textContent = `Consultation Fee: AUD $${p.exGstAud.toFixed(2)} + 10% GST (AUD $${p.gstAud.toFixed(2)}) = AUD $${p.totalIncGstAud.toFixed(2)} total (tax calculated exclusively at Stripe Checkout).`;
+            }
+            return;
+        }
+
+        if (strategyPaymentGate) strategyPaymentGate.style.display = 'none';
+        if (strategyIntakeView) strategyIntakeView.style.display = 'flex';
+
+        const step = session.status === 'completed' ? 6 : Math.min(6, Math.max(1, session.currentStep || 1));
+        const pct = Math.round((session.status === 'completed' ? 6 : Math.max(0, step - 1)) / 6 * 100);
+        if (strategyProgressLabel) {
+            strategyProgressLabel.textContent = session.status === 'completed' ? 'Completed (6 of 6)' : `Question ${step} of 6`;
+        }
+        if (strategyProgressEta) {
+            strategyProgressEta.textContent = session.status === 'completed' ? 'Advisory ready' : '~5–8 mins total';
+        }
+        if (strategyProgressFill) {
+            strategyProgressFill.style.width = `${pct}%`;
+        }
+
+        if (strategyChatFeed) {
+            strategyChatFeed.innerHTML = (session.messages || []).map(msg => `
+                <div class="strategy-bubble ${msg.role === 'user' ? 'strategy-bubble-user' : 'strategy-bubble-assistant'}">${escapeHtml(msg.content)}</div>
+            `).join('');
+            strategyChatFeed.scrollTop = strategyChatFeed.scrollHeight;
+        }
+
+        if (session.status === 'completed' && session.preliminaryReport) {
+            if (strategyChatForm) strategyChatForm.style.display = 'none';
+            if (strategyReportCard) strategyReportCard.style.display = 'flex';
+            if (strategyReportFileName) strategyReportFileName.textContent = session.preliminaryReport.fileName;
+            if (strategyReportPreview) strategyReportPreview.textContent = session.preliminaryReport.content;
+        } else {
+            if (strategyChatForm) strategyChatForm.style.display = 'flex';
+            if (strategyReportCard) strategyReportCard.style.display = 'none';
+        }
+    }
+
+    async function refreshStrategySession() {
+        const user = window.firebaseService?.getCurrentUser?.();
+        if (!user) {
+            renderStrategyModalState();
+            return;
+        }
+        try {
+            const res = await fetch('/api/strategy-plan/session');
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                activeStrategyPricing = data.pricing || null;
+                activeStrategySession = data.session || null;
+            }
+        } catch (err) {
+            console.warn('[Strategy Plan] Session refresh warning:', err.message);
+        }
+        renderStrategyModalState();
+    }
+
+    function openStrategyPlanModal() {
+        if (!strategyModal) return;
+        strategyModal.style.display = 'flex';
+        refreshStrategySession();
+    }
+
+    function closeStrategyPlanModal() {
+        if (!strategyModal) return;
+        strategyModal.style.display = 'none';
+    }
+
+    if (openStrategyModalBtn) {
+        openStrategyModalBtn.addEventListener('click', openStrategyPlanModal);
+    }
+    if (closeStrategyModalBtn) {
+        closeStrategyModalBtn.addEventListener('click', closeStrategyPlanModal);
+    }
+    if (strategyModal) {
+        strategyModal.addEventListener('click', (e) => {
+            if (e.target === strategyModal) closeStrategyPlanModal();
+        });
+        // Reject dragged files or file drops explicitly inside the advisory-only modal
+        strategyModal.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        strategyModal.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (strategyDropzoneNotice) strategyDropzoneNotice.style.display = 'block';
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && strategyModal.style.display === 'flex') {
+                closeStrategyPlanModal();
+            }
+        });
+    }
+
+    if (strategySignInBtn) {
+        strategySignInBtn.addEventListener('click', async () => {
+            try {
+                if (window.firebaseService?.signInWithGoogle) {
+                    await window.firebaseService.signInWithGoogle();
+                }
+            } catch (e) {
+                setStrategyStatus(e.message || 'Sign-in could not be completed.', true);
+            }
+        });
+    }
+
+    window.addEventListener('firebaseAuthChanged', () => {
+        if (strategyModal && strategyModal.style.display === 'flex') {
+            refreshStrategySession();
+        }
+    });
+
+    if (strategyCheckoutBtn) {
+        strategyCheckoutBtn.addEventListener('click', async () => {
+            strategyCheckoutBtn.disabled = true;
+            strategyCheckoutBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Opening Stripe Checkout...';
+            setStrategyStatus('');
+            try {
+                const res = await fetch('/api/strategy-plan/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ returnPath: window.location.pathname || '/' })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.url) {
+                    throw new Error(data.error || 'Could not start Stripe Checkout.');
+                }
+                window.location.href = data.url;
+            } catch (err) {
+                setStrategyStatus(err.message || 'Checkout failed.', true);
+                strategyCheckoutBtn.disabled = false;
+                strategyCheckoutBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Continue to Stripe Checkout (AUD)';
+            }
+        });
+    }
+
+    if (strategyChatForm) {
+        strategyChatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeStrategySession || !strategyChatInput) return;
+            const msg = strategyChatInput.value.trim();
+            if (!msg) return;
+
+            if (strategySendBtn) {
+                strategySendBtn.disabled = true;
+                strategySendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+            }
+            setStrategyStatus('');
+            if (strategyRedactionBanner) strategyRedactionBanner.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/strategy-plan/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: activeStrategySession.id,
+                        message: msg
+                    })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.error || 'Could not save your response.');
+                }
+                activeStrategySession = data.session;
+                strategyChatInput.value = '';
+                if (data.redactedWarning && strategyRedactionBanner) {
+                    strategyRedactionBanner.textContent = data.redactedWarning;
+                    strategyRedactionBanner.style.display = 'block';
+                }
+                renderStrategyModalState();
+            } catch (err) {
+                setStrategyStatus(err.message || 'Failed to send response.', true);
+            } finally {
+                if (strategySendBtn) {
+                    strategySendBtn.disabled = false;
+                    strategySendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Answer';
+                }
+            }
+        });
+    }
+
+    if (strategyDownloadTxtBtn) {
+        strategyDownloadTxtBtn.addEventListener('click', () => {
+            const report = activeStrategySession?.preliminaryReport;
+            if (!report) return;
+            downloadPlainTextFile(report.fileName, report.content);
+        });
+    }
+
+    // Stripe return handler for Strategy Plan checkout (?strategy_plan=success&session_id=...)
+    const strategyReturnStatus = urlParams.get('strategy_plan');
+    if ((strategyReturnStatus === 'success' && sessionId) || strategyReturnStatus === 'cancelled') {
+        const returnedStripeSessionId = sessionId;
+        window.history.replaceState({}, document.title, window.location.pathname + '#services2');
+        if (typeof handleHash === 'function') handleHash();
+
+        const handleStrategyReturn = async () => {
+            openStrategyPlanModal();
+            if (strategyReturnStatus === 'cancelled') {
+                setStrategyStatus('Checkout was cancelled. You can restart whenever you are ready.', true);
+                return;
+            }
+            setStrategyStatus('Confirming Stripe payment...');
+            try {
+                const res = await fetch('/api/strategy-plan/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: returnedStripeSessionId })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Payment confirmation failed.');
+                activeStrategySession = data.session;
+                renderStrategyModalState();
+            } catch (err) {
+                setStrategyStatus(err.message || 'Could not confirm Stripe payment.', true);
+            }
+        };
+
+        if (window.firebaseService?.getCurrentUser?.()) {
+            handleStrategyReturn();
+        } else {
+            openStrategyPlanModal();
+            const onStratSignedIn = (e) => {
+                if (!e.detail?.user) return;
+                window.removeEventListener('firebaseAuthChanged', onStratSignedIn);
+                handleStrategyReturn();
+            };
+            window.addEventListener('firebaseAuthChanged', onStratSignedIn);
+        }
+    }
+
+    // =========================================================================
+    // SuperAdmin: AI Strategy Advisory Briefs Tab (#admin-strategy-briefs)
+    // =========================================================================
+    const strategyBriefsList = document.getElementById('strategyBriefsList');
+    const strategyBriefsUnreadBadge = document.getElementById('strategyBriefsUnreadBadge');
+    const strategyBriefDetail = document.getElementById('strategyBriefDetail');
+    const strategyBriefDetailTitle = document.getElementById('strategyBriefDetailTitle');
+    const strategyBriefDetailMeta = document.getElementById('strategyBriefDetailMeta');
+    const strategyBriefDetailContent = document.getElementById('strategyBriefDetailContent');
+    const refreshStrategyBriefsBtn = document.getElementById('refreshStrategyBriefsBtn');
+    const downloadSuperAdminBriefBtn = document.getElementById('downloadSuperAdminBriefBtn');
+    const deleteSuperAdminBriefBtn = document.getElementById('deleteSuperAdminBriefBtn');
+    const confirmDeleteStrategyBriefWrap = document.getElementById('confirmDeleteStrategyBriefWrap');
+    const confirmDeleteStrategyBriefBtn = document.getElementById('confirmDeleteStrategyBriefBtn');
+    const cancelDeleteStrategyBriefBtn = document.getElementById('cancelDeleteStrategyBriefBtn');
+    const strategyBriefsStatus = document.getElementById('strategyBriefsStatus');
+
+    let loadedStrategyBriefs = [];
+    let selectedStrategyBrief = null;
+
+    function setStrategyBriefsStatus(msg, isError = false) {
+        if (!strategyBriefsStatus) return;
+        if (!msg) {
+            strategyBriefsStatus.style.display = 'none';
+            strategyBriefsStatus.textContent = '';
+            return;
+        }
+        strategyBriefsStatus.textContent = msg;
+        strategyBriefsStatus.style.display = 'block';
+        strategyBriefsStatus.className = `service-prices-status ${isError ? 'is-error' : 'is-success'}`;
+    }
+
+    function renderStrategyBriefDetail(brief) {
+        selectedStrategyBrief = brief || null;
+        if (confirmDeleteStrategyBriefWrap) confirmDeleteStrategyBriefWrap.hidden = true;
+        if (deleteSuperAdminBriefBtn) deleteSuperAdminBriefBtn.hidden = false;
+
+        if (!strategyBriefDetail) return;
+        if (!brief) {
+            strategyBriefDetail.hidden = true;
+            return;
+        }
+        strategyBriefDetail.hidden = false;
+        if (strategyBriefDetailTitle) strategyBriefDetailTitle.textContent = brief.clientBusinessName;
+        if (strategyBriefDetailMeta) {
+            strategyBriefDetailMeta.textContent = `${brief.fileName} • Stripe ${brief.stripeSessionId} • AUD $${Number(brief.amountPaidExGstAud || 0).toFixed(2)} ex GST`;
+        }
+        if (strategyBriefDetailContent) strategyBriefDetailContent.textContent = brief.content || '';
+    }
+
+    function renderStrategyBriefsList() {
+        if (!strategyBriefsList) return;
+        if (!loadedStrategyBriefs.length) {
+            strategyBriefsList.innerHTML = '<div style="padding: 16px; color: #64748b; font-size: 0.88rem; border: 1px dashed #cbd5e1; border-radius: 10px;">No strategy advisory briefs yet.</div>';
+            renderStrategyBriefDetail(null);
+            return;
+        }
+        strategyBriefsList.innerHTML = loadedStrategyBriefs.map(b => `
+            <button type="button" class="strategy-brief-item ${selectedStrategyBrief?.id === b.id ? 'active' : ''} ${!b.read ? 'is-unread' : ''}" data-brief-id="${escapeHtml(b.id)}" data-agent-id="select-strategy-brief-${escapeHtml(b.id)}" data-testid="select-strategy-brief">
+                <strong style="font-size: 0.9rem; color: #0f172a;">${escapeHtml(b.clientBusinessName)}</strong>
+                <span style="font-size: 0.78rem; color: #475569;">${escapeHtml(b.clientEmail || b.uid)}</span>
+                <small style="font-size: 0.74rem; color: #64748b;">${!b.read ? 'Unread • ' : ''}${escapeHtml((b.createdAt || '').slice(0, 10))}</small>
+            </button>
+        `).join('');
+
+        strategyBriefsList.querySelectorAll('.strategy-brief-item').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-brief-id');
+                const brief = loadedStrategyBriefs.find(x => x.id === id);
+                if (!brief) return;
+                renderStrategyBriefDetail(brief);
+                if (!brief.read) {
+                    try {
+                        const res = await fetch(`/api/strategy-plan/superadmin/briefs/${encodeURIComponent(id)}/read`, { method: 'POST' });
+                        if (res.ok) {
+                            brief.read = true;
+                            const unread = loadedStrategyBriefs.filter(x => !x.read).length;
+                            if (strategyBriefsUnreadBadge) {
+                                strategyBriefsUnreadBadge.textContent = `${unread} unread`;
+                                strategyBriefsUnreadBadge.style.display = unread > 0 ? 'inline-block' : 'none';
+                            }
+                            renderStrategyBriefsList();
+                        }
+                    } catch {
+                        // Best-effort mark read
+                    }
+                }
+            });
+        });
+    }
+
+    async function loadStrategyBriefs() {
+        if (!strategyBriefsList) return;
+        setStrategyBriefsStatus('');
+        try {
+            const res = await fetch('/api/strategy-plan/superadmin/briefs');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Could not load briefs.');
+            loadedStrategyBriefs = Array.isArray(data.briefs) ? data.briefs : [];
+            const unread = Number(data.unreadCount) || 0;
+            if (strategyBriefsUnreadBadge) {
+                strategyBriefsUnreadBadge.textContent = `${unread} unread`;
+                strategyBriefsUnreadBadge.style.display = unread > 0 ? 'inline-block' : 'none';
+            }
+            if (selectedStrategyBrief) {
+                selectedStrategyBrief = loadedStrategyBriefs.find(b => b.id === selectedStrategyBrief.id) || loadedStrategyBriefs[0] || null;
+            } else {
+                selectedStrategyBrief = loadedStrategyBriefs[0] || null;
+            }
+            renderStrategyBriefsList();
+            renderStrategyBriefDetail(selectedStrategyBrief);
+        } catch (err) {
+            setStrategyBriefsStatus(err.message || 'Failed to load strategy advisory briefs.', true);
+        }
+    }
+
+    if (refreshStrategyBriefsBtn) {
+        refreshStrategyBriefsBtn.addEventListener('click', loadStrategyBriefs);
+    }
+    if (downloadSuperAdminBriefBtn) {
+        downloadSuperAdminBriefBtn.addEventListener('click', () => {
+            if (!selectedStrategyBrief) return;
+            downloadPlainTextFile(selectedStrategyBrief.fileName, selectedStrategyBrief.content);
+        });
+    }
+    if (deleteSuperAdminBriefBtn) {
+        deleteSuperAdminBriefBtn.addEventListener('click', () => {
+            if (!selectedStrategyBrief) return;
+            deleteSuperAdminBriefBtn.hidden = true;
+            if (confirmDeleteStrategyBriefWrap) confirmDeleteStrategyBriefWrap.hidden = false;
+        });
+    }
+    if (cancelDeleteStrategyBriefBtn) {
+        cancelDeleteStrategyBriefBtn.addEventListener('click', () => {
+            if (confirmDeleteStrategyBriefWrap) confirmDeleteStrategyBriefWrap.hidden = true;
+            if (deleteSuperAdminBriefBtn) deleteSuperAdminBriefBtn.hidden = false;
+        });
+    }
+    if (confirmDeleteStrategyBriefBtn) {
+        confirmDeleteStrategyBriefBtn.addEventListener('click', async () => {
+            if (!selectedStrategyBrief) return;
+            const targetId = selectedStrategyBrief.id;
+            confirmDeleteStrategyBriefBtn.disabled = true;
+            try {
+                const res = await fetch(`/api/strategy-plan/superadmin/briefs/${encodeURIComponent(targetId)}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirmDelete: true })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Delete failed.');
+                selectedStrategyBrief = null;
+                setStrategyBriefsStatus('Advisory brief deleted.');
+                await loadStrategyBriefs();
+            } catch (err) {
+                setStrategyBriefsStatus(err.message || 'Could not delete advisory brief.', true);
+            } finally {
+                confirmDeleteStrategyBriefBtn.disabled = false;
+            }
+        });
+    }
+
+    // =========================================================================
+    // SERVICES - REGIONAL EDUCATION & AI LITERACY (CLIENT MODAL & SUPERADMIN STUDIO)
+    // =========================================================================
+    const openRegionalEduModalBtn = document.getElementById('openRegionalEduModalBtn');
+    const regionalEduModal = document.getElementById('regionalEduModal');
+    const closeRegionalEduModalBtn = document.getElementById('closeRegionalEduModalBtn');
+    const regEduAuthGate = document.getElementById('regEduAuthGate');
+    const regEduSignInBtn = document.getElementById('regEduSignInBtn');
+    const regEduPayGate = document.getElementById('regEduPayGate');
+    const regEduPriceSummary = document.getElementById('regEduPriceSummary');
+    const regEduPayBtn = document.getElementById('regEduPayBtn');
+    const regEduChatStage = document.getElementById('regEduChatStage');
+    const regEduProgressLabel = document.getElementById('regEduProgressLabel');
+    const regEduProgressFill = document.getElementById('regEduProgressFill');
+    const regEduMessages = document.getElementById('regEduMessages');
+    const regEduAnswerInput = document.getElementById('regEduAnswerInput');
+    const regEduSendBtn = document.getElementById('regEduSendBtn');
+    const regEduDeliverablesStage = document.getElementById('regEduDeliverablesStage');
+    const regEduStatusBadge = document.getElementById('regEduStatusBadge');
+    const regEduFinalCard = document.getElementById('regEduFinalCard');
+    const regEduFinalFileName = document.getElementById('regEduFinalFileName');
+    const regEduDownloadFinalBtn = document.getElementById('regEduDownloadFinalBtn');
+    const regEduFinalNote = document.getElementById('regEduFinalNote');
+    const regEduFinalPreview = document.getElementById('regEduFinalPreview');
+    const regEduPrelimCard = document.getElementById('regEduPrelimCard');
+    const regEduPrelimFileName = document.getElementById('regEduPrelimFileName');
+    const regEduDownloadPrelimBtn = document.getElementById('regEduDownloadPrelimBtn');
+    const regEduPrelimPreview = document.getElementById('regEduPrelimPreview');
+    const regEduModalStatus = document.getElementById('regEduModalStatus');
+
+    const regEduUnreadBadge = document.getElementById('regEduUnreadBadge');
+    const regEduFilterSelect = document.getElementById('regEduFilterSelect');
+    const regEduRefreshBtn = document.getElementById('regEduRefreshBtn');
+    const regEduQueueList = document.getElementById('regEduQueueList');
+    const regEduStudioEmpty = document.getElementById('regEduStudioEmpty');
+    const regEduStudioActive = document.getElementById('regEduStudioActive');
+    const regEduDetailOrgTitle = document.getElementById('regEduDetailOrgTitle');
+    const regEduDetailMetaLine = document.getElementById('regEduDetailMetaLine');
+    const regEduDetailStatusBadge = document.getElementById('regEduDetailStatusBadge');
+    const regEduDeleteBtn = document.getElementById('regEduDeleteBtn');
+    const regEduDeleteConfirmWrap = document.getElementById('regEduDeleteConfirmWrap');
+    const regEduConfirmDeleteBtn = document.getElementById('regEduConfirmDeleteBtn');
+    const regEduCancelDeleteBtn = document.getElementById('regEduCancelDeleteBtn');
+    const regEduIntakeTranscript = document.getElementById('regEduIntakeTranscript');
+    const regEduResearchSummary = document.getElementById('regEduResearchSummary');
+    const regEduPreliminaryRef = document.getElementById('regEduPreliminaryRef');
+    const regEduWorkingDraftTextarea = document.getElementById('regEduWorkingDraftTextarea');
+    const regEduDraftFileHint = document.getElementById('regEduDraftFileHint');
+    const regEduExecutiveNoteInput = document.getElementById('regEduExecutiveNoteInput');
+    const regEduSaveDraftBtn = document.getElementById('regEduSaveDraftBtn');
+    const regEduDownloadWorkingBtn = document.getElementById('regEduDownloadWorkingBtn');
+    const regEduLocalFileInput = document.getElementById('regEduLocalFileInput');
+    const regEduApproveBtn = document.getElementById('regEduApproveBtn');
+    const regEduApproveConfirmWrap = document.getElementById('regEduApproveConfirmWrap');
+    const regEduConfirmApproveBtn = document.getElementById('regEduConfirmApproveBtn');
+    const regEduCancelApproveBtn = document.getElementById('regEduCancelApproveBtn');
+    const regEduStudioStatus = document.getElementById('regEduStudioStatus');
+
+    let currentRegEduSession = null;
+    let regEduReviewsCache = [];
+    let selectedRegEduReview = null;
+    let pendingStripeConfirmSessionId = '';
+
+    function downloadRegEduTextFile(filename, content) {
+        const blob = new Blob([String(content || '')], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'Regional_Education_AI_Advisory.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+
+    function setRegEduBoxStatus(el, msg, isError = false) {
+        if (!el) return;
+        if (!msg) {
+            el.style.display = 'none';
+            el.textContent = '';
+            el.classList.remove('is-error');
+            return;
+        }
+        el.textContent = msg;
+        el.classList.toggle('is-error', Boolean(isError));
+        el.style.display = 'block';
+    }
+
+    async function getRegEduFirebaseUser() {
+        if (window.firebaseService && typeof window.firebaseService.getCurrentUser === 'function') {
+            const u = window.firebaseService.getCurrentUser();
+            if (u) return u;
+        }
+        if (window.firebaseService?.auth?.currentUser) {
+            return window.firebaseService.auth.currentUser;
+        }
+        return null;
+    }
+
+    async function regEduApiFetch(url, options = {}) {
+        const user = await getRegEduFirebaseUser();
+        if (!user || typeof user.getIdToken !== 'function') {
+            const err = new Error('Please sign in first.');
+            err.statusCode = 401;
+            throw err;
+        }
+        const token = await user.getIdToken();
+        const headers = {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`
+        };
+        if (options.body && !headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
+        const res = await fetch(url, { ...options, headers });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            const err = new Error(data.error || `Request failed (${res.status})`);
+            err.statusCode = res.status;
+            throw err;
+        }
+        return data;
+    }
+
+    function openRegionalEduModal() {
+        if (!regionalEduModal) return;
+        regionalEduModal.dataset.stage = 'landing';
+        regionalEduModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (closeRegionalEduModalBtn) closeRegionalEduModalBtn.focus();
+        loadRegionalEduModalState();
+    }
+
+    function closeRegionalEduModal() {
+        if (!regionalEduModal) return;
+        regionalEduModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function renderRegEduModalView(payload) {
+        const pricing = payload?.pricing;
+        const session = payload?.session || null;
+        currentRegEduSession = session;
+
+        if (regEduAuthGate) regEduAuthGate.style.display = 'none';
+        if (regEduPayGate) regEduPayGate.style.display = 'none';
+        if (regEduChatStage) regEduChatStage.style.display = 'none';
+        if (regEduDeliverablesStage) regEduDeliverablesStage.style.display = 'none';
+
+        if (pricing && regEduPriceSummary) {
+            regEduPriceSummary.textContent = `Consultation Fee: AUD $${Number(pricing.exGstAud || 199).toFixed(2)} ex GST (+ AUD $${Number(pricing.gstAud || 19.9).toFixed(2)} GST where applicable). Subsidized training promo codes supported at Stripe Checkout.`;
+        }
+
+        if (!session || session.paymentStatus !== 'paid' || session.status === 'pending_payment') {
+            if (regionalEduModal) regionalEduModal.dataset.stage = 'landing';
+            if (regEduPayGate) regEduPayGate.style.display = 'block';
+            if (regEduPayBtn) regEduPayBtn.disabled = payload?.canPay === false;
+            return;
+        }
+
+        if (session.status === 'paid_intake_ready' || session.status === 'generating_preliminary_draft') {
+            if (regionalEduModal) regionalEduModal.dataset.stage = 'chat';
+            if (regEduChatStage) regEduChatStage.style.display = 'block';
+            const step = Math.min(Math.max(Number(session.currentStep) || 1, 1), 6);
+            const minsLeft = Math.max(1, 7 - step);
+            if (regEduProgressLabel) {
+                regEduProgressLabel.textContent = `Question ${step} of 6 — ~${minsLeft} mins remaining | Advisory Intake`;
+            }
+            if (regEduProgressFill) {
+                regEduProgressFill.style.width = `${Math.round((step / 6) * 100)}%`;
+            }
+            if (regEduMessages) {
+                const msgs = Array.isArray(session.messages) ? session.messages : [];
+                regEduMessages.innerHTML = msgs.map(m => {
+                    const cls = m.role === 'user' ? 'is-user' : 'is-assistant';
+                    return `<div class="reg-edu-msg ${cls}">${escapeHtml(m.content || '')}</div>`;
+                }).join('');
+                regEduMessages.scrollTop = regEduMessages.scrollHeight;
+            }
+            return;
+        }
+
+        // Stage 2 or Stage 3 Deliverables
+        if (regionalEduModal) regionalEduModal.dataset.stage = 'deliverables';
+        if (regEduDeliverablesStage) regEduDeliverablesStage.style.display = 'flex';
+        const isFinalDelivered = session.status === 'final_improved_delivered' && session.finalImprovedReport;
+
+        if (regEduStatusBadge) {
+            regEduStatusBadge.classList.toggle('is-delivered', Boolean(isFinalDelivered));
+            regEduStatusBadge.textContent = isFinalDelivered
+                ? 'Final Improved Advisory Plan Delivered — Ready for immediate download below.'
+                : 'Under Superadmin Analysis — Your preliminary TXT draft is ready now while a human specialist refines your Final Improved Plan (24–48 business hours).';
+        }
+
+        if (regEduFinalCard) {
+            if (isFinalDelivered) {
+                regEduFinalCard.style.display = 'flex';
+                if (regEduFinalFileName) regEduFinalFileName.textContent = session.finalImprovedReport.fileName || 'FINAL_REVIEWED_Regional_Education_AI_Advisory.txt';
+                if (regEduFinalPreview) regEduFinalPreview.textContent = session.finalImprovedReport.content || '';
+                if (regEduFinalNote) {
+                    if (session.superadminExecutiveNote) {
+                        regEduFinalNote.textContent = `Specialist Note: ${session.superadminExecutiveNote}`;
+                        regEduFinalNote.style.display = 'block';
+                    } else {
+                        regEduFinalNote.style.display = 'none';
+                    }
+                }
+            } else {
+                regEduFinalCard.style.display = 'none';
+            }
+        }
+
+        if (regEduPrelimCard && session.preliminaryReport) {
+            regEduPrelimCard.style.display = 'flex';
+            if (regEduPrelimFileName) regEduPrelimFileName.textContent = session.preliminaryReport.fileName || 'PRELIMINARY_Regional_Education_AI_Advisory.txt';
+            if (regEduPrelimPreview) regEduPrelimPreview.textContent = session.preliminaryReport.content || '';
+        }
+    }
+
+    async function loadRegionalEduModalState() {
+        setRegEduBoxStatus(regEduModalStatus, '');
+        const user = await getRegEduFirebaseUser();
+        if (!user) {
+            if (regionalEduModal) regionalEduModal.dataset.stage = 'landing';
+            if (regEduAuthGate) regEduAuthGate.style.display = 'block';
+            if (regEduPayGate) regEduPayGate.style.display = 'none';
+            if (regEduChatStage) regEduChatStage.style.display = 'none';
+            if (regEduDeliverablesStage) regEduDeliverablesStage.style.display = 'none';
+            return;
+        }
+        try {
+            if (pendingStripeConfirmSessionId) {
+                const confirmId = pendingStripeConfirmSessionId;
+                pendingStripeConfirmSessionId = '';
+                await regEduApiFetch('/api/regional-edu/confirm', {
+                    method: 'POST',
+                    body: JSON.stringify({ sessionId: confirmId })
+                });
+            }
+            const data = await regEduApiFetch('/api/regional-edu/session');
+            renderRegEduModalView(data);
+        } catch (err) {
+            setRegEduBoxStatus(regEduModalStatus, err.message || 'Could not load consultation status.', true);
+        }
+    }
+
+    if (openRegionalEduModalBtn) {
+        openRegionalEduModalBtn.addEventListener('click', openRegionalEduModal);
+    }
+    if (closeRegionalEduModalBtn) {
+        closeRegionalEduModalBtn.addEventListener('click', closeRegionalEduModal);
+    }
+    if (regionalEduModal) {
+        regionalEduModal.addEventListener('click', (e) => {
+            if (e.target === regionalEduModal) closeRegionalEduModal();
+        });
+        // Reject file drag-and-drop onto the zero-upload customer modal
+        ['dragover', 'drop'].forEach(evtName => {
+            regionalEduModal.addEventListener(evtName, (e) => {
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    e.preventDefault();
+                    setRegEduBoxStatus(regEduModalStatus, 'File uploads are disabled in this advisory consultation. Please enter plain text only.', true);
+                }
+            });
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && regionalEduModal && regionalEduModal.style.display === 'flex') {
+            closeRegionalEduModal();
+        }
+    });
+
+    if (regEduSignInBtn) {
+        regEduSignInBtn.addEventListener('click', async () => {
+            try {
+                if (window.firebaseService && typeof window.firebaseService.signInWithGoogle === 'function') {
+                    await window.firebaseService.signInWithGoogle();
+                }
+            } catch (err) {
+                setRegEduBoxStatus(regEduModalStatus, err.message || 'Google sign-in was cancelled.', true);
+            }
+        });
+    }
+
+    if (regEduPayBtn) {
+        regEduPayBtn.addEventListener('click', async () => {
+            try {
+                regEduPayBtn.disabled = true;
+                setRegEduBoxStatus(regEduModalStatus, 'Creating secure Stripe AUD checkout...');
+                const data = await regEduApiFetch('/api/regional-edu/checkout', {
+                    method: 'POST',
+                    body: JSON.stringify({ returnPath: window.location.pathname || '/' })
+                });
+                if (!data.url) throw new Error('Stripe checkout URL missing.');
+                window.location.assign(data.url);
+            } catch (err) {
+                setRegEduBoxStatus(regEduModalStatus, err.message || 'Could not start Stripe checkout.', true);
+                regEduPayBtn.disabled = false;
+            }
+        });
+    }
+
+    async function sendRegEduAnswer() {
+        if (!currentRegEduSession || !regEduAnswerInput) return;
+        const text = regEduAnswerInput.value.trim();
+        if (text.length < 2) {
+            setRegEduBoxStatus(regEduModalStatus, 'Please enter a short plain-text answer before sending.', true);
+            return;
+        }
+        try {
+            if (regEduSendBtn) regEduSendBtn.disabled = true;
+            setRegEduBoxStatus(regEduModalStatus, 'Analysing answer and preparing next advisory step...');
+            const result = await regEduApiFetch('/api/regional-edu/message', {
+                method: 'POST',
+                body: JSON.stringify({ sessionId: currentRegEduSession.id, message: text })
+            });
+            regEduAnswerInput.value = '';
+            setRegEduBoxStatus(regEduModalStatus, result.redactedWarning || '', Boolean(result.redactedWarning));
+            renderRegEduModalView({ pricing: null, canPay: true, session: result.session });
+        } catch (err) {
+            setRegEduBoxStatus(regEduModalStatus, err.message || 'Could not submit answer.', true);
+        } finally {
+            if (regEduSendBtn) regEduSendBtn.disabled = false;
+        }
+    }
+
+    if (regEduSendBtn) {
+        regEduSendBtn.addEventListener('click', sendRegEduAnswer);
+    }
+    if (regEduAnswerInput) {
+        regEduAnswerInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendRegEduAnswer();
+            }
+        });
+    }
+    if (regEduDownloadPrelimBtn) {
+        regEduDownloadPrelimBtn.addEventListener('click', () => {
+            const report = currentRegEduSession?.preliminaryReport;
+            if (report) downloadRegEduTextFile(report.fileName, report.content);
+        });
+    }
+    if (regEduDownloadFinalBtn) {
+        regEduDownloadFinalBtn.addEventListener('click', () => {
+            const report = currentRegEduSession?.finalImprovedReport;
+            if (report) downloadRegEduTextFile(report.fileName, report.content);
+        });
+    }
+
+    // SuperAdmin Studio Helpers
+    function formatReviewStatusMeta(reviewStatus) {
+        if (reviewStatus === 'final_improved_delivered') return { label: 'Final Delivered', cls: 'is-delivered' };
+        if (reviewStatus === 'in_review_editing') return { label: 'In Review / Editing', cls: 'is-editing' };
+        return { label: 'Unread Analysis', cls: 'is-unread' };
+    }
+
+    function renderRegEduQueue() {
+        if (!regEduQueueList) return;
+        const filterVal = regEduFilterSelect ? regEduFilterSelect.value : 'all';
+        const items = filterVal === 'all'
+            ? regEduReviewsCache
+            : regEduReviewsCache.filter(r => r.reviewStatus === filterVal);
+
+        if (!items.length) {
+            regEduQueueList.innerHTML = '<p class="reg-edu-empty-note">No Regional Education reviews match this filter.</p>';
+            return;
+        }
+
+        regEduQueueList.innerHTML = items.map(r => {
+            const st = formatReviewStatusMeta(r.reviewStatus);
+            const selectedCls = selectedRegEduReview && selectedRegEduReview.id === r.id ? 'is-selected' : '';
+            const unreadCls = !r.read ? 'is-unread' : '';
+            return `
+                <button type="button" class="reg-edu-queue-item ${selectedCls} ${unreadCls}" data-review-id="${escapeHtml(r.id)}" data-agent-id="reg-edu-queue-item-${escapeHtml(r.id)}">
+                    <div class="reg-edu-queue-item-top">
+                        <strong>${escapeHtml(r.clientOrganizationName || 'Client Organization')}</strong>
+                        <span class="reg-edu-status-pill ${st.cls}">${escapeHtml(st.label)}</span>
+                    </div>
+                    <small>${escapeHtml(r.clientEmail || r.uid || '')}</small>
+                    <small>AUD $${Number(r.amountPaidExGstAud || 0).toFixed(2)} ex GST &bull; ${escapeHtml((r.createdAt || '').slice(0, 10))}</small>
+                </button>
+            `;
+        }).join('');
+    }
+
+    function showRegEduReviewDetail(review) {
+        selectedRegEduReview = review || null;
+        if (!regEduStudioEmpty || !regEduStudioActive) return;
+        if (regEduDeleteConfirmWrap) regEduDeleteConfirmWrap.style.display = 'none';
+        if (regEduApproveConfirmWrap) regEduApproveConfirmWrap.style.display = 'none';
+
+        if (!review) {
+            regEduStudioEmpty.style.display = 'block';
+            regEduStudioActive.style.display = 'none';
+            return;
+        }
+
+        regEduStudioEmpty.style.display = 'none';
+        regEduStudioActive.style.display = 'block';
+
+        const st = formatReviewStatusMeta(review.reviewStatus);
+        if (regEduDetailOrgTitle) regEduDetailOrgTitle.textContent = review.clientOrganizationName || 'Client Organization';
+        if (regEduDetailMetaLine) {
+            regEduDetailMetaLine.textContent = `${review.clientEmail || 'N/A'} | Stripe: ${review.stripeSessionId} | Model: ${review.modelUsed}`;
+        }
+        if (regEduDetailStatusBadge) {
+            regEduDetailStatusBadge.textContent = st.label;
+            regEduDetailStatusBadge.className = `reg-edu-status-pill ${st.cls}`;
+        }
+        if (regEduIntakeTranscript) regEduIntakeTranscript.textContent = review.intakeTranscript || '';
+        if (regEduResearchSummary) regEduResearchSummary.textContent = review.researchSummary || '';
+        if (regEduPreliminaryRef) regEduPreliminaryRef.textContent = review.preliminaryTxtContent || '';
+        if (regEduWorkingDraftTextarea) regEduWorkingDraftTextarea.value = review.workingDraftContent || review.preliminaryTxtContent || '';
+        if (regEduExecutiveNoteInput) regEduExecutiveNoteInput.value = review.superadminNote || '';
+        if (regEduDraftFileHint) {
+            regEduDraftFileHint.textContent = review.finalFileName
+                ? `Delivered file: ${review.finalFileName}`
+                : `Baseline: ${review.preliminaryFileName}`;
+        }
+    }
+
+    async function loadRegionalEduStudio() {
+        setRegEduBoxStatus(regEduStudioStatus, '');
+        try {
+            const data = await regEduApiFetch('/api/regional-edu/superadmin/reviews');
+            regEduReviewsCache = Array.isArray(data.reviews) ? data.reviews : [];
+            const unreadCount = Number(data.unreadCount) || 0;
+            if (regEduUnreadBadge) {
+                regEduUnreadBadge.textContent = `${unreadCount} unread`;
+                regEduUnreadBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+            }
+            if (selectedRegEduReview) {
+                const updatedSelection = regEduReviewsCache.find(r => r.id === selectedRegEduReview.id) || null;
+                showRegEduReviewDetail(updatedSelection);
+            } else {
+                showRegEduReviewDetail(regEduReviewsCache[0] || null);
+            }
+            renderRegEduQueue();
+        } catch (err) {
+            setRegEduBoxStatus(regEduStudioStatus, err.message || 'Could not load Regional Education reviews.', true);
+        }
+    }
+    window.loadRegionalEduStudio = loadRegionalEduStudio;
+
+    if (regEduFilterSelect) {
+        regEduFilterSelect.addEventListener('change', renderRegEduQueue);
+    }
+    if (regEduRefreshBtn) {
+        regEduRefreshBtn.addEventListener('click', loadRegionalEduStudio);
+    }
+    if (regEduQueueList) {
+        regEduQueueList.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.reg-edu-queue-item');
+            if (!btn) return;
+            const id = btn.getAttribute('data-review-id');
+            const found = regEduReviewsCache.find(r => r.id === id);
+            if (!found) return;
+            showRegEduReviewDetail(found);
+            renderRegEduQueue();
+            if (!found.read || found.reviewStatus === 'unread_analysis') {
+                try {
+                    const res = await regEduApiFetch(`/api/regional-edu/superadmin/reviews/${encodeURIComponent(found.id)}/read`, {
+                        method: 'POST'
+                    });
+                    if (res.review) {
+                        const idx = regEduReviewsCache.findIndex(r => r.id === res.review.id);
+                        if (idx >= 0) regEduReviewsCache[idx] = res.review;
+                        showRegEduReviewDetail(res.review);
+                        renderRegEduQueue();
+                    }
+                } catch {
+                    // Non-blocking read mark error
+                }
+            }
+        });
+    }
+
+    if (regEduSaveDraftBtn) {
+        regEduSaveDraftBtn.addEventListener('click', async () => {
+            if (!selectedRegEduReview || !regEduWorkingDraftTextarea) return;
+            try {
+                regEduSaveDraftBtn.disabled = true;
+                setRegEduBoxStatus(regEduStudioStatus, 'Saving working plain-text draft...');
+                const res = await regEduApiFetch(`/api/regional-edu/superadmin/reviews/${encodeURIComponent(selectedRegEduReview.id)}/draft`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        improvedTxtContent: regEduWorkingDraftTextarea.value,
+                        superadminNote: regEduExecutiveNoteInput ? regEduExecutiveNoteInput.value : ''
+                    })
+                });
+                if (res.review) {
+                    const idx = regEduReviewsCache.findIndex(r => r.id === res.review.id);
+                    if (idx >= 0) regEduReviewsCache[idx] = res.review;
+                    showRegEduReviewDetail(res.review);
+                    renderRegEduQueue();
+                }
+                setRegEduBoxStatus(regEduStudioStatus, 'Working TXT draft saved.');
+            } catch (err) {
+                setRegEduBoxStatus(regEduStudioStatus, err.message || 'Could not save working draft.', true);
+            } finally {
+                regEduSaveDraftBtn.disabled = false;
+            }
+        });
+    }
+
+    if (regEduDownloadWorkingBtn) {
+        regEduDownloadWorkingBtn.addEventListener('click', () => {
+            if (!selectedRegEduReview || !regEduWorkingDraftTextarea) return;
+            const slugName = (selectedRegEduReview.clientOrganizationName || 'Organization').replace(/[^A-Za-z0-9]+/g, '_');
+            downloadRegEduTextFile(`WORKING_Regional_Education_AI_Advisory_${slugName}.txt`, regEduWorkingDraftTextarea.value);
+        });
+    }
+
+    if (regEduLocalFileInput) {
+        regEduLocalFileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const isTxt = /\.txt$/i.test(file.name) || file.type === 'text/plain';
+            if (!isTxt) {
+                setRegEduBoxStatus(regEduStudioStatus, 'Please select a plain-text .txt file only.', true);
+                regEduLocalFileInput.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (regEduWorkingDraftTextarea) {
+                    regEduWorkingDraftTextarea.value = String(reader.result || '');
+                }
+                setRegEduBoxStatus(regEduStudioStatus, `Loaded ${file.name} into the SuperAdmin editor. Click Save Draft or Approve & Send Improved Plan.`);
+                regEduLocalFileInput.value = '';
+            };
+            reader.onerror = () => {
+                setRegEduBoxStatus(regEduStudioStatus, 'Could not read the selected .txt file.', true);
+                regEduLocalFileInput.value = '';
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
+    }
+
+    if (regEduApproveBtn && regEduApproveConfirmWrap) {
+        regEduApproveBtn.addEventListener('click', () => {
+            regEduApproveConfirmWrap.style.display = 'flex';
+        });
+    }
+    if (regEduCancelApproveBtn && regEduApproveConfirmWrap) {
+        regEduCancelApproveBtn.addEventListener('click', () => {
+            regEduApproveConfirmWrap.style.display = 'none';
+        });
+    }
+    if (regEduConfirmApproveBtn) {
+        regEduConfirmApproveBtn.addEventListener('click', async () => {
+            if (!selectedRegEduReview || !regEduWorkingDraftTextarea) return;
+            try {
+                regEduConfirmApproveBtn.disabled = true;
+                setRegEduBoxStatus(regEduStudioStatus, 'Approving and delivering final improved TXT plan to client...');
+                const res = await regEduApiFetch(`/api/regional-edu/superadmin/reviews/${encodeURIComponent(selectedRegEduReview.id)}/approve`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        improvedTxtContent: regEduWorkingDraftTextarea.value,
+                        executiveNote: regEduExecutiveNoteInput ? regEduExecutiveNoteInput.value : '',
+                        confirmApprove: true
+                    })
+                });
+                if (res.review) {
+                    const idx = regEduReviewsCache.findIndex(r => r.id === res.review.id);
+                    if (idx >= 0) regEduReviewsCache[idx] = res.review;
+                    showRegEduReviewDetail(res.review);
+                    renderRegEduQueue();
+                }
+                setRegEduBoxStatus(regEduStudioStatus, 'Final Improved TXT Plan approved and delivered to client portal.');
+            } catch (err) {
+                setRegEduBoxStatus(regEduStudioStatus, err.message || 'Could not approve and deliver final plan.', true);
+            } finally {
+                regEduConfirmApproveBtn.disabled = false;
+            }
+        });
+    }
+
+    if (regEduDeleteBtn && regEduDeleteConfirmWrap) {
+        regEduDeleteBtn.addEventListener('click', () => {
+            regEduDeleteConfirmWrap.style.display = 'flex';
+        });
+    }
+    if (regEduCancelDeleteBtn && regEduDeleteConfirmWrap) {
+        regEduCancelDeleteBtn.addEventListener('click', () => {
+            regEduDeleteConfirmWrap.style.display = 'none';
+        });
+    }
+    if (regEduConfirmDeleteBtn) {
+        regEduConfirmDeleteBtn.addEventListener('click', async () => {
+            if (!selectedRegEduReview) return;
+            try {
+                regEduConfirmDeleteBtn.disabled = true;
+                await regEduApiFetch(`/api/regional-edu/superadmin/reviews/${encodeURIComponent(selectedRegEduReview.id)}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ confirmDelete: true })
+                });
+                selectedRegEduReview = null;
+                setRegEduBoxStatus(regEduStudioStatus, 'Regional Education review record deleted.');
+                await loadRegionalEduStudio();
+            } catch (err) {
+                setRegEduBoxStatus(regEduStudioStatus, err.message || 'Could not delete review record.', true);
+            } finally {
+                regEduConfirmDeleteBtn.disabled = false;
+            }
+        });
+    }
+
+    // Handle Stripe return (?regional_edu=success&session_id=...) and auth state sync
+    const regEduParams = new URLSearchParams(window.location.search);
+    const regEduReturnStatus = regEduParams.get('regional_edu');
+    const regEduReturnSession = regEduParams.get('session_id');
+    if (regEduReturnStatus === 'success' && regEduReturnSession && regionalEduModal) {
+        pendingStripeConfirmSessionId = regEduReturnSession;
+        openRegionalEduModal();
+        regEduParams.delete('regional_edu');
+        regEduParams.delete('session_id');
+        const nextQs = regEduParams.toString();
+        history.replaceState(null, '', `${window.location.pathname}${nextQs ? `?${nextQs}` : ''}${window.location.hash || ''}`);
+    } else if (regEduReturnStatus === 'cancelled' && regionalEduModal) {
+        openRegionalEduModal();
+        setRegEduBoxStatus(regEduModalStatus, 'Stripe checkout was cancelled. You can retry whenever you are ready.', true);
+        regEduParams.delete('regional_edu');
+        const nextQs = regEduParams.toString();
+        history.replaceState(null, '', `${window.location.pathname}${nextQs ? `?${nextQs}` : ''}${window.location.hash || ''}`);
+    }
+
+    window.addEventListener('firebaseAuthChanged', () => {
+        if (regionalEduModal && regionalEduModal.style.display === 'flex') {
+            loadRegionalEduModalState();
+        }
+        const studioPane = document.getElementById('admin-regional-edu-studio');
+        if (studioPane && studioPane.style.display === 'block') {
+            loadRegionalEduStudio();
+        }
+    });
 
     loadPosts();
     loadProjects();

@@ -40,7 +40,7 @@
     <meta name="twitter:image" content="https://www.aifoundation.net.au/assets/logo.png">
     <meta name="twitter:image:alt" content="AI Projects &amp; Enterprise Deployments | AI Foundation Australia">
 
-    <link rel="stylesheet" href="style.css?v=61">
+    <link rel="stylesheet" href="style.css?v=64">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script type="application/ld+json">
@@ -649,6 +649,20 @@
                                 </div>
                                 <i class="fa-solid fa-check active-check"></i>
                             </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-strategy-briefs">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <span>Strategy Briefs</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-regional-edu-studio" data-agent-id="superadmin-regional-edu-mobile-tab" data-testid="superadmin-regional-edu-mobile-tab">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                    <span>Regional Edu Studio</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
                         </ul>
                     </div>
 
@@ -664,6 +678,8 @@
                         <option value="admin-database-activity">Database Activity</option>
                         <option value="admin-buy-tokens">Buy Tokens</option>
                         <option value="admin-token-accounts">Token Accounts</option>
+                        <option value="admin-strategy-briefs">Strategy Briefs</option>
+                        <option value="admin-regional-edu-studio">Regional Edu Studio</option>
                     </select>
                 </div>
 
@@ -715,6 +731,14 @@
                                 <li class="sidebar-item" data-target="admin-token-accounts" title="Every account's tokens; add tokens to an account">
                                     <i class="fa-solid fa-wallet"></i>
                                     <span>Token Accounts</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-strategy-briefs" data-agent-id="superadmin-strategy-briefs-tab" data-testid="superadmin-strategy-briefs-tab" aria-label="Strategy Advisory Briefs" title="SuperAdmin AI Strategy Advisory Briefs">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <span>Strategy Briefs</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-regional-edu-studio" data-agent-id="superadmin-regional-edu-tab" data-testid="superadmin-regional-edu-tab" aria-label="Regional Education Studio" title="SuperAdmin Regional Education Document Analysis & Improvement Studio">
+                                    <i class="fa-solid fa-graduation-cap"></i>
+                                    <span>Regional Edu Studio</span>
                                 </li>
                             </ul>
                         </div>
@@ -1161,6 +1185,170 @@
                             <div id="tokenAccountsStatus" class="service-prices-status" role="status" style="display: none;"></div>
                         </div>
 
+                        <!-- SuperAdmin Strategy Advisory Briefs -->
+                        <div id="admin-strategy-briefs" class="admin-tab-content" style="display: none;">
+                            <div class="strategy-brief-header">
+                                <div>
+                                    <h2 style="font-size: 1.25rem; margin: 0 0 4px; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+                                        <i class="fa-solid fa-wand-magic-sparkles" style="color: #0066ff;"></i>
+                                        AI Strategy Advisory Briefs
+                                        <span id="strategyBriefsUnreadBadge" class="strategy-unread-badge" style="display: none;">0 unread</span>
+                                    </h2>
+                                    <p style="font-size: 0.86rem; color: #64748b; margin: 0;">Internal SuperAdmin .txt briefs generated asynchronously after paid 6-step client consultations.</p>
+                                </div>
+                                <button type="button" id="refreshStrategyBriefsBtn" class="db-refresh-btn" data-agent-id="refresh-strategy-briefs-btn" data-testid="refresh-strategy-briefs-btn" aria-label="Refresh Strategy Advisory Briefs">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Briefs
+                                </button>
+                            </div>
+                            <div class="strategy-brief-layout">
+                                <div id="strategyBriefsList" class="strategy-brief-list" data-agent-id="strategy-briefs-list" data-testid="strategy-briefs-list"></div>
+                                <div id="strategyBriefDetail" class="strategy-brief-detail" hidden>
+                                    <div class="strategy-brief-detail-top">
+                                        <div>
+                                            <strong id="strategyBriefDetailTitle" style="color: #0f172a; display: block;"></strong>
+                                            <small id="strategyBriefDetailMeta" style="color: #64748b;"></small>
+                                        </div>
+                                        <div class="strategy-brief-actions">
+                                            <button type="button" id="downloadSuperAdminBriefBtn" class="strategy-btn-primary" data-agent-id="download-superadmin-brief-btn" data-testid="download-superadmin-brief-btn" aria-label="Download SuperAdmin TXT Brief">
+                                                <i class="fa-solid fa-file-arrow-down"></i> Download .txt
+                                            </button>
+                                            <button type="button" id="deleteSuperAdminBriefBtn" class="strategy-btn-danger" data-agent-id="delete-superadmin-brief-btn" data-testid="delete-superadmin-brief-btn" aria-label="Delete Advisory Brief">
+                                                <i class="fa-solid fa-trash"></i> Delete
+                                            </button>
+                                            <div id="confirmDeleteStrategyBriefWrap" class="strategy-confirm-delete-wrap" hidden>
+                                                <button type="button" id="confirmDeleteStrategyBriefBtn" class="strategy-btn-danger-solid" data-agent-id="confirm-delete-strategy-brief-btn" data-testid="confirm-delete-strategy-brief-btn" aria-label="Confirm Delete Advisory Brief">
+                                                    Confirm Delete
+                                                </button>
+                                                <button type="button" id="cancelDeleteStrategyBriefBtn" class="strategy-btn-neutral" data-agent-id="cancel-delete-strategy-brief-btn" data-testid="cancel-delete-strategy-brief-btn" aria-label="Cancel Delete Advisory Brief">
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <pre id="strategyBriefDetailContent" class="strategy-txt-pre" data-agent-id="superadmin-brief-content" data-testid="superadmin-brief-content"></pre>
+                                </div>
+                            </div>
+                            <div id="strategyBriefsStatus" class="service-prices-status" role="status" style="display: none;"></div>
+                        </div>
+
+                        <!-- SuperAdmin Regional Education Document Analysis & Improvement Studio -->
+                        <div id="admin-regional-edu-studio" class="admin-content-pane">
+                            <div class="admin-section-header">
+                                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+                                    <div>
+                                        <h3>Regional Education Advisory — Document Analysis &amp; Improvement Studio <span id="regEduUnreadBadge" class="reg-edu-unread-badge" style="display:none;">0 unread</span></h3>
+                                        <p>Review paid advisory briefs, research findings, and preliminary TXT drafts. Edit, save, load offline TXT refinements, and deliver the final reviewed plan back to the client.</p>
+                                    </div>
+                                    <div class="reg-edu-studio-toolbar">
+                                        <label for="regEduFilterSelect" class="sr-only">Filter reviews by status</label>
+                                        <select id="regEduFilterSelect" class="reg-edu-select" data-agent-id="reg-edu-filter-select" data-testid="reg-edu-filter-select" aria-label="Filter Regional Education reviews">
+                                            <option value="all">All Statuses</option>
+                                            <option value="unread_analysis">Unread Analysis</option>
+                                            <option value="in_review_editing">In Review / Editing</option>
+                                            <option value="final_improved_delivered">Final Plan Delivered</option>
+                                        </select>
+                                        <button type="button" id="regEduRefreshBtn" class="btn-outline reg-edu-btn" data-agent-id="reg-edu-refresh-btn" data-testid="reg-edu-refresh-btn" aria-label="Refresh Regional Education review queue">
+                                            <i class="fa-solid fa-rotate"></i> Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="reg-edu-studio-layout">
+                                <div class="reg-edu-queue-col">
+                                    <div id="regEduQueueList" class="reg-edu-queue-list" role="region" aria-label="Regional Education Client Queue" data-agent-id="reg-edu-queue-list" data-testid="reg-edu-queue-list">
+                                        <p class="reg-edu-empty-note">Open this tab to load Regional Education reviews.</p>
+                                    </div>
+                                </div>
+
+                                <div id="regEduStudioWorkspace" class="reg-edu-workspace-col">
+                                    <div id="regEduStudioEmpty" class="reg-edu-workspace-empty">
+                                        <i class="fa-solid fa-file-pen"></i>
+                                        <p>Select a client advisory session from the queue to inspect research findings and improve their `.txt` plan.</p>
+                                    </div>
+
+                                    <div id="regEduStudioActive" class="reg-edu-workspace-active" style="display: none;">
+                                        <div class="reg-edu-workspace-meta">
+                                            <div>
+                                                <h4 id="regEduDetailOrgTitle">Client Organization</h4>
+                                                <div id="regEduDetailMetaLine" class="reg-edu-meta-line"></div>
+                                            </div>
+                                            <div class="reg-edu-meta-actions">
+                                                <span id="regEduDetailStatusBadge" class="reg-edu-status-pill">Unread</span>
+                                                <button type="button" id="regEduDeleteBtn" class="reg-edu-danger-btn" data-agent-id="reg-edu-delete-btn" data-testid="reg-edu-delete-btn" aria-label="Delete Regional Education review">
+                                                    <i class="fa-solid fa-trash-can"></i> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div id="regEduDeleteConfirmWrap" class="reg-edu-confirm-bar is-danger" style="display: none;" role="alert">
+                                            <span>Permanently delete this Regional Education review record?</span>
+                                            <div class="reg-edu-confirm-actions">
+                                                <button type="button" id="regEduConfirmDeleteBtn" class="reg-edu-danger-btn is-solid" data-agent-id="reg-edu-confirm-delete-btn" data-testid="reg-edu-confirm-delete-btn">Confirm Delete</button>
+                                                <button type="button" id="regEduCancelDeleteBtn" class="btn-outline reg-edu-btn" data-agent-id="reg-edu-cancel-delete-btn" data-testid="reg-edu-cancel-delete-btn">Cancel</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="reg-edu-reference-grid">
+                                            <details class="reg-edu-ref-card" open>
+                                                <summary>6-Step Intake Transcript (Secret-Scrubbed)</summary>
+                                                <pre id="regEduIntakeTranscript" class="reg-edu-pre"></pre>
+                                            </details>
+                                            <details class="reg-edu-ref-card" open>
+                                                <summary>Async Public Regulatory Research (AU / UNESCO / ASEAN)</summary>
+                                                <pre id="regEduResearchSummary" class="reg-edu-pre"></pre>
+                                            </details>
+                                            <details class="reg-edu-ref-card">
+                                                <summary>Original Preliminary .txt Baseline</summary>
+                                                <pre id="regEduPreliminaryRef" class="reg-edu-pre"></pre>
+                                            </details>
+                                        </div>
+
+                                        <div class="reg-edu-editor-card">
+                                            <div class="reg-edu-editor-header">
+                                                <label for="regEduWorkingDraftTextarea" class="reg-edu-field-label">
+                                                    Editable Advisory Document (Plain-Text .txt)
+                                                </label>
+                                                <span id="regEduDraftFileHint" class="reg-edu-file-hint"></span>
+                                            </div>
+                                            <textarea id="regEduWorkingDraftTextarea" class="reg-edu-textarea" rows="14" placeholder="Specialist improved advisory plan (.txt)..." data-agent-id="reg-edu-working-draft-textarea" data-testid="reg-edu-working-draft-textarea" aria-label="Editable Advisory Document Plain Text"></textarea>
+
+                                            <label for="regEduExecutiveNoteInput" class="reg-edu-field-label" style="margin-top: 12px;">
+                                                Specialist Executive Note (Shown to client above final download)
+                                            </label>
+                                            <textarea id="regEduExecutiveNoteInput" class="reg-edu-textarea reg-edu-note-textarea" rows="3" placeholder="Optional note explaining key refinements, regional context updates, or top Week 1 focus..." data-agent-id="reg-edu-executive-note-input" data-testid="reg-edu-executive-note-input" aria-label="Specialist Executive Note"></textarea>
+
+                                            <div class="reg-edu-editor-actions">
+                                                <button type="button" id="regEduSaveDraftBtn" class="btn-outline reg-edu-btn" data-agent-id="reg-edu-save-draft-btn" data-testid="reg-edu-save-draft-btn">
+                                                    <i class="fa-solid fa-floppy-disk"></i> Save Draft
+                                                </button>
+                                                <button type="button" id="regEduDownloadWorkingBtn" class="btn-outline reg-edu-btn" data-agent-id="reg-edu-download-working-btn" data-testid="reg-edu-download-working-btn">
+                                                    <i class="fa-solid fa-file-arrow-down"></i> Download Working .txt
+                                                </button>
+                                                <label for="regEduLocalFileInput" class="btn-outline reg-edu-btn reg-edu-upload-label" data-agent-id="reg-edu-load-txt-label" data-testid="reg-edu-load-txt-label" tabindex="0">
+                                                    <i class="fa-solid fa-file-import"></i> Load Edited .txt
+                                                    <input type="file" id="regEduLocalFileInput" accept=".txt,text/plain" style="display: none;" data-agent-id="reg-edu-local-file-input" data-testid="reg-edu-local-file-input" aria-label="Load locally edited plain-text TXT file into SuperAdmin editor">
+                                                </label>
+                                                <button type="button" id="regEduApproveBtn" class="reg-edu-approve-btn" data-agent-id="reg-edu-approve-btn" data-testid="reg-edu-approve-btn">
+                                                    <i class="fa-solid fa-paper-plane"></i> Approve &amp; Send Improved Plan
+                                                </button>
+                                            </div>
+
+                                            <div id="regEduApproveConfirmWrap" class="reg-edu-confirm-bar is-success" style="display: none;" role="alert">
+                                                <span>Deliver this Final Specialist-Reviewed `.txt` Plan to the client portal and mark review delivered?</span>
+                                                <div class="reg-edu-confirm-actions">
+                                                    <button type="button" id="regEduConfirmApproveBtn" class="reg-edu-approve-btn is-solid" data-agent-id="reg-edu-confirm-approve-btn" data-testid="reg-edu-confirm-approve-btn">Confirm &amp; Deliver Final Plan</button>
+                                                    <button type="button" id="regEduCancelApproveBtn" class="btn-outline reg-edu-btn" data-agent-id="reg-edu-cancel-approve-btn" data-testid="reg-edu-cancel-approve-btn">Cancel</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="regEduStudioStatus" class="service-prices-status" role="status" style="display: none;"></div>
+                        </div>
+
                         <!-- Upload Post Section -->
                         <div id="admin-upload-post" class="admin-tab-content" style="display: none;">
                             <h2 style="margin-bottom: 24px; font-size: 1.25rem;">Upload Content</h2>
@@ -1605,7 +1793,7 @@
         <script src="https://js.stripe.com/v3/"></script>
         <script src="site-locale.js?v=1"></script>
         <script src="service-pricing.js?v=7"></script>
-        <script src="app.js?v=74"></script>
+        <script src="app.js?v=77"></script>
 </body>
 
 </html>

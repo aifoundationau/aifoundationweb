@@ -18,6 +18,14 @@ yarn-error.log*
 # Temporary scratch scripts
 scratch/
 
+# Local strategy plan fallback stores (contain user session data)
+data/strategy-sessions.json
+data/strategy-superadmin-briefs.json
+
+# Local regional education advisory fallback stores (contain user session data)
+data/regional-edu-sessions.json
+data/regional-edu-reviews.json
+
 .DS_Store
 .DS_Store?
 ._*

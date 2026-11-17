@@ -284,9 +284,95 @@ test('SEO discovery files and head metadata (keywords, robots, OG, Twitter, JSON
         assert.match(html, /<meta property="og:site_name" content="AI Foundation Australia">/, `${page}: og:site_name`);
         assert.match(html, /<meta property="og:locale" content="en_AU">/, `${page}: og:locale`);
         assert.match(html, /<meta name="twitter:card" content="summary_large_image">/, `${page}: twitter:card`);
+        assert.match(html, /<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
         const ldMatch = html.match(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
         assert.ok(ldMatch, `${page}: JSON-LD script block`);
         const parsedLd = JSON.parse(ldMatch[1]);
         assert.equal(parsedLd['@context'], 'https://schema.org', `${page}: Schema.org context`);
+    }
+});
+
+test('Strategy Plan routes require auth/SuperAdmin, reject file uploads, and isolate SuperAdmin brief tabs', async () => {
+    const forged = { Authorization: 'Bearer not-a-real-token' };
+    const protectedRoutes = [
+        ['GET', '/api/strategy-plan/session'],
+        ['POST', '/api/strategy-plan/checkout', { returnPath: '/' }],
+        ['POST', '/api/strategy-plan/confirm', { sessionId: 'cs_test_a1b2c3' }],
+        ['POST', '/api/strategy-plan/message', { sessionId: 'strat_cs_test_a1b2c3', message: 'hi' }],
+        ['GET', '/api/strategy-plan/superadmin/briefs'],
+        ['POST', '/api/strategy-plan/superadmin/briefs/brief_123456/read'],
+        ['DELETE', '/api/strategy-plan/superadmin/briefs/brief_123456', { confirmDelete: true }]
+    ];
+    for (const [method, urlPath, payload] of protectedRoutes) {
+        const body = payload ? JSON.stringify(payload) : undefined;
+        const headers = payload ? { 'Content-Type': 'application/json' } : {};
+        assert.equal((await get(urlPath, { method, headers, body })).status, 401, `${method} ${urlPath} without sign-in`);
+        assert.equal((await get(urlPath, { method, headers: { ...headers, ...forged }, body })).status, 401, `${method} ${urlPath} with forged token`);
+    }
+
+    const indexHtml = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+    const modalBlock = indexHtml.slice(
+        indexHtml.indexOf('id="strategyPlanModal"'),
+        indexHtml.indexOf('<!-- Firebase SDK & Client Integration -->')
+    );
+    assert.doesNotMatch(modalBlock, /type=["']file["']/i, '#strategyPlanModal must never include file upload inputs');
+    assert.match(modalBlock, /data-agent-id="strategy-chat-input"/);
+    assert.match(modalBlock, /data-testid="strategy-download-txt-btn"/);
+
+    for (const page of ['index.html', 'projects.html', 'services.html']) {
+        const html = fs.readFileSync(path.join(root, 'public', page), 'utf8');
+        const superTabs = html.slice(html.indexOf('id="adminSuperTabs"'), html.indexOf('id="adminSupporterSidebar"'));
+        const supporterTabs = html.slice(html.indexOf('id="adminSupporterTabs"'));
+        const supporterMenu = supporterTabs.slice(0, supporterTabs.indexOf('</ul>'));
+        assert.match(superTabs, /data-target="admin-strategy-briefs"/, `${page}: Strategy Briefs in SuperAdmin menu`);
+        assert.doesNotMatch(supporterMenu, /admin-strategy-briefs/, `${page}: Supporters cannot access Strategy Briefs`);
+        assert.match(html, /id="confirmDeleteStrategyBriefBtn"/, `${page}: 2-step confirm delete button exists`);
+    }
+});
+
+test('Regional Education routes require auth/SuperAdmin, forbid client file inputs, and restrict Studio tab to SuperAdmin', async () => {
+    const forged = { Authorization: 'Bearer not-a-real-token' };
+    const protectedRoutes = [
+        ['GET', '/api/regional-edu/session'],
+        ['POST', '/api/regional-edu/checkout', { returnPath: '/' }],
+        ['POST', '/api/regional-edu/confirm', { sessionId: 'cs_test_regedu_a1b2c3' }],
+        ['POST', '/api/regional-edu/message', { sessionId: 'regedu_cs_test_a1b2c3', message: 'hi' }],
+        ['GET', '/api/regional-edu/superadmin/reviews'],
+        ['POST', '/api/regional-edu/superadmin/reviews/rev_123456/read'],
+        ['PUT', '/api/regional-edu/superadmin/reviews/rev_123456/draft', { improvedTxtContent: 'Updated plain text advisory draft lines for learners.' }],
+        ['POST', '/api/regional-edu/superadmin/reviews/rev_123456/approve', { improvedTxtContent: 'Final Specialist-Reviewed Regional Education AI Advisory Plan for regional schools and communities.', confirmApprove: true }],
+        ['DELETE', '/api/regional-edu/superadmin/reviews/rev_123456', { confirmDelete: true }]
+    ];
+    for (const [method, urlPath, payload] of protectedRoutes) {
+        const body = payload ? JSON.stringify(payload) : undefined;
+        const headers = payload ? { 'Content-Type': 'application/json' } : {};
+        assert.equal((await get(urlPath, { method, headers, body })).status, 401, `${method} ${urlPath} without sign-in`);
+        assert.equal((await get(urlPath, { method, headers: { ...headers, ...forged }, body })).status, 401, `${method} ${urlPath} with forged token`);
+    }
+
+    const indexHtml = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+    const modalBlock = indexHtml.slice(
+        indexHtml.indexOf('id="regionalEduModal"'),
+        indexHtml.indexOf('<!-- Firebase SDK & Client Integration -->')
+    );
+    assert.doesNotMatch(modalBlock, /type=["']file["']/i, '#regionalEduModal must never include client file upload inputs');
+    assert.match(modalBlock, /id="regEduLandingOverview"/, '#regionalEduModal wraps landing cards for zero-scrollbar responsive stages');
+    assert.match(modalBlock, /data-agent-id="reg-edu-answer-input"/);
+    assert.match(modalBlock, /data-testid="reg-edu-download-final-btn"/);
+    assert.match(indexHtml, /id="openRegionalEduModalBtn"/);
+
+    const styleCss = fs.readFileSync(path.join(root, 'public', 'style.css'), 'utf8');
+    assert.match(styleCss, /\.modal\.reg-edu-modal-backdrop[\s\S]*?height:\s*100dvh/, 'Regional Edu backdrop uses dynamic viewport height');
+    assert.match(styleCss, /\.modal-content\.reg-edu-modal-content[\s\S]*?scrollbar-width:\s*none/, 'Regional Edu modal hides scrollbars cleanly');
+
+    for (const page of ['index.html', 'projects.html', 'services.html']) {
+        const html = fs.readFileSync(path.join(root, 'public', page), 'utf8');
+        const superTabs = html.slice(html.indexOf('id="adminSuperTabs"'), html.indexOf('id="adminSupporterSidebar"'));
+        const supporterTabs = html.slice(html.indexOf('id="adminSupporterTabs"'));
+        const supporterMenu = supporterTabs.slice(0, supporterTabs.indexOf('</ul>'));
+        assert.match(superTabs, /data-target="admin-regional-edu-studio"/, `${page}: Regional Edu Studio in SuperAdmin menu`);
+        assert.doesNotMatch(supporterMenu, /admin-regional-edu-studio/, `${page}: Supporters cannot access Regional Edu Studio`);
+        assert.match(html, /id="regEduConfirmDeleteBtn"/, `${page}: 2-step confirm delete button exists`);
+        assert.match(html, /id="regEduLocalFileInput"/, `${page}: SuperAdmin-only local TXT FileReader input exists`);
     }
 });

@@ -23,6 +23,13 @@ const tokenBalances = require('./token-balances');
 const { createExchangeRates } = require('./exchange-rates');
 const { loadMessageBox, replyToConversation } = require('./message-box');
 const { extractMetadata, detectPlatform } = require('./metadata-extractor');
+const { createStrategyPlanService, StrategyChatTurnInputSchema } = require('./strategy-plan');
+const {
+    createRegionalEduService,
+    RegionalEduChatTurnInputSchema,
+    SuperadminDraftSaveSchema,
+    SuperadminImprovedPlanSchema
+} = require('./regional-edu-plan');
 console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
@@ -61,6 +68,16 @@ const PROJECTS_DATA_FILE = path.join(__dirname, 'data', 'projects.json');
 const servicePrices = createServicePriceStore();
 const tokenStore = tokenBalances.createTokenStore();
 const exchangeRates = createExchangeRates();
+const strategyPlan = createStrategyPlanService({
+    firebase: firebaseService,
+    getStripe,
+    getServicePrices: () => servicePrices.read()
+});
+const regionalEduPlan = createRegionalEduService({
+    firebase: firebaseService,
+    getStripe,
+    getServicePrices: () => servicePrices.read()
+});
 
 app.disable('x-powered-by');
 
@@ -77,6 +94,36 @@ app.use((req, res, next) => {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
     next();
+});
+
+// Stripe Webhook (raw body required BEFORE express.json for signature verification)
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const stripe = getStripe();
+    const webhookSecret = String(process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+    const signature = req.headers['stripe-signature'];
+    if (!stripe || !webhookSecret || !signature) {
+        return res.status(400).json({ error: 'Stripe webhook verification unavailable.' });
+    }
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+    } catch (err) {
+        console.warn('[Stripe Webhook] Signature verification failed:', err.message);
+        return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
+    }
+    try {
+        await strategyPlan.handleWebhookEvent(event);
+        await regionalEduPlan.handleWebhookEvent(event);
+        if (event.type === 'checkout.session.completed' && event.data?.object?.metadata?.kind === 'tokens') {
+            const session = event.data.object;
+            const result = await tokenStore.settleCheckout(session);
+            await syncTokenTransaction(session, result.status);
+        }
+        res.json({ received: true });
+    } catch (e) {
+        console.error('[Stripe Webhook] Handler error:', e);
+        res.status(500).json({ error: 'Webhook processing failed.' });
+    }
 });
 
 app.use(express.json({ limit: '10mb' }));
@@ -879,6 +926,250 @@ app.post('/api/tokens/grant', requireSuperAdmin, async (req, res) => {
         }
         console.error('[Tokens] Grant error:', e);
         sendServerError(res, e, 'The tokens could not be added just now. Please try again.');
+    }
+});
+
+// SERVICES - GOOGLE AI STRATEGY & FIRST-MONTH PLAN (Advisory-Only)
+app.get('/api/strategy-plan/session', requireAuth, async (req, res) => {
+    try {
+        const [pricing, session] = await Promise.all([
+            strategyPlan.getStrategyPlanPricing(),
+            strategyPlan.getLatestUserSession(req.user.uid)
+        ]);
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json({
+            pricing,
+            canPay: Boolean(getStripe()),
+            session
+        });
+    } catch (e) {
+        console.error('[Strategy Plan] Session load error:', e);
+        sendServerError(res, e, 'Could not load consultation status.');
+    }
+});
+
+app.post('/api/strategy-plan/checkout', requireAuth, async (req, res) => {
+    try {
+        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const returnPath = req.body && typeof req.body.returnPath === 'string' ? req.body.returnPath : '/';
+        const result = await strategyPlan.createCheckoutSession({
+            user: req.user,
+            origin,
+            returnPath
+        });
+        res.json(result);
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Strategy Plan] Checkout error:', e);
+        sendServerError(res, e, 'Could not start consultation checkout.');
+    }
+});
+
+app.post('/api/strategy-plan/confirm', requireAuth, async (req, res) => {
+    try {
+        const sessionId = String((req.body && req.body.sessionId) || '').trim();
+        const session = await strategyPlan.confirmCheckoutSession({
+            uid: req.user.uid,
+            sessionId
+        });
+        res.json({ session });
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Strategy Plan] Confirm error:', e);
+        sendServerError(res, e, 'Could not confirm consultation payment.');
+    }
+});
+
+app.post('/api/strategy-plan/message', requireAuth, async (req, res) => {
+    try {
+        const parsedBody = StrategyChatTurnInputSchema.safeParse(req.body);
+        if (!parsedBody.success) {
+            return res.status(400).json({ error: parsedBody.error.issues[0]?.message || 'Invalid plain-text consultation input.' });
+        }
+        const result = await strategyPlan.submitIntakeAnswer({
+            uid: req.user.uid,
+            sessionId: parsedBody.data.sessionId,
+            message: parsedBody.data.message
+        });
+        res.json(result);
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Strategy Plan] Message error:', e);
+        sendServerError(res, e, 'Could not record your answer. Please try again.');
+    }
+});
+
+app.get('/api/strategy-plan/superadmin/briefs', requireSuperAdmin, async (req, res) => {
+    try {
+        const data = await strategyPlan.listSuperAdminBriefs();
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json(data);
+    } catch (e) {
+        console.error('[Strategy Plan] SuperAdmin briefs error:', e);
+        sendServerError(res, e, 'Could not load strategy advisory briefs.');
+    }
+});
+
+app.post('/api/strategy-plan/superadmin/briefs/:id/read', requireSuperAdmin, async (req, res) => {
+    try {
+        const brief = await strategyPlan.markBriefRead(req.params.id);
+        res.json({ brief });
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Strategy Plan] Mark brief read error:', e);
+        sendServerError(res, e);
+    }
+});
+
+app.delete('/api/strategy-plan/superadmin/briefs/:id', requireSuperAdmin, async (req, res) => {
+    try {
+        const confirmed = Boolean(
+            (req.body && req.body.confirmDelete === true) ||
+            req.query.confirm === 'true'
+        );
+        const result = await strategyPlan.deleteSuperAdminBrief(req.params.id, { confirmed });
+        res.json(result);
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Strategy Plan] Delete brief error:', e);
+        sendServerError(res, e);
+    }
+});
+
+// SERVICES - REGIONAL EDUCATION & AI LITERACY (Purely Client Advisory + SuperAdmin Studio)
+app.get('/api/regional-edu/session', requireAuth, async (req, res) => {
+    try {
+        const [pricing, session] = await Promise.all([
+            regionalEduPlan.getRegionalEduPricing(),
+            regionalEduPlan.getLatestUserSession(req.user.uid)
+        ]);
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json({
+            pricing,
+            canPay: Boolean(getStripe()),
+            session
+        });
+    } catch (e) {
+        console.error('[Regional Edu] Session load error:', e);
+        sendServerError(res, e, 'Could not load Regional Education advisory status.');
+    }
+});
+
+app.post('/api/regional-edu/checkout', requireAuth, async (req, res) => {
+    try {
+        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const returnPath = req.body && typeof req.body.returnPath === 'string' ? req.body.returnPath : '/';
+        const result = await regionalEduPlan.createCheckoutSession({
+            user: req.user,
+            origin,
+            returnPath
+        });
+        res.json(result);
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Regional Edu] Checkout error:', e);
+        sendServerError(res, e, 'Could not start Regional Education advisory checkout.');
+    }
+});
+
+app.post('/api/regional-edu/confirm', requireAuth, async (req, res) => {
+    try {
+        const sessionId = String((req.body && req.body.sessionId) || '').trim();
+        const session = await regionalEduPlan.confirmCheckoutSession({
+            uid: req.user.uid,
+            sessionId
+        });
+        res.json({ session });
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Regional Edu] Confirm error:', e);
+        sendServerError(res, e, 'Could not confirm consultation payment.');
+    }
+});
+
+app.post('/api/regional-edu/message', requireAuth, async (req, res) => {
+    try {
+        const parsedBody = RegionalEduChatTurnInputSchema.safeParse(req.body);
+        if (!parsedBody.success) {
+            return res.status(400).json({ error: parsedBody.error.issues[0]?.message || 'Invalid plain-text consultation input.' });
+        }
+        const result = await regionalEduPlan.submitIntakeAnswer({
+            uid: req.user.uid,
+            sessionId: parsedBody.data.sessionId,
+            message: parsedBody.data.message
+        });
+        res.json(result);
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Regional Edu] Message error:', e);
+        sendServerError(res, e, 'Could not record your answer. Please try again.');
+    }
+});
+
+app.get('/api/regional-edu/superadmin/reviews', requireSuperAdmin, async (req, res) => {
+    try {
+        const data = await regionalEduPlan.listSuperAdminReviews();
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json(data);
+    } catch (e) {
+        console.error('[Regional Edu] SuperAdmin reviews error:', e);
+        sendServerError(res, e, 'Could not load Regional Education advisory reviews.');
+    }
+});
+
+app.post('/api/regional-edu/superadmin/reviews/:id/read', requireSuperAdmin, async (req, res) => {
+    try {
+        const review = await regionalEduPlan.markReviewRead(req.params.id);
+        res.json({ review });
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Regional Edu] Mark review read error:', e);
+        sendServerError(res, e);
+    }
+});
+
+app.put('/api/regional-edu/superadmin/reviews/:id/draft', requireSuperAdmin, async (req, res) => {
+    try {
+        const parsedBody = SuperadminDraftSaveSchema.safeParse(req.body);
+        if (!parsedBody.success) {
+            return res.status(400).json({ error: parsedBody.error.issues[0]?.message || 'Invalid working draft payload.' });
+        }
+        const review = await regionalEduPlan.saveReviewDraft(req.params.id, parsedBody.data);
+        res.json({ review });
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Regional Edu] Save draft error:', e);
+        sendServerError(res, e);
+    }
+});
+
+app.post('/api/regional-edu/superadmin/reviews/:id/approve', requireSuperAdmin, async (req, res) => {
+    try {
+        const parsedBody = SuperadminImprovedPlanSchema.safeParse(req.body);
+        if (!parsedBody.success) {
+            return res.status(400).json({ error: parsedBody.error.issues[0]?.message || 'Explicit confirmation and improved TXT content are required.' });
+        }
+        const result = await regionalEduPlan.approveAndDeliverFinalPlan(req.params.id, parsedBody.data, req.user);
+        res.json(result);
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Regional Edu] Approve final plan error:', e);
+        sendServerError(res, e);
+    }
+});
+
+app.delete('/api/regional-edu/superadmin/reviews/:id', requireSuperAdmin, async (req, res) => {
+    try {
+        const confirmed = Boolean(
+            (req.body && req.body.confirmDelete === true) ||
+            req.query.confirm === 'true'
+        );
+        const result = await regionalEduPlan.deleteReview(req.params.id, { confirmed });
+        res.json(result);
+    } catch (e) {
+        if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+        console.error('[Regional Edu] Delete review error:', e);
+        sendServerError(res, e);
     }
 });
 

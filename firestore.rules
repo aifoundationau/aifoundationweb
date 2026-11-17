@@ -42,12 +42,27 @@ service cloud.firestore {
       );
     }
 
+    // Tenant partition check for multi-tenant isolation (tag, businessId, source).
+    // Verifies existing documents on reads/updates/deletes and resulting documents on creates/updates.
+    function docMatchesPartition(docData, expectedTag) {
+      return docData.get('tag', '') == expectedTag
+        && (!('businessId' in docData) || docData.businessId == expectedTag)
+        && (!('source' in docData) || docData.source == expectedTag);
+    }
+
+    function partitionMatches(expectedTag) {
+      return (request.method == 'create' || (resource != null && docMatchesPartition(resource.data, expectedTag)))
+        && (!(request.method in ['create', 'update']) || docMatchesPartition(request.resource.data, expectedTag));
+    }
+
     // Collections holding PII or authorization data. Excluded from the catch-all rule below,
     // because Firestore rules are OR'd and a broad match would otherwise override these.
     function isProtectedCollection(name) {
       return name in ['users', 'transactions', 'stripe_transactions', 'paypal_transactions',
                       'chat_interactions', 'system_settings', 'admins', 'content',
                       'token_ledger', 'aifoundation_token_checkouts', 'token_checkouts',
+                      'aifoundation_strategy_sessions', 'aifoundation_strategy_superadmin_briefs',
+                      'aifoundation_regional_edu_sessions', 'aifoundation_regional_edu_reviews',
                       'gcoursebuilder_roles', 'gcoursebuilder_role_assignments',
                       'hr_users', 'hr_candidate_profiles', 'hr_candidate_unlocks', 'hr_agent_resumes',
                       'hr_agent_inquiries', 'hr_recruitment_audit_logs', 'hr_conversations', 'hr_employers',
@@ -350,6 +365,162 @@ service cloud.firestore {
     match /hr_rbac_audit_log/{logId} {
       allow read: if isAdmin();
       allow write: if false;
+    }
+
+    // ===============================================================
+    // Google AI Strategy & First-Month Plan (Advisory-Only Service)
+    // ===============================================================
+    // Assumed Data Model (see strategy-plan.d.ts):
+    // - Collection: aifoundation_strategy_sessions/{sessionId}
+    //   Fields: id, tag, businessId, businessName, source, uid, userEmail, userName,
+    //   stripeSessionId, paymentStatus, amountPaidExGstAud, currency, status,
+    //   currentStep, totalSteps, clientBusinessName, nicheGroundingSummary,
+    //   answers, messages, preliminaryReport, superadminBriefId, createdAt, updatedAt
+    //   Written exclusively by the backend server (Firebase Service Account).
+    // - Collection: aifoundation_strategy_superadmin_briefs/{briefId}
+    //   Fields: id, tag, businessId, businessName, source, strategySessionId,
+    //   stripeSessionId, uid, clientEmail, clientBusinessName, amountPaidExGstAud,
+    //   fileName, summary, content, read (bool), modelUsed, createdAt, updatedAt
+    //   Created exclusively by the backend server (Firebase Service Account);
+    //   SuperAdmins may read, mark read (read/updatedAt only), or delete.
+    function isValidStrategyBriefUpdate() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['read', 'updatedAt'])
+        && (!changed.hasAny(['read']) || (
+          'read' in request.resource.data && request.resource.data.read is bool
+        ))
+        && (!changed.hasAny(['updatedAt']) || (
+          'updatedAt' in request.resource.data && (
+            request.resource.data.updatedAt is timestamp ||
+            (request.resource.data.updatedAt is string &&
+             request.resource.data.updatedAt.size() > 0 &&
+             request.resource.data.updatedAt.size() <= 64)
+          )
+        ));
+    }
+
+    // Strategy sessions: only the backend server (Firebase Service Account) writes/updates
+    // strategy sessions, enforcing payment gating, secret redaction, and the 6-step state machine
+    match /aifoundation_strategy_sessions/{sessionId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
+    // SuperAdmin strategy briefs: only the backend server (Firebase Service Account) creates briefs;
+    // strictly authenticated SuperAdmins may read, mark read, or delete them
+    match /aifoundation_strategy_superadmin_briefs/{briefId} {
+      allow read, delete: if isSuperAdmin();
+      allow create: if false;
+      allow update: if isSuperAdmin() && isValidStrategyBriefUpdate();
+    }
+
+    // ===============================================================
+    // Regional Education & AI Literacy (Advisory-Only Service)
+    // ===============================================================
+    // Assumed Data Model (see regional-edu-plan.d.ts):
+    // - Collection: aifoundation_regional_edu_sessions/{sessionId}
+    //   Fields: id, tag, businessId, businessName, source, uid (or userId), userEmail, userName,
+    //   stripeSessionId, paymentStatus, amountPaidExGstAud, currency, status,
+    //   currentStep, totalSteps, clientOrganizationName, regionGroundingSummary,
+    //   needsSummary, answers, messages, preliminaryReport, finalImprovedReport,
+    //   superadminExecutiveNote, superadminReviewId, superadminApprovedAt,
+    //   createdAt, updatedAt
+    //   Written exclusively by the backend server (Firebase Admin SDK / REST Service Account).
+    // - Collection: aifoundation_regional_edu_reviews/{reviewId}
+    //   Fields: id, tag, businessId, businessName, source, regionalEduSessionId,
+    //   stripeSessionId, uid, clientEmail, clientOrganizationName, amountPaidExGstAud,
+    //   reviewStatus ('unread_analysis' | 'in_review_editing' | 'final_improved_delivered'),
+    //   read (bool), summary, needsSummary, intakeTranscript, researchSummary,
+    //   preliminaryFileName, preliminaryTxtContent, workingDraftContent,
+    //   superadminNote, finalFileName, finalTxtContent, approvedAt, modelUsed,
+    //   createdAt, updatedAt
+    //   Created exclusively by the backend server after Stage 2 async research;
+    //   SuperAdmins may read, update draft/approval fields within the 'aifoundation' partition, or delete.
+    function isValidRegionalEduTimestampOrIso(val) {
+      return val is timestamp ||
+        (val is string && val.size() > 0 && val.size() <= 64);
+    }
+
+    function isValidRegionalEduReviewStatusTransition(prevStatus, nextStatus) {
+      return (prevStatus == 'unread_analysis' && nextStatus in ['unread_analysis', 'in_review_editing', 'final_improved_delivered']) ||
+        (prevStatus == 'in_review_editing' && nextStatus in ['in_review_editing', 'final_improved_delivered']) ||
+        (prevStatus == 'final_improved_delivered' && nextStatus == 'final_improved_delivered');
+    }
+
+    function isValidRegionalEduReviewUpdate() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return changed.hasOnly([
+          'read', 'reviewStatus', 'workingDraftContent', 'superadminNote',
+          'finalFileName', 'finalTxtContent', 'approvedAt', 'updatedAt'
+        ])
+        && (!changed.hasAny(['read']) || (
+          'read' in request.resource.data && request.resource.data.read is bool
+        ))
+        && (!changed.hasAny(['reviewStatus']) || (
+          'reviewStatus' in request.resource.data &&
+          request.resource.data.reviewStatus is string &&
+          request.resource.data.reviewStatus in ['unread_analysis', 'in_review_editing', 'final_improved_delivered'] &&
+          (!('reviewStatus' in resource.data) ||
+           isValidRegionalEduReviewStatusTransition(resource.data.reviewStatus, request.resource.data.reviewStatus))
+        ))
+        && (!changed.hasAny(['workingDraftContent']) || (
+          'workingDraftContent' in request.resource.data &&
+          request.resource.data.workingDraftContent is string &&
+          request.resource.data.workingDraftContent.size() > 0 &&
+          request.resource.data.workingDraftContent.size() <= 80000
+        ))
+        && (!changed.hasAny(['superadminNote']) || (
+          'superadminNote' in request.resource.data &&
+          request.resource.data.superadminNote is string &&
+          request.resource.data.superadminNote.size() <= 4000
+        ))
+        && (!changed.hasAny(['finalFileName']) || (
+          'finalFileName' in request.resource.data && (
+            request.resource.data.finalFileName == null ||
+            (request.resource.data.finalFileName is string &&
+             request.resource.data.finalFileName.size() > 0 &&
+             request.resource.data.finalFileName.size() <= 200)
+          )
+        ))
+        && (!changed.hasAny(['finalTxtContent']) || (
+          'finalTxtContent' in request.resource.data && (
+            request.resource.data.finalTxtContent == null ||
+            (request.resource.data.finalTxtContent is string &&
+             request.resource.data.finalTxtContent.size() > 0 &&
+             request.resource.data.finalTxtContent.size() <= 80000)
+          )
+        ))
+        && (!changed.hasAny(['approvedAt']) || (
+          'approvedAt' in request.resource.data && (
+            request.resource.data.approvedAt == null ||
+            isValidRegionalEduTimestampOrIso(request.resource.data.approvedAt)
+          )
+        ))
+        && (!changed.hasAny(['updatedAt']) || (
+          'updatedAt' in request.resource.data &&
+          isValidRegionalEduTimestampOrIso(request.resource.data.updatedAt)
+        ));
+    }
+
+    // Regional Education sessions: strictly readable by SuperAdmin or the owning authenticated user
+    // within the 'aifoundation' partition (supports both `userId` and `uid` session owner fields);
+    // all writes go exclusively through the backend server (Firebase Admin SDK / REST Service Account)
+    match /aifoundation_regional_edu_sessions/{sessionId} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() &&
+        partitionMatches('aifoundation') &&
+        (resource.data.get('userId', '') == request.auth.uid || resource.data.get('uid', '') == request.auth.uid)
+      );
+      allow create, update, delete: if false;
+    }
+
+    // Regional Education SuperAdmin reviews: created only by the backend server after Stage 2 async research;
+    // strictly SuperAdmin read/delete, and SuperAdmin update constrained to 'aifoundation' partition + valid fields
+    match /aifoundation_regional_edu_reviews/{reviewId} {
+      allow read: if isSuperAdmin();
+      allow create: if false;
+      allow update: if isSuperAdmin() && partitionMatches('aifoundation') && isValidRegionalEduReviewUpdate();
+      allow delete: if isSuperAdmin();
     }
 
     // Fallback for other tenants' collections (unchanged behaviour),

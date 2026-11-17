@@ -380,6 +380,176 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 
 ---
 
+### Domain 10: Google AI Strategy & First-Month Plan Advisory Service
+
+#### Target Endpoints & Collections
+- API Endpoints:
+  - `GET /api/strategy-plan/session` (`requireAuth`)
+  - `POST /api/strategy-plan/checkout` (`requireAuth`)
+  - `POST /api/strategy-plan/confirm` (`requireAuth`)
+  - `POST /api/strategy-plan/message` (`requireAuth`, plain-text only)
+  - `POST /api/stripe/webhook` (`express.raw`, Stripe signature verified)
+  - `GET /api/strategy-plan/superadmin/briefs` (`requireSuperAdmin`)
+  - `POST /api/strategy-plan/superadmin/briefs/:id/read` (`requireSuperAdmin`)
+  - `DELETE /api/strategy-plan/superadmin/briefs/:id` (`requireSuperAdmin`, requires `confirmDelete: true`)
+- Firestore Collections:
+  - `aifoundation_strategy_sessions/{sessionId}` (owner + SuperAdmin read; server Service Account write only)
+  - `aifoundation_strategy_superadmin_briefs/{briefId}` (SuperAdmin read/update/delete; server Service Account create only)
+- Implementation: [strategy-plan.js](file:///Y:/Antigravity%20Projects/ai-foundation/strategy-plan.js) and [strategy-plan.d.ts](file:///Y:/Antigravity%20Projects/ai-foundation/strategy-plan.d.ts).
+
+#### Security, Redaction & Payment Invariants
+- **Zero External Access & Zero File Uploads**: Plain-text chat input only (`StrategyChatTurnInputSchema` with `.strict()` / `additionalProperties: false` rejecting any attachment or file key). Zero Google Workspace/GCP client OAuth scopes requested.
+- **Secret Scrubbing (`redactSecrets`)**: All user inputs matching Google API keys (`AIza...`), Stripe/AI secret keys (`sk-...`, `rk_...`, `whsec_...`), GitHub/Slack tokens, JWTs, PEM private keys, or labeled `password=/api_key=/secret=` values are scrubbed to `[REDACTED_SECRET]` prior to any Gemini API call or Firestore persistence, and the client receives a `redactedWarning` notice.
+- **Stripe AUD Exclusive GST Gate**: Always bills in `currency: 'aud'` with `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, using the admin `30-day-roadmap` AUD price when set or `STRATEGY_PLAN_PRICE_AUD_CENTS` (default `29900` = AUD $299.00 ex GST). Unlocked atomically by both `checkout.session.completed` webhook and `POST /api/strategy-plan/confirm`.
+- **Stage 2 & Stage 3 Plain-Text `.txt` Deliverables**:
+  - Customer `.txt`: `Preliminary_Google_AI_Strategy_30_Day_Advisory_[SanitizedBusinessName]_[YYYY-MM-DD].txt` (pure UTF-8, ASCII `===` dividers, zero Markdown/HTML, mandatory zero-access top disclaimer, 6 advisory sections).
+  - SuperAdmin `.txt`: `SUPERADMIN_30_Day_Advisory_Recommendation_[SanitizedBusinessName]_[YYYY-MM-DD].txt` generated asynchronously via `GEMINI_FALLBACK_MODEL` (`gemini-4-hydrogen`) + public Google Search grounding and dispatched unread to SuperAdmin (`confirmDelete: true` required before deletion).
+
+#### Strict Input/Output JSON Schemas (`additionalProperties: false`)
+```json
+{
+  "title": "StrategyChatTurnInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId", "message"],
+  "properties": {
+    "sessionId": { "type": "string", "pattern": "^strat_[A-Za-z0-9_-]{6,140}$" },
+    "message": { "type": "string", "minLength": 1, "maxLength": 3000 }
+  }
+}
+```
+```json
+{
+  "title": "StrategyStripeMetadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tag", "businessId", "businessName", "source", "kind", "uid", "userId", "serviceName", "serviceType"],
+  "properties": {
+    "tag": { "const": "aifoundation" },
+    "businessId": { "const": "aifoundation" },
+    "businessName": { "const": "AI Foundation" },
+    "source": { "const": "aifoundation" },
+    "kind": { "const": "strategy_plan" },
+    "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "serviceName": { "const": "Services - Google AI Strategy & First-Month Plan" },
+    "serviceType": { "const": "google_ai_strategy_advisory_30_day" }
+  }
+}
+```
+
+### Domain 11: Regional Education & AI Literacy Advisory (`regional-edu-plan.js`)
+Strict zero-access, plain-text advisory consultation and SuperAdmin `.txt` refinement contracts (`additionalProperties: false`):
+
+1. **`RegionalEduChatTurnInput`** (`POST /api/regional-edu/message`) — rejects file upload or arbitrary metadata keys:
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId", "message"],
+  "properties": {
+    "sessionId": { "type": "string", "pattern": "^regedu_[A-Za-z0-9_-]{6,120}$" },
+    "message": { "type": "string", "minLength": 2, "maxLength": 4000 }
+  }
+}
+```
+
+2. **`ClientNeedsSummary`** (persisted on `aifoundation_regional_edu_sessions` & `aifoundation_regional_edu_reviews`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "organizationName",
+    "region",
+    "learnerProfile",
+    "connectivityProfile",
+    "dailyLiteracyGoals",
+    "privacyConstraints",
+    "oversightNeeds",
+    "budgetAndTimeline"
+  ],
+  "properties": {
+    "organizationName": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "region": { "type": "string", "minLength": 1, "maxLength": 400 },
+    "learnerProfile": { "type": "string", "minLength": 1, "maxLength": 800 },
+    "connectivityProfile": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "dailyLiteracyGoals": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "privacyConstraints": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "oversightNeeds": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "budgetAndTimeline": { "type": "string", "minLength": 1, "maxLength": 1200 }
+  }
+}
+```
+
+3. **`SuperadminDraftSaveInput`** (`PUT /api/regional-edu/superadmin/reviews/:id/draft`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["improvedTxtContent"],
+  "properties": {
+    "improvedTxtContent": { "type": "string", "minLength": 20, "maxLength": 60000 },
+    "superadminNote": { "type": "string", "maxLength": 4000 }
+  }
+}
+```
+
+4. **`SuperadminImprovedPlanInput`** (`POST /api/regional-edu/superadmin/reviews/:id/approve`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["improvedTxtContent", "confirmApprove"],
+  "properties": {
+    "improvedTxtContent": { "type": "string", "minLength": 50, "maxLength": 60000 },
+    "executiveNote": { "type": "string", "maxLength": 4000 },
+    "confirmApprove": { "const": true }
+  }
+}
+```
+
+5. **`RegionalEduStripeMetadata`** (`POST /api/regional-edu/checkout` & `POST /api/stripe/webhook`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tag",
+    "businessId",
+    "businessName",
+    "source",
+    "kind",
+    "uid",
+    "userId",
+    "serviceSlug",
+    "serviceName",
+    "serviceType",
+    "workflow"
+  ],
+  "properties": {
+    "tag": { "const": "aifoundation" },
+    "businessId": { "const": "aifoundation" },
+    "businessName": { "const": "AI Foundation" },
+    "source": { "const": "aifoundation" },
+    "kind": { "const": "regional_edu_advisory" },
+    "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "serviceSlug": { "const": "regulatory-roadmap" },
+    "serviceName": { "const": "Services - Regional Education & AI Literacy" },
+    "serviceType": { "const": "regional_education_ai_literacy_advisory" },
+    "workflow": { "const": "advisory_with_superadmin_improvement" }
+  }
+}
+```
+
+---
+
 ## 3. Regulatory Compliance & Governance Alignment
 
 1. **Australian Privacy Act 1988 & Australian Privacy Principles (APPs)**:

@@ -2,32 +2,38 @@
   "prices": {
     "30-day-roadmap": {
       "price": {
-        "usd": 1100,
-        "aud": 1100
+        "usd": 2000,
+        "aud": 2953
       }
     },
     "regulatory-roadmap": {
       "price": {
-        "usd": 2200,
-        "aud": 3300
+        "usd": 2000,
+        "aud": 2953
       }
     },
     "stack-selection": {
       "price": {
-        "usd": 2200,
-        "aud": 3300
+        "usd": 2000,
+        "aud": 2953
       }
     },
     "ai-agent-hosting": {
       "setup": {
-        "usd": 2200,
-        "aud": 3300
+        "usd": 2000,
+        "aud": 2953
       },
       "monthly": {
-        "usd": 1100,
-        "aud": 1650
+        "usd": 1000,
+        "aud": 1426
+      }
+    },
+    "tokens": {
+      "perToken": {
+        "usd": 0.68,
+        "aud": 1
       }
     }
   },
-  "updatedAt": "2026-10-23T08:57:42.275Z"
+  "updatedAt": "2026-11-17T01:37:16.903Z"
 }
