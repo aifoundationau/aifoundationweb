@@ -68,7 +68,7 @@ function normalizeMessage(id, f, defaultTenant = '') {
         }
         : { uid: str(f.senderUid), email: str(f.senderEmail).toLowerCase(), name: str(f.senderName) };
 
-    const tenant = (str(f.tag) || str(f.businessId) || str(f.source) || defaultTenant || 'unknown').toLowerCase();
+    const tenant = (str(f.tag) || str(f.businessId).replace(/^#/, '') || str(f.source) || defaultTenant || 'unknown').toLowerCase();
     const threadId = str(f.conversationId) || str(f.threadId) || str(f.conversation_id) || str(f.thread_id) ||
         `conv_${counterpart.uid || counterpart.email || id}`;
 
@@ -493,7 +493,7 @@ async function replyToConversation({
             conversationId: convId,
             userMessage: cleanText,
             tag: 'aifoundation',
-            businessId: 'aifoundation',
+            businessId: '#aifoundation',
             businessName: 'AI Foundation',
             source: 'aifoundation'
         });

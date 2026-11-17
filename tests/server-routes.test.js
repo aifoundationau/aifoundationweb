@@ -364,6 +364,7 @@ test('Regional Education routes require auth/SuperAdmin, forbid client file inpu
     const styleCss = fs.readFileSync(path.join(root, 'public', 'style.css'), 'utf8');
     assert.match(styleCss, /\.modal\.reg-edu-modal-backdrop[\s\S]*?height:\s*100dvh/, 'Regional Edu backdrop uses dynamic viewport height');
     assert.match(styleCss, /\.modal-content\.reg-edu-modal-content[\s\S]*?scrollbar-width:\s*none/, 'Regional Edu modal hides scrollbars cleanly');
+    assert.match(styleCss, /\.reg-edu-modal-backdrop\[data-stage="chat"\]/, 'Responsive zero-scrollbar stage collapse applies across advisory modals');
 
     for (const page of ['index.html', 'projects.html', 'services.html']) {
         const html = fs.readFileSync(path.join(root, 'public', page), 'utf8');
@@ -374,5 +375,70 @@ test('Regional Education routes require auth/SuperAdmin, forbid client file inpu
         assert.doesNotMatch(supporterMenu, /admin-regional-edu-studio/, `${page}: Supporters cannot access Regional Edu Studio`);
         assert.match(html, /id="regEduConfirmDeleteBtn"/, `${page}: 2-step confirm delete button exists`);
         assert.match(html, /id="regEduLocalFileInput"/, `${page}: SuperAdmin-only local TXT FileReader input exists`);
+    }
+});
+
+test('Tool Governance and Managed Agent routes require auth/SuperAdmin, forbid client uploads, and isolate Studio tabs', async () => {
+    const forged = { Authorization: 'Bearer not-a-real-token' };
+    const endpoints = [
+        ['GET', '/api/tool-governance/session'],
+        ['POST', '/api/tool-governance/checkout', { returnPath: '/' }],
+        ['POST', '/api/tool-governance/confirm', { sessionId: 'cs_test_toolgov_a1b2c3' }],
+        ['POST', '/api/tool-governance/message', { sessionId: 'toolgov_cs_test_a1b2c3', message: 'clinic scoping' }],
+        ['GET', '/api/tool-governance/superadmin/reviews'],
+        ['POST', '/api/tool-governance/superadmin/reviews/tgrev_123456/read'],
+        ['PUT', '/api/tool-governance/superadmin/reviews/tgrev_123456/draft', { improvedTxtContent: 'Updated vetted tool compliance draft for clinicians.' }],
+        ['POST', '/api/tool-governance/superadmin/reviews/tgrev_123456/approve', { improvedTxtContent: 'Final Vetted AI Tool Selection & Governance Advisory Plan approved for procurement.', confirmApprove: true }],
+        ['DELETE', '/api/tool-governance/superadmin/reviews/tgrev_123456', { confirmDelete: true }],
+        ['GET', '/api/managed-agent/session'],
+        ['POST', '/api/managed-agent/checkout', { returnPath: '/' }],
+        ['POST', '/api/managed-agent/confirm', { sessionId: 'cs_test_mgagent_a1b2c3' }],
+        ['POST', '/api/managed-agent/message', { sessionId: 'mgagent_cs_test_a1b2c3', message: 'ops workflow' }],
+        ['GET', '/api/managed-agent/superadmin/reviews'],
+        ['POST', '/api/managed-agent/superadmin/reviews/marev_123456/read'],
+        ['PUT', '/api/managed-agent/superadmin/reviews/marev_123456/draft', { improvedTxtContent: 'Updated zero-downtime agent hosting draft blueprint text.' }],
+        ['POST', '/api/managed-agent/superadmin/reviews/marev_123456/approve', { improvedTxtContent: 'Final Reviewed Managed AI Agent Hosting & Maintenance Advisory Plan approved.', confirmApprove: true }],
+        ['DELETE', '/api/managed-agent/superadmin/reviews/marev_123456', { confirmDelete: true }]
+    ];
+
+    for (const [method, urlPath, payload] of endpoints) {
+        const body = payload ? JSON.stringify(payload) : undefined;
+        const headers = payload ? { 'Content-Type': 'application/json' } : {};
+        assert.equal((await get(urlPath, { method, headers, body })).status, 401, `${method} ${urlPath} without sign-in`);
+        assert.equal((await get(urlPath, { method, headers: { ...headers, ...forged }, body })).status, 401, `${method} ${urlPath} with forged token`);
+    }
+
+    const indexHtml = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+    assert.match(indexHtml, /id="openToolGovernanceModalBtn"/);
+    assert.match(indexHtml, /id="openManagedAgentModalBtn"/);
+
+    const toolGovSlice = indexHtml.slice(
+        indexHtml.indexOf('id="toolGovernanceModal"'),
+        indexHtml.indexOf('id="managedAgentModal"')
+    );
+    assert.doesNotMatch(toolGovSlice, /type=["']file["']/i, '#toolGovernanceModal must never include client file uploads');
+    assert.match(toolGovSlice, /data-agent-id="tool-gov-answer-input"/);
+    assert.match(toolGovSlice, /data-testid="tool-gov-download-final-btn"/);
+
+    const mgAgentSlice = indexHtml.slice(
+        indexHtml.indexOf('id="managedAgentModal"'),
+        indexHtml.indexOf('<!-- Firebase SDK & Client Integration -->')
+    );
+    assert.doesNotMatch(mgAgentSlice, /type=["']file["']/i, '#managedAgentModal must never include client file uploads');
+    assert.match(mgAgentSlice, /data-agent-id="mg-agent-answer-input"/);
+    assert.match(mgAgentSlice, /data-testid="mg-agent-download-final-btn"/);
+
+    for (const page of ['index.html', 'projects.html', 'services.html']) {
+        const html = fs.readFileSync(path.join(root, 'public', page), 'utf8');
+        const superTabs = html.slice(html.indexOf('id="adminSuperTabs"'), html.indexOf('id="adminSupporterSidebar"'));
+        const supporterTabs = html.slice(html.indexOf('id="adminSupporterTabs"'));
+        const supporterMenu = supporterTabs.slice(0, supporterTabs.indexOf('</ul>'));
+        assert.match(superTabs, /data-target="admin-tool-governance-studio"/, `${page}: Tool Governance Studio in SuperAdmin menu`);
+        assert.match(superTabs, /data-target="admin-managed-agent-studio"/, `${page}: Managed Agent Studio in SuperAdmin menu`);
+        assert.doesNotMatch(supporterMenu, /admin-tool-governance-studio|admin-managed-agent-studio/, `${page}: Supporters cannot access Studios`);
+        assert.match(html, /id="toolGovConfirmDeleteBtn"/);
+        assert.match(html, /id="mgAgentConfirmDeleteBtn"/);
+        assert.match(html, /id="toolGovLocalFileInput"/);
+        assert.match(html, /id="mgAgentLocalFileInput"/);
     }
 });

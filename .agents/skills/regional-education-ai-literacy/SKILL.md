@@ -14,7 +14,7 @@ This workflow exists strictly to **understand a client's needs and advise them o
 - **Advisory Framing Only**: Frame every output section practically as step-by-step guidance telling the client what governance policies, regulatory checks, low-bandwidth Google tools, privacy safeguards, and week-by-week training steps they should execute themselves. Never frame deliverables as managed software deployed into client servers.
 
 ## 2. Partition Key, RBAC & UI Protection Rules
-- **Tenant & Partition Alignment**: Satisfy `data-contracts.md` Invariant Rule 1 using `tag: 'aifoundation'`, `businessId: 'aifoundation'`, `businessName: 'AI Foundation'`, and `source: 'aifoundation'` across all Firestore documents and Stripe metadata payloads.
+- **Tenant & Partition Alignment**: Satisfy `data-contracts.md` Invariant Rule 1 using `tag: 'aifoundation'`, `businessId: '#aifoundation'`, `businessName: 'AI Foundation'`, and `source: 'aifoundation'` across all Firestore documents and Stripe metadata payloads.
 - **Role-Based Access Control**:
   - Newly registered database users MUST default to `role: 'supporter'` prior to any `'superadmin'` elevation.
   - Strictly restrict SuperAdmin review inbox, research analysis, draft editing, approval/delivery, and deletion endpoints (`/api/regional-edu/superadmin/*`) and Firestore rules (`aifoundation_regional_edu_reviews`) to authenticated users with `role === 'superadmin'`.
@@ -48,7 +48,7 @@ In `#regionalEduModal`, display:
   - `tax_behavior: 'exclusive'` inside `price_data`
   - `invoice_creation: { enabled: true }`
   - `allow_promotion_codes: true`
-  - `metadata`: `{ userId, businessId: 'aifoundation', tag: 'aifoundation', source: 'aifoundation', serviceSlug: 'regulatory-roadmap', serviceName: 'Services - Regional Education & AI Literacy', workflow: 'advisory_with_superadmin_improvement' }`
+  - `metadata`: `{ userId, businessId: '#aifoundation', tag: 'aifoundation', source: 'aifoundation', serviceSlug: 'regulatory-roadmap', serviceName: 'Services - Regional Education & AI Literacy', workflow: 'advisory_with_superadmin_improvement' }`
 - **Session Unlock**: Handle both raw Stripe webhook `checkout.session.completed` (mounted before `express.json()`) and `POST /api/regional-edu/confirm` return-route verification to unlock `aifoundation_regional_edu_sessions/{sessionId}` at `status: 'paid_intake_ready'`.
 
 ## 5. Stage 1 & Stage 2: 6-Step Needs Discovery & Preliminary `.txt` + Async Research

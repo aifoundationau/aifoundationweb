@@ -45,7 +45,7 @@
     <meta name="twitter:image" content="https://www.aifoundation.net.au/assets/logo.png">
     <meta name="twitter:image:alt" content="Services &amp; Capabilities | AI Foundation Australia">
 
-    <link rel="stylesheet" href="style.css?v=64">
+    <link rel="stylesheet" href="style.css?v=65">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script type="application/ld+json">
@@ -780,6 +780,20 @@
                                 </div>
                                 <i class="fa-solid fa-check active-check"></i>
                             </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-tool-governance-studio" data-agent-id="superadmin-tool-governance-mobile-tab" data-testid="superadmin-tool-governance-mobile-tab">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-toolbox"></i>
+                                    <span>Tool Governance Studio</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
+                            <li class="admin-mobile-menu-item" data-target="admin-managed-agent-studio" data-agent-id="superadmin-managed-agent-mobile-tab" data-testid="superadmin-managed-agent-mobile-tab">
+                                <div class="admin-mobile-item-left">
+                                    <i class="fa-solid fa-robot"></i>
+                                    <span>Managed Agent Studio</span>
+                                </div>
+                                <i class="fa-solid fa-check active-check"></i>
+                            </li>
                         </ul>
                     </div>
 
@@ -796,6 +810,8 @@
                         <option value="admin-token-accounts">Token Accounts</option>
                         <option value="admin-strategy-briefs">Strategy Briefs</option>
                         <option value="admin-regional-edu-studio">Regional Edu Studio</option>
+                        <option value="admin-tool-governance-studio">Tool Governance Studio</option>
+                        <option value="admin-managed-agent-studio">Managed Agent Studio</option>
                     </select>
                 </div>
 
@@ -851,6 +867,14 @@
                                 <li class="sidebar-item" data-target="admin-regional-edu-studio" data-agent-id="superadmin-regional-edu-tab" data-testid="superadmin-regional-edu-tab" aria-label="Regional Education Studio" title="SuperAdmin Regional Education Document Analysis & Improvement Studio">
                                     <i class="fa-solid fa-graduation-cap"></i>
                                     <span>Regional Edu Studio</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-tool-governance-studio" data-agent-id="superadmin-tool-governance-tab" data-testid="superadmin-tool-governance-tab" aria-label="Tool Governance Studio" title="SuperAdmin AI Tool Selection & Governance Studio">
+                                    <i class="fa-solid fa-toolbox"></i>
+                                    <span>Tool Governance Studio</span>
+                                </li>
+                                <li class="sidebar-item" data-target="admin-managed-agent-studio" data-agent-id="superadmin-managed-agent-tab" data-testid="superadmin-managed-agent-tab" aria-label="Managed Agent Studio" title="SuperAdmin Managed AI Agent Hosting & Maintenance Studio">
+                                    <i class="fa-solid fa-robot"></i>
+                                    <span>Managed Agent Studio</span>
                                 </li>
                             </ul>
                         </div>
@@ -1336,7 +1360,7 @@
                         </div>
 
                         <!-- SuperAdmin Regional Education Document Analysis & Improvement Studio -->
-                        <div id="admin-regional-edu-studio" class="admin-content-pane">
+                        <div id="admin-regional-edu-studio" class="admin-tab-content" style="display: none;">
                             <div class="admin-section-header">
                                 <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
                                     <div>
@@ -1451,6 +1475,242 @@
                             </div>
 
                             <div id="regEduStudioStatus" class="service-prices-status" role="status" style="display: none;"></div>
+                        </div>
+
+                        <!-- SuperAdmin AI Tool Selection & Governance Studio -->
+                        <div id="admin-tool-governance-studio" class="admin-tab-content" style="display: none;">
+                            <div class="admin-section-header">
+                                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+                                    <div>
+                                        <h3>AI Tool Selection &amp; Governance &mdash; Document Analysis &amp; Improvement Studio <span id="toolGovUnreadBadge" class="reg-edu-unread-badge" style="display:none;">0 unread</span></h3>
+                                        <p>Review high-compliance sector scoping, vendor/air-gap research, and preliminary TXT drafts. Edit, save, load offline TXT refinements, and deliver the final vetted plan back to the client.</p>
+                                    </div>
+                                    <div class="reg-edu-studio-toolbar">
+                                        <label for="toolGovFilterSelect" class="sr-only">Filter reviews by status</label>
+                                        <select id="toolGovFilterSelect" class="reg-edu-select" data-agent-id="tool-gov-filter-select" data-testid="tool-gov-filter-select" aria-label="Filter Tool Governance reviews">
+                                            <option value="all">All Statuses</option>
+                                            <option value="unread_analysis">Unread Analysis</option>
+                                            <option value="in_review_editing">In Review / Editing</option>
+                                            <option value="final_improved_delivered">Final Plan Delivered</option>
+                                        </select>
+                                        <button type="button" id="toolGovRefreshBtn" class="btn-outline reg-edu-btn" data-agent-id="tool-gov-refresh-btn" data-testid="tool-gov-refresh-btn" aria-label="Refresh Tool Governance review queue">
+                                            <i class="fa-solid fa-rotate"></i> Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="reg-edu-studio-layout">
+                                <div class="reg-edu-queue-col">
+                                    <div id="toolGovQueueList" class="reg-edu-queue-list" role="region" aria-label="Tool Governance Client Queue" data-agent-id="tool-gov-queue-list" data-testid="tool-gov-queue-list">
+                                        <p class="reg-edu-empty-note">Open this tab to load AI Tool Governance reviews.</p>
+                                    </div>
+                                </div>
+
+                                <div id="toolGovStudioWorkspace" class="reg-edu-workspace-col">
+                                    <div id="toolGovStudioEmpty" class="reg-edu-workspace-empty">
+                                        <i class="fa-solid fa-toolbox"></i>
+                                        <p>Select a client session from the queue to inspect vendor/air-gap audit findings and refine their `.txt` plan.</p>
+                                    </div>
+
+                                    <div id="toolGovStudioActive" class="reg-edu-workspace-active" style="display: none;">
+                                        <div class="reg-edu-workspace-meta">
+                                            <div>
+                                                <h4 id="toolGovDetailOrgTitle">Client Organization</h4>
+                                                <div id="toolGovDetailMetaLine" class="reg-edu-meta-line"></div>
+                                            </div>
+                                            <div class="reg-edu-meta-actions">
+                                                <span id="toolGovDetailStatusBadge" class="reg-edu-status-pill">Unread</span>
+                                                <button type="button" id="toolGovDeleteBtn" class="reg-edu-danger-btn" data-agent-id="tool-gov-delete-btn" data-testid="tool-gov-delete-btn" aria-label="Delete Tool Governance review">
+                                                    <i class="fa-solid fa-trash-can"></i> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div id="toolGovDeleteConfirmWrap" class="reg-edu-confirm-bar is-danger" style="display: none;" role="alert">
+                                            <span>Permanently delete this Tool Governance review record?</span>
+                                            <div class="reg-edu-confirm-actions">
+                                                <button type="button" id="toolGovConfirmDeleteBtn" class="reg-edu-danger-btn is-solid" data-agent-id="tool-gov-confirm-delete-btn" data-testid="tool-gov-confirm-delete-btn">Confirm Delete</button>
+                                                <button type="button" id="toolGovCancelDeleteBtn" class="btn-outline reg-edu-btn" data-agent-id="tool-gov-cancel-delete-btn" data-testid="tool-gov-cancel-delete-btn">Cancel</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="reg-edu-reference-grid">
+                                            <details class="reg-edu-ref-card" open>
+                                                <summary>6-Step High-Compliance Scoping Transcript</summary>
+                                                <pre id="toolGovIntakeTranscript" class="reg-edu-pre"></pre>
+                                            </details>
+                                            <details class="reg-edu-ref-card" open>
+                                                <summary>Vendor, Air-Gap Hardware &amp; Regulatory Research</summary>
+                                                <pre id="toolGovResearchSummary" class="reg-edu-pre"></pre>
+                                            </details>
+                                            <details class="reg-edu-ref-card">
+                                                <summary>Original Preliminary .txt Baseline</summary>
+                                                <pre id="toolGovPreliminaryRef" class="reg-edu-pre"></pre>
+                                            </details>
+                                        </div>
+
+                                        <div class="reg-edu-editor-card">
+                                            <div class="reg-edu-editor-header">
+                                                <label for="toolGovWorkingDraftTextarea" class="reg-edu-field-label">
+                                                    Editable Advisory Document (Plain-Text .txt)
+                                                </label>
+                                                <span id="toolGovDraftFileHint" class="reg-edu-file-hint"></span>
+                                            </div>
+                                            <textarea id="toolGovWorkingDraftTextarea" class="reg-edu-textarea" rows="14" placeholder="Final vetted AI Tool Selection & Governance plan (.txt)..." data-agent-id="tool-gov-working-draft-textarea" data-testid="tool-gov-working-draft-textarea" aria-label="Editable Tool Governance Document Plain Text"></textarea>
+
+                                            <label for="toolGovExecutiveNoteInput" class="reg-edu-field-label" style="margin-top: 12px;">
+                                                SuperAdmin Executive Counsel Note (Shown to client above final download)
+                                            </label>
+                                            <textarea id="toolGovExecutiveNoteInput" class="reg-edu-textarea reg-edu-note-textarea" rows="3" placeholder="Optional executive counsel summary of key tool upgrades, air-gap sizing refinements, or compliance safeguards..." data-agent-id="tool-gov-executive-note-input" data-testid="tool-gov-executive-note-input" aria-label="SuperAdmin Executive Counsel Note"></textarea>
+
+                                            <div class="reg-edu-editor-actions">
+                                                <button type="button" id="toolGovSaveDraftBtn" class="btn-outline reg-edu-btn" data-agent-id="tool-gov-save-draft-btn" data-testid="tool-gov-save-draft-btn">
+                                                    <i class="fa-solid fa-floppy-disk"></i> Save Draft
+                                                </button>
+                                                <button type="button" id="toolGovDownloadWorkingBtn" class="btn-outline reg-edu-btn" data-agent-id="tool-gov-download-working-btn" data-testid="tool-gov-download-working-btn">
+                                                    <i class="fa-solid fa-file-arrow-down"></i> Download Working .txt
+                                                </button>
+                                                <label for="toolGovLocalFileInput" class="btn-outline reg-edu-btn reg-edu-upload-label" data-agent-id="tool-gov-load-txt-label" data-testid="tool-gov-load-txt-label" tabindex="0">
+                                                    <i class="fa-solid fa-file-import"></i> Load Edited .txt
+                                                    <input type="file" id="toolGovLocalFileInput" accept=".txt,text/plain" style="display: none;" data-agent-id="tool-gov-local-file-input" data-testid="tool-gov-local-file-input" aria-label="Load locally edited TXT file into Tool Governance Studio">
+                                                </label>
+                                                <button type="button" id="toolGovApproveBtn" class="reg-edu-approve-btn" data-agent-id="tool-gov-approve-btn" data-testid="tool-gov-approve-btn">
+                                                    <i class="fa-solid fa-paper-plane"></i> Approve &amp; Send Improved Plan
+                                                </button>
+                                            </div>
+
+                                            <div id="toolGovApproveConfirmWrap" class="reg-edu-confirm-bar is-success" style="display: none;" role="alert">
+                                                <span>Deliver this Final Vetted Tool &amp; Compliance `.txt` Plan to the client portal and mark review delivered?</span>
+                                                <div class="reg-edu-confirm-actions">
+                                                    <button type="button" id="toolGovConfirmApproveBtn" class="reg-edu-approve-btn is-solid" data-agent-id="tool-gov-confirm-approve-btn" data-testid="tool-gov-confirm-approve-btn">Confirm &amp; Deliver Final Plan</button>
+                                                    <button type="button" id="toolGovCancelApproveBtn" class="btn-outline reg-edu-btn" data-agent-id="tool-gov-cancel-approve-btn" data-testid="tool-gov-cancel-approve-btn">Cancel</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="toolGovStudioStatus" class="service-prices-status" role="status" style="display: none;"></div>
+                        </div>
+
+                        <!-- SuperAdmin Managed AI Agent Hosting Studio -->
+                        <div id="admin-managed-agent-studio" class="admin-tab-content" style="display: none;">
+                            <div class="admin-section-header">
+                                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+                                    <div>
+                                        <h3>Managed AI Agent Hosting &amp; Maintenance &mdash; Document Analysis &amp; Improvement Studio <span id="mgAgentUnreadBadge" class="reg-edu-unread-badge" style="display:none;">0 unread</span></h3>
+                                        <p>Review workflow scoping, Google Cloud agent runtime &amp; observability research, and preliminary TXT blueprints. Refine, save, load offline TXT edits, and deliver the final reviewed blueprint to the client.</p>
+                                    </div>
+                                    <div class="reg-edu-studio-toolbar">
+                                        <label for="mgAgentFilterSelect" class="sr-only">Filter reviews by status</label>
+                                        <select id="mgAgentFilterSelect" class="reg-edu-select" data-agent-id="mg-agent-filter-select" data-testid="mg-agent-filter-select" aria-label="Filter Managed Agent reviews">
+                                            <option value="all">All Statuses</option>
+                                            <option value="unread_analysis">Unread Analysis</option>
+                                            <option value="in_review_editing">In Review / Editing</option>
+                                            <option value="final_improved_delivered">Final Plan Delivered</option>
+                                        </select>
+                                        <button type="button" id="mgAgentRefreshBtn" class="btn-outline reg-edu-btn" data-agent-id="mg-agent-refresh-btn" data-testid="mg-agent-refresh-btn" aria-label="Refresh Managed Agent review queue">
+                                            <i class="fa-solid fa-rotate"></i> Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="reg-edu-studio-layout">
+                                <div class="reg-edu-queue-col">
+                                    <div id="mgAgentQueueList" class="reg-edu-queue-list" role="region" aria-label="Managed Agent Client Queue" data-agent-id="mg-agent-queue-list" data-testid="mg-agent-queue-list">
+                                        <p class="reg-edu-empty-note">Open this tab to load Managed Agent reviews.</p>
+                                    </div>
+                                </div>
+
+                                <div id="mgAgentStudioWorkspace" class="reg-edu-workspace-col">
+                                    <div id="mgAgentStudioEmpty" class="reg-edu-workspace-empty">
+                                        <i class="fa-solid fa-robot"></i>
+                                        <p>Select a client session from the queue to inspect runtime topology research and refine their `.txt` blueprint.</p>
+                                    </div>
+
+                                    <div id="mgAgentStudioActive" class="reg-edu-workspace-active" style="display: none;">
+                                        <div class="reg-edu-workspace-meta">
+                                            <div>
+                                                <h4 id="mgAgentDetailOrgTitle">Client Organization</h4>
+                                                <div id="mgAgentDetailMetaLine" class="reg-edu-meta-line"></div>
+                                            </div>
+                                            <div class="reg-edu-meta-actions">
+                                                <span id="mgAgentDetailStatusBadge" class="reg-edu-status-pill">Unread</span>
+                                                <button type="button" id="mgAgentDeleteBtn" class="reg-edu-danger-btn" data-agent-id="mg-agent-delete-btn" data-testid="mg-agent-delete-btn" aria-label="Delete Managed Agent review">
+                                                    <i class="fa-solid fa-trash-can"></i> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div id="mgAgentDeleteConfirmWrap" class="reg-edu-confirm-bar is-danger" style="display: none;" role="alert">
+                                            <span>Permanently delete this Managed Agent review record?</span>
+                                            <div class="reg-edu-confirm-actions">
+                                                <button type="button" id="mgAgentConfirmDeleteBtn" class="reg-edu-danger-btn is-solid" data-agent-id="mg-agent-confirm-delete-btn" data-testid="mg-agent-confirm-delete-btn">Confirm Delete</button>
+                                                <button type="button" id="mgAgentCancelDeleteBtn" class="btn-outline reg-edu-btn" data-agent-id="mg-agent-cancel-delete-btn" data-testid="mg-agent-cancel-delete-btn">Cancel</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="reg-edu-reference-grid">
+                                            <details class="reg-edu-ref-card" open>
+                                                <summary>6-Step Workflow &amp; SLA Scoping Transcript</summary>
+                                                <pre id="mgAgentIntakeTranscript" class="reg-edu-pre"></pre>
+                                            </details>
+                                            <details class="reg-edu-ref-card" open>
+                                                <summary>Async Runtime Topology, MCP &amp; Observability Research</summary>
+                                                <pre id="mgAgentResearchSummary" class="reg-edu-pre"></pre>
+                                            </details>
+                                            <details class="reg-edu-ref-card">
+                                                <summary>Original Preliminary .txt Baseline</summary>
+                                                <pre id="mgAgentPreliminaryRef" class="reg-edu-pre"></pre>
+                                            </details>
+                                        </div>
+
+                                        <div class="reg-edu-editor-card">
+                                            <div class="reg-edu-editor-header">
+                                                <label for="mgAgentWorkingDraftTextarea" class="reg-edu-field-label">
+                                                    Editable Advisory Blueprint (Plain-Text .txt)
+                                                </label>
+                                                <span id="mgAgentDraftFileHint" class="reg-edu-file-hint"></span>
+                                            </div>
+                                            <textarea id="mgAgentWorkingDraftTextarea" class="reg-edu-textarea" rows="14" placeholder="Final reviewed Managed AI Agent Hosting & Maintenance blueprint (.txt)..." data-agent-id="mg-agent-working-draft-textarea" data-testid="mg-agent-working-draft-textarea" aria-label="Editable Managed Agent Blueprint Plain Text"></textarea>
+
+                                            <label for="mgAgentExecutiveNoteInput" class="reg-edu-field-label" style="margin-top: 12px;">
+                                                Systems Architect Executive Note (Shown to client above final download)
+                                            </label>
+                                            <textarea id="mgAgentExecutiveNoteInput" class="reg-edu-textarea reg-edu-note-textarea" rows="3" placeholder="Optional architect note summarizing SLA targets, failover improvements, or cost optimization steps..." data-agent-id="mg-agent-executive-note-input" data-testid="mg-agent-executive-note-input" aria-label="Systems Architect Executive Note"></textarea>
+
+                                            <div class="reg-edu-editor-actions">
+                                                <button type="button" id="mgAgentSaveDraftBtn" class="btn-outline reg-edu-btn" data-agent-id="mg-agent-save-draft-btn" data-testid="mg-agent-save-draft-btn">
+                                                    <i class="fa-solid fa-floppy-disk"></i> Save Draft
+                                                </button>
+                                                <button type="button" id="mgAgentDownloadWorkingBtn" class="btn-outline reg-edu-btn" data-agent-id="mg-agent-download-working-btn" data-testid="mg-agent-download-working-btn">
+                                                    <i class="fa-solid fa-file-arrow-down"></i> Download Working .txt
+                                                </button>
+                                                <label for="mgAgentLocalFileInput" class="btn-outline reg-edu-btn reg-edu-upload-label" data-agent-id="mg-agent-load-txt-label" data-testid="mg-agent-load-txt-label" tabindex="0">
+                                                    <i class="fa-solid fa-file-import"></i> Load Edited .txt
+                                                    <input type="file" id="mgAgentLocalFileInput" accept=".txt,text/plain" style="display: none;" data-agent-id="mg-agent-local-file-input" data-testid="mg-agent-local-file-input" aria-label="Load locally edited TXT file into Managed Agent Studio">
+                                                </label>
+                                                <button type="button" id="mgAgentApproveBtn" class="reg-edu-approve-btn" data-agent-id="mg-agent-approve-btn" data-testid="mg-agent-approve-btn">
+                                                    <i class="fa-solid fa-paper-plane"></i> Approve &amp; Send Improved Plan
+                                                </button>
+                                            </div>
+
+                                            <div id="mgAgentApproveConfirmWrap" class="reg-edu-confirm-bar is-success" style="display: none;" role="alert">
+                                                <span>Deliver this Final Reviewed Managed Agent `.txt` Blueprint to the client portal and mark review delivered?</span>
+                                                <div class="reg-edu-confirm-actions">
+                                                    <button type="button" id="mgAgentConfirmApproveBtn" class="reg-edu-approve-btn is-solid" data-agent-id="mg-agent-confirm-approve-btn" data-testid="mg-agent-confirm-approve-btn">Confirm &amp; Deliver Final Plan</button>
+                                                    <button type="button" id="mgAgentCancelApproveBtn" class="btn-outline reg-edu-btn" data-agent-id="mg-agent-cancel-approve-btn" data-testid="mg-agent-cancel-approve-btn">Cancel</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="mgAgentStudioStatus" class="service-prices-status" role="status" style="display: none;"></div>
                         </div>
 
                         <!-- Upload Post Section -->
@@ -1846,6 +2106,6 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="site-locale.js?v=1"></script>
     <script src="service-pricing.js?v=7"></script>
-    <script src="app.js?v=77"></script>
+    <script src="app.js?v=78"></script>
 </body>
 </html>

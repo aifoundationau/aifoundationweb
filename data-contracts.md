@@ -16,7 +16,7 @@ The application operates within a Google Cloud Firestore project (`ai-foundation
   ```json
   {
     "tag": "aifoundation",
-    "businessId": "aifoundation",
+    "businessId": "#aifoundation",
     "businessName": "AI Foundation",
     "source": "aifoundation"
   }
@@ -48,7 +48,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `transactionId` | String | API Route (`/api/transactions/*`) | Internal Audit | Required. Pattern: `^(pi_\|cs_)[A-Za-z0-9]+$` (Stripe) or `^[A-Z0-9]{17}$` (PayPal). | Firestore Document ID. Indexed. Encrypted at rest. |
 | `tag` | String Enum | Server Injection | Partition Key | **Constant**: `'aifoundation'`. Immutable. | Firestore root field. Indexed. |
-| `businessId` | String Enum | Server Injection | Partition Key | **Constant**: `'aifoundation'`. Immutable. | Firestore root field. |
+| `businessId` | String Enum | Server Injection | Partition Key | **Constant**: `'#aifoundation'`. Immutable. | Firestore root field. |
 | `businessName` | String | Server Injection | Internal Metadata | **Constant**: `'AI Foundation'`. | Firestore root field. |
 | `source` | String | Server Injection | Internal Metadata | **Constant**: `'aifoundation'`. | Firestore root field. |
 | `amount` | Integer | UI Form / API Route | Financial | Required. Range: `1 <= amount <= 1,000,000`. Strictly positive whole integer (AUD $). Decimals rejected. | Firestore numeric integer. |
@@ -211,7 +211,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `displayName` | String | Google Account Profile | Public Identity | Optional. Max length: 120 chars. Trimmed, HTML-escaped. | Firestore root field. |
 | `photoURL` | String (URI) | Google Account Profile | Public Identity | Optional. Valid HTTP/HTTPS avatar URI (Google CDN). | Firestore root field. |
 | `tag` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. Indexed. |
-| `businessId` | String Enum | System Enforcement | Partition Key | **Constant**: `'aifoundation'`. Immutable tenant discriminator. | Firestore root field. |
+| `businessId` | String Enum | System Enforcement | Partition Key | **Constant**: `'#aifoundation'`. Immutable tenant discriminator. | Firestore root field. |
 | `businessName` | String | System Enforcement | Metadata | **Constant**: `'AI Foundation'`. | Firestore root field. |
 | `source` | String | System Enforcement | Metadata | **Constant**: `'aifoundation'`. | Firestore root field. |
 | `authProvider` | String Enum | System Enforcement | Auth Metadata | Required. Value: `'google'`. | Firestore root field. |
@@ -426,7 +426,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
   "required": ["tag", "businessId", "businessName", "source", "kind", "uid", "userId", "serviceName", "serviceType"],
   "properties": {
     "tag": { "const": "aifoundation" },
-    "businessId": { "const": "aifoundation" },
+    "businessId": { "const": "#aifoundation" },
     "businessName": { "const": "AI Foundation" },
     "source": { "const": "aifoundation" },
     "kind": { "const": "strategy_plan" },
@@ -534,7 +534,7 @@ Strict zero-access, plain-text advisory consultation and SuperAdmin `.txt` refin
   ],
   "properties": {
     "tag": { "const": "aifoundation" },
-    "businessId": { "const": "aifoundation" },
+    "businessId": { "const": "#aifoundation" },
     "businessName": { "const": "AI Foundation" },
     "source": { "const": "aifoundation" },
     "kind": { "const": "regional_edu_advisory" },
@@ -544,6 +544,170 @@ Strict zero-access, plain-text advisory consultation and SuperAdmin `.txt` refin
     "serviceName": { "const": "Services - Regional Education & AI Literacy" },
     "serviceType": { "const": "regional_education_ai_literacy_advisory" },
     "workflow": { "const": "advisory_with_superadmin_improvement" }
+  }
+}
+```
+
+### Domain 12: AI Tool Selection & Governance Advisory (`tool-governance-plan.js`)
+Strict zero-access high-compliance AI tool evaluation, multimodal vetting, and air-gap/secure cloud advisory contracts (`additionalProperties: false`):
+
+1. **`ToolGovernanceChatTurnInput`** (`POST /api/tool-governance/message`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId", "message"],
+  "properties": {
+    "sessionId": { "type": "string", "pattern": "^toolgov_[A-Za-z0-9_-]{6,120}$" },
+    "message": { "type": "string", "minLength": 2, "maxLength": 4000 }
+  }
+}
+```
+
+2. **`ToolGovernanceIntakeSummary`** (persisted on `aifoundation_tool_governance_sessions` & `aifoundation_tool_governance_reviews`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "organizationName",
+    "sectorAndScale",
+    "multimodalWorkflows",
+    "precisionBoundaries",
+    "deploymentBoundary",
+    "environmentReadiness",
+    "budgetAndProcurementGoals"
+  ],
+  "properties": {
+    "organizationName": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "sectorAndScale": { "type": "string", "minLength": 1, "maxLength": 800 },
+    "multimodalWorkflows": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "precisionBoundaries": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "deploymentBoundary": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "environmentReadiness": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "budgetAndProcurementGoals": { "type": "string", "minLength": 1, "maxLength": 1200 }
+  }
+}
+```
+
+3. **`ToolGovernanceStripeMetadata`** (`POST /api/tool-governance/checkout` & `POST /api/stripe/webhook`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tag", "businessId", "businessName", "source", "kind", "uid", "userId", "serviceSlug", "serviceName", "serviceType", "workflow"],
+  "properties": {
+    "tag": { "const": "aifoundation" },
+    "businessId": { "const": "#aifoundation" },
+    "businessName": { "const": "AI Foundation" },
+    "source": { "const": "aifoundation" },
+    "kind": { "const": "tool_governance_advisory" },
+    "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "serviceSlug": { "const": "stack-selection" },
+    "serviceName": { "const": "Services - AI Tool Selection & Governance Advisory" },
+    "serviceType": { "const": "ai_tool_selection_governance_advisory" },
+    "workflow": { "const": "advisory_with_superadmin_improvement" }
+  }
+}
+```
+
+4. **`SuperadminFinalToolAdvisoryInput`** (`POST /api/tool-governance/superadmin/reviews/:id/approve`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["improvedTxtContent", "confirmApprove"],
+  "properties": {
+    "improvedTxtContent": { "type": "string", "minLength": 50, "maxLength": 60000 },
+    "executiveNote": { "type": "string", "maxLength": 4000 },
+    "confirmApprove": { "const": true }
+  }
+}
+```
+
+### Domain 13: Managed AI Agent Hosting & Maintenance (`managed-agent-plan.js`)
+Strict zero-access agent runtime topology, MCP/prompt design, and continuous maintenance advisory contracts (`additionalProperties: false`):
+
+1. **`ManagedAgentChatTurnInput`** (`POST /api/managed-agent/message`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId", "message"],
+  "properties": {
+    "sessionId": { "type": "string", "pattern": "^mgagent_[A-Za-z0-9_-]{6,120}$" },
+    "message": { "type": "string", "minLength": 2, "maxLength": 4000 }
+  }
+}
+```
+
+2. **`ManagedAgentIntakeSummary`** (persisted on `aifoundation_managed_agent_sessions` & `aifoundation_managed_agent_reviews`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "organizationName",
+    "industryAndWorkflows",
+    "agentTasksAndTools",
+    "slaAndLatency",
+    "hostingAndSafety",
+    "observabilityAndMaintenance",
+    "budgetAndMilestones"
+  ],
+  "properties": {
+    "organizationName": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "industryAndWorkflows": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "agentTasksAndTools": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "slaAndLatency": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "hostingAndSafety": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "observabilityAndMaintenance": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "budgetAndMilestones": { "type": "string", "minLength": 1, "maxLength": 1200 }
+  }
+}
+```
+
+3. **`ManagedAgentStripeMetadata`** (`POST /api/managed-agent/checkout` & `POST /api/stripe/webhook`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tag", "businessId", "businessName", "source", "kind", "uid", "userId", "serviceSlug", "serviceName", "serviceType", "workflow"],
+  "properties": {
+    "tag": { "const": "aifoundation" },
+    "businessId": { "const": "#aifoundation" },
+    "businessName": { "const": "AI Foundation" },
+    "source": { "const": "aifoundation" },
+    "kind": { "const": "managed_agent_advisory" },
+    "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "serviceSlug": { "const": "ai-agent-hosting" },
+    "serviceName": { "const": "Services - Managed AI Agent Hosting & Maintenance" },
+    "serviceType": { "const": "managed_ai_agent_hosting_maintenance_advisory" },
+    "workflow": { "const": "advisory_with_superadmin_improvement" }
+  }
+}
+```
+
+4. **`SuperadminFinalManagedAgentInput`** (`POST /api/managed-agent/superadmin/reviews/:id/approve`):
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["improvedTxtContent", "confirmApprove"],
+  "properties": {
+    "improvedTxtContent": { "type": "string", "minLength": 50, "maxLength": 60000 },
+    "executiveNote": { "type": "string", "maxLength": 4000 },
+    "confirmApprove": { "const": true }
   }
 }
 ```

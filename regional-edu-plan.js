@@ -119,7 +119,7 @@ const DeliverableFileSchema = z.object({
 const RegionalEduSessionSchema = z.object({
     id: z.string().regex(SESSION_ID_PATTERN),
     tag: z.literal(PARTITION_KEY.tag),
-    businessId: z.literal(PARTITION_KEY.businessId),
+    businessId: z.enum(['#aifoundation', 'aifoundation']),
     businessName: z.literal(PARTITION_KEY.businessName),
     source: z.literal(PARTITION_KEY.source),
     uid: z.string().min(1).max(128),
@@ -155,7 +155,7 @@ const RegionalEduSessionSchema = z.object({
 const RegionalEduReviewSchema = z.object({
     id: z.string().regex(REVIEW_ID_PATTERN),
     tag: z.literal(PARTITION_KEY.tag),
-    businessId: z.literal(PARTITION_KEY.businessId),
+    businessId: z.enum(['#aifoundation', 'aifoundation']),
     businessName: z.literal(PARTITION_KEY.businessName),
     source: z.literal(PARTITION_KEY.source),
     regionalEduSessionId: z.string().regex(SESSION_ID_PATTERN),

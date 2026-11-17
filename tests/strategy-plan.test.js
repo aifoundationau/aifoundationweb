@@ -161,7 +161,7 @@ test('Stripe checkout uses AUD exclusive GST, respects admin override or $299 fa
     assert.equal(params.line_items[0].price_data.tax_behavior, 'exclusive');
     assert.equal(params.line_items[0].price_data.unit_amount, 45000);
     assert.equal(params.metadata.tag, 'aifoundation');
-    assert.equal(params.metadata.businessId, 'aifoundation');
+    assert.equal(params.metadata.businessId, '#aifoundation');
     assert.equal(params.metadata.kind, 'strategy_plan');
     assert.equal(params.metadata.serviceName, SERVICE_NAME);
     assert.equal(params.metadata.serviceType, SERVICE_TYPE);
@@ -307,7 +307,7 @@ test('6-step intake flow with mock @google/genai Google Search produces pure-TXT
         'SUPERADMIN_30_Day_Advisory_Recommendation_Acme_Electrical_Pty_Ltd_2026-11-17.txt'
     );
     assert.equal(briefs[0].tag, 'aifoundation');
-    assert.equal(briefs[0].businessId, 'aifoundation');
+    assert.equal(briefs[0].businessId, '#aifoundation');
     assert.match(briefs[0].content, /PUBLIC DOCUMENTATION RESEARCH/);
     assert.match(briefs[0].content, /SELF-SERVICE WORKSPACE SETTINGS/);
     assert.match(briefs[0].content, /OPTIONAL CUSTOM ENGINEERING ITEMS/);

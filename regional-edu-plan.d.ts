@@ -10,7 +10,7 @@ export type RegionalEduReviewStatus = 'unread_analysis' | 'in_review_editing' | 
 
 export interface RegionalEduStripeMetadata {
     tag: 'aifoundation';
-    businessId: 'aifoundation';
+    businessId: '#aifoundation';
     businessName: 'AI Foundation';
     source: 'aifoundation';
     kind: 'regional_edu_advisory';
@@ -75,7 +75,7 @@ export interface RegionalEduDeliverableFile {
 export interface RegionalEduSessionRecord {
     id: string;
     tag: 'aifoundation';
-    businessId: 'aifoundation';
+    businessId: '#aifoundation' | 'aifoundation';
     businessName: 'AI Foundation';
     source: 'aifoundation';
     uid: string;
@@ -105,7 +105,7 @@ export interface RegionalEduSessionRecord {
 export interface RegionalEduSuperAdminReview {
     id: string;
     tag: 'aifoundation';
-    businessId: 'aifoundation';
+    businessId: '#aifoundation' | 'aifoundation';
     businessName: 'AI Foundation';
     source: 'aifoundation';
     regionalEduSessionId: string;

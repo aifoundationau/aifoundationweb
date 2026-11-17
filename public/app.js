@@ -198,7 +198,9 @@ const postObserver = new IntersectionObserver((entries) => {
         { id: 'admin-buy-tokens', icon: 'fa-solid fa-coins', title: 'Buy Tokens' },
         { id: 'admin-token-accounts', icon: 'fa-solid fa-wallet', title: 'Token Accounts' },
         { id: 'admin-strategy-briefs', icon: 'fa-solid fa-wand-magic-sparkles', title: 'Strategy Briefs' },
-        { id: 'admin-regional-edu-studio', icon: 'fa-solid fa-graduation-cap', title: 'Regional Edu Studio' }
+        { id: 'admin-regional-edu-studio', icon: 'fa-solid fa-graduation-cap', title: 'Regional Edu Studio' },
+        { id: 'admin-tool-governance-studio', icon: 'fa-solid fa-toolbox', title: 'Tool Governance Studio' },
+        { id: 'admin-managed-agent-studio', icon: 'fa-solid fa-robot', title: 'Managed Agent Studio' }
     ];
 
     const SUPPORTER_TABS = [
@@ -436,6 +438,10 @@ const postObserver = new IntersectionObserver((entries) => {
             if (typeof loadStrategyBriefs === 'function') loadStrategyBriefs();
         } else if (targetId === 'admin-regional-edu-studio') {
             if (typeof loadRegionalEduStudio === 'function') loadRegionalEduStudio();
+        } else if (targetId === 'admin-tool-governance-studio') {
+            if (typeof loadToolGovernanceStudio === 'function') loadToolGovernanceStudio();
+        } else if (targetId === 'admin-managed-agent-studio') {
+            if (typeof loadManagedAgentStudio === 'function') loadManagedAgentStudio();
         } else if (targetId === 'supporter-tab-chat') {
             if (currentUser && typeof loadSupporterChatMessages === 'function') {
                 loadSupporterChatMessages(currentUser.uid);
@@ -617,6 +623,8 @@ const postObserver = new IntersectionObserver((entries) => {
                     <option value="admin-token-accounts">Token Accounts</option>
                     <option value="admin-strategy-briefs">Strategy Briefs</option>
                     <option value="admin-regional-edu-studio">Regional Edu Studio</option>
+                    <option value="admin-tool-governance-studio">Tool Governance Studio</option>
+                    <option value="admin-managed-agent-studio">Managed Agent Studio</option>
                 `;
             }
 
@@ -3970,7 +3978,7 @@ const postObserver = new IntersectionObserver((entries) => {
                 status: 'succeeded',
                 paymentMethod: provider || 'stripe',
                 tag: 'aifoundation',
-                businessId: 'aifoundation',
+                businessId: '#aifoundation',
                 amount: amt ? Number(amt) : (selectedDonationAmount || 50),
                 customerEmail: currentUser?.email || '',
                 customerName: currentUser?.displayName || '',
@@ -5486,6 +5494,574 @@ const postObserver = new IntersectionObserver((entries) => {
         if (studioPane && studioPane.style.display === 'block') {
             loadRegionalEduStudio();
         }
+    });
+
+    // Shared DRY controller for Services 3 (Tool Governance) & 4 (Managed AI Agent Hosting)
+    function initAdvisoryServiceController(cfg) {
+        const p = cfg.prefix;
+        const openBtn = document.getElementById(cfg.openBtnId);
+        const modal = document.getElementById(cfg.modalId);
+        const closeBtn = document.getElementById(cfg.closeBtnId);
+        const authGate = document.getElementById(`${p}AuthGate`);
+        const signInBtn = document.getElementById(`${p}SignInBtn`);
+        const payGate = document.getElementById(`${p}PayGate`);
+        const priceSummary = document.getElementById(`${p}PriceSummary`);
+        const payBtn = document.getElementById(`${p}PayBtn`);
+        const chatStage = document.getElementById(`${p}ChatStage`);
+        const progressLabel = document.getElementById(`${p}ProgressLabel`);
+        const progressFill = document.getElementById(`${p}ProgressFill`);
+        const messagesEl = document.getElementById(`${p}Messages`);
+        const answerInput = document.getElementById(`${p}AnswerInput`);
+        const sendBtn = document.getElementById(`${p}SendBtn`);
+        const deliverablesStage = document.getElementById(`${p}DeliverablesStage`);
+        const statusBadge = document.getElementById(`${p}StatusBadge`);
+        const finalCard = document.getElementById(`${p}FinalCard`);
+        const finalFileName = document.getElementById(`${p}FinalFileName`);
+        const downloadFinalBtn = document.getElementById(`${p}DownloadFinalBtn`);
+        const finalNote = document.getElementById(`${p}FinalNote`);
+        const finalPreview = document.getElementById(`${p}FinalPreview`);
+        const prelimCard = document.getElementById(`${p}PrelimCard`);
+        const prelimFileName = document.getElementById(`${p}PrelimFileName`);
+        const downloadPrelimBtn = document.getElementById(`${p}DownloadPrelimBtn`);
+        const prelimPreview = document.getElementById(`${p}PrelimPreview`);
+        const modalStatus = document.getElementById(`${p}ModalStatus`);
+
+        const unreadBadge = document.getElementById(`${p}UnreadBadge`);
+        const filterSelect = document.getElementById(`${p}FilterSelect`);
+        const refreshBtn = document.getElementById(`${p}RefreshBtn`);
+        const queueList = document.getElementById(`${p}QueueList`);
+        const studioEmpty = document.getElementById(`${p}StudioEmpty`);
+        const studioActive = document.getElementById(`${p}StudioActive`);
+        const detailOrgTitle = document.getElementById(`${p}DetailOrgTitle`);
+        const detailMetaLine = document.getElementById(`${p}DetailMetaLine`);
+        const detailStatusBadge = document.getElementById(`${p}DetailStatusBadge`);
+        const deleteBtn = document.getElementById(`${p}DeleteBtn`);
+        const deleteConfirmWrap = document.getElementById(`${p}DeleteConfirmWrap`);
+        const confirmDeleteBtn = document.getElementById(`${p}ConfirmDeleteBtn`);
+        const cancelDeleteBtn = document.getElementById(`${p}CancelDeleteBtn`);
+        const intakeTranscript = document.getElementById(`${p}IntakeTranscript`);
+        const researchSummary = document.getElementById(`${p}ResearchSummary`);
+        const preliminaryRef = document.getElementById(`${p}PreliminaryRef`);
+        const workingDraftTextarea = document.getElementById(`${p}WorkingDraftTextarea`);
+        const draftFileHint = document.getElementById(`${p}DraftFileHint`);
+        const executiveNoteInput = document.getElementById(`${p}ExecutiveNoteInput`);
+        const saveDraftBtn = document.getElementById(`${p}SaveDraftBtn`);
+        const downloadWorkingBtn = document.getElementById(`${p}DownloadWorkingBtn`);
+        const localFileInput = document.getElementById(`${p}LocalFileInput`);
+        const approveBtn = document.getElementById(`${p}ApproveBtn`);
+        const approveConfirmWrap = document.getElementById(`${p}ApproveConfirmWrap`);
+        const confirmApproveBtn = document.getElementById(`${p}ConfirmApproveBtn`);
+        const cancelApproveBtn = document.getElementById(`${p}CancelApproveBtn`);
+        const studioStatus = document.getElementById(`${p}StudioStatus`);
+
+        let currentSession = null;
+        let reviewsCache = [];
+        let selectedReview = null;
+        let pendingStripeSession = '';
+
+        function openModal() {
+            if (!modal) return;
+            modal.dataset.stage = 'landing';
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            if (closeBtn) closeBtn.focus();
+            loadModalState();
+        }
+
+        function closeModal() {
+            if (!modal) return;
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function renderModalView(payload) {
+            const pricing = payload?.pricing;
+            const session = payload?.session || null;
+            currentSession = session;
+
+            if (authGate) authGate.style.display = 'none';
+            if (payGate) payGate.style.display = 'none';
+            if (chatStage) chatStage.style.display = 'none';
+            if (deliverablesStage) deliverablesStage.style.display = 'none';
+
+            if (pricing && priceSummary) {
+                priceSummary.textContent = `Consultation Fee: AUD $${Number(pricing.exGstAud || cfg.defaultAud).toFixed(2)} ex GST (+ AUD $${Number(pricing.gstAud || cfg.defaultAud * 0.1).toFixed(2)} GST where applicable).`;
+            }
+
+            if (!session || session.paymentStatus !== 'paid' || session.status === 'pending_payment') {
+                if (modal) modal.dataset.stage = 'landing';
+                if (payGate) payGate.style.display = 'block';
+                if (payBtn) payBtn.disabled = payload?.canPay === false;
+                return;
+            }
+
+            if (session.status === 'paid_intake_ready' || session.status === 'generating_preliminary_draft') {
+                if (modal) modal.dataset.stage = 'chat';
+                if (chatStage) chatStage.style.display = 'block';
+                const step = Math.min(Math.max(Number(session.currentStep) || 1, 1), 6);
+                const minsLeft = Math.max(1, 7 - step);
+                if (progressLabel) {
+                    progressLabel.textContent = `Question ${step} of 6 — ~${minsLeft} mins remaining | ${cfg.scopingTag}`;
+                }
+                if (progressFill) {
+                    progressFill.style.width = `${Math.round((step / 6) * 100)}%`;
+                }
+                if (messagesEl) {
+                    const msgs = Array.isArray(session.messages) ? session.messages : [];
+                    messagesEl.innerHTML = msgs.map(m => {
+                        const cls = m.role === 'user' ? 'is-user' : 'is-assistant';
+                        return `<div class="reg-edu-msg ${cls}">${escapeHtml(m.content || '')}</div>`;
+                    }).join('');
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                }
+                return;
+            }
+
+            if (modal) modal.dataset.stage = 'deliverables';
+            if (deliverablesStage) deliverablesStage.style.display = 'flex';
+            const isFinalDelivered = session.status === 'final_improved_delivered' && session.finalImprovedReport;
+
+            if (statusBadge) {
+                statusBadge.classList.toggle('is-delivered', Boolean(isFinalDelivered));
+                statusBadge.textContent = isFinalDelivered
+                    ? cfg.finalDeliveredBanner
+                    : 'Under Superadmin Analysis — You will be notified when your final vetted & improved .txt advisory plan is ready (24–48 business hours).';
+            }
+
+            if (finalCard) {
+                if (isFinalDelivered) {
+                    finalCard.style.display = 'flex';
+                    if (finalFileName) finalFileName.textContent = session.finalImprovedReport.fileName || cfg.defaultFinalName;
+                    if (finalPreview) finalPreview.textContent = session.finalImprovedReport.content || '';
+                    if (finalNote) {
+                        if (session.superadminExecutiveNote) {
+                            finalNote.textContent = `Executive Counsel Note: ${session.superadminExecutiveNote}`;
+                            finalNote.style.display = 'block';
+                        } else {
+                            finalNote.style.display = 'none';
+                        }
+                    }
+                } else {
+                    finalCard.style.display = 'none';
+                }
+            }
+
+            if (prelimCard && session.preliminaryReport) {
+                prelimCard.style.display = 'flex';
+                if (prelimFileName) prelimFileName.textContent = session.preliminaryReport.fileName || cfg.defaultPrelimName;
+                if (prelimPreview) prelimPreview.textContent = session.preliminaryReport.content || '';
+            }
+        }
+
+        async function loadModalState() {
+            setRegEduBoxStatus(modalStatus, '');
+            const user = await getRegEduFirebaseUser();
+            if (!user) {
+                if (modal) modal.dataset.stage = 'landing';
+                if (authGate) authGate.style.display = 'block';
+                if (payGate) payGate.style.display = 'none';
+                if (chatStage) chatStage.style.display = 'none';
+                if (deliverablesStage) deliverablesStage.style.display = 'none';
+                return;
+            }
+            try {
+                if (pendingStripeSession) {
+                    const confirmId = pendingStripeSession;
+                    pendingStripeSession = '';
+                    await regEduApiFetch(`${cfg.apiBase}/confirm`, {
+                        method: 'POST',
+                        body: JSON.stringify({ sessionId: confirmId })
+                    });
+                }
+                const data = await regEduApiFetch(`${cfg.apiBase}/session`);
+                renderModalView(data);
+            } catch (err) {
+                setRegEduBoxStatus(modalStatus, err.message || 'Could not load advisory status.', true);
+            }
+        }
+
+        if (openBtn) openBtn.addEventListener('click', openModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            ['dragover', 'drop'].forEach(evtName => {
+                modal.addEventListener(evtName, (e) => {
+                    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        e.preventDefault();
+                        setRegEduBoxStatus(modalStatus, 'File uploads are disabled in this advisory consultation. Please enter plain text only.', true);
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal && modal.style.display === 'flex') closeModal();
+        });
+
+        if (signInBtn) {
+            signInBtn.addEventListener('click', async () => {
+                try {
+                    if (window.firebaseService && typeof window.firebaseService.signInWithGoogle === 'function') {
+                        await window.firebaseService.signInWithGoogle();
+                    }
+                } catch (err) {
+                    setRegEduBoxStatus(modalStatus, err.message || 'Google sign-in was cancelled.', true);
+                }
+            });
+        }
+
+        if (payBtn) {
+            payBtn.addEventListener('click', async () => {
+                try {
+                    payBtn.disabled = true;
+                    setRegEduBoxStatus(modalStatus, 'Creating secure Stripe AUD checkout...');
+                    const data = await regEduApiFetch(`${cfg.apiBase}/checkout`, {
+                        method: 'POST',
+                        body: JSON.stringify({ returnPath: window.location.pathname || '/' })
+                    });
+                    if (!data.url) throw new Error('Stripe checkout URL missing.');
+                    window.location.assign(data.url);
+                } catch (err) {
+                    setRegEduBoxStatus(modalStatus, err.message || 'Could not start Stripe checkout.', true);
+                    payBtn.disabled = false;
+                }
+            });
+        }
+
+        async function sendAnswer() {
+            if (!currentSession || !answerInput) return;
+            const text = answerInput.value.trim();
+            if (text.length < 2) {
+                setRegEduBoxStatus(modalStatus, 'Please enter a short plain-text answer before sending.', true);
+                return;
+            }
+            try {
+                if (sendBtn) sendBtn.disabled = true;
+                setRegEduBoxStatus(modalStatus, 'Analysing answer and preparing next advisory step...');
+                const result = await regEduApiFetch(`${cfg.apiBase}/message`, {
+                    method: 'POST',
+                    body: JSON.stringify({ sessionId: currentSession.id, message: text })
+                });
+                answerInput.value = '';
+                setRegEduBoxStatus(modalStatus, result.redactedWarning || '', Boolean(result.redactedWarning));
+                renderModalView({ pricing: null, canPay: true, session: result.session });
+            } catch (err) {
+                setRegEduBoxStatus(modalStatus, err.message || 'Could not submit answer.', true);
+            } finally {
+                if (sendBtn) sendBtn.disabled = false;
+            }
+        }
+
+        if (sendBtn) sendBtn.addEventListener('click', sendAnswer);
+        if (answerInput) {
+            answerInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendAnswer();
+                }
+            });
+        }
+        if (downloadPrelimBtn) {
+            downloadPrelimBtn.addEventListener('click', () => {
+                const report = currentSession?.preliminaryReport;
+                if (report) downloadRegEduTextFile(report.fileName, report.content);
+            });
+        }
+        if (downloadFinalBtn) {
+            downloadFinalBtn.addEventListener('click', () => {
+                const report = currentSession?.finalImprovedReport;
+                if (report) downloadRegEduTextFile(report.fileName, report.content);
+            });
+        }
+
+        function renderQueue() {
+            if (!queueList) return;
+            const filterVal = filterSelect ? filterSelect.value : 'all';
+            const items = filterVal === 'all' ? reviewsCache : reviewsCache.filter(r => r.reviewStatus === filterVal);
+            if (!items.length) {
+                queueList.innerHTML = '<p class="reg-edu-empty-note">No reviews match this filter.</p>';
+                return;
+            }
+            queueList.innerHTML = items.map(r => {
+                const st = formatReviewStatusMeta(r.reviewStatus);
+                const selectedCls = selectedReview && selectedReview.id === r.id ? 'is-selected' : '';
+                const unreadCls = !r.read ? 'is-unread' : '';
+                return `
+                    <button type="button" class="reg-edu-queue-item ${selectedCls} ${unreadCls}" data-review-id="${escapeHtml(r.id)}">
+                        <div class="reg-edu-queue-item-top">
+                            <strong>${escapeHtml(r.clientOrganizationName || 'Client Organization')}</strong>
+                            <span class="reg-edu-status-pill ${st.cls}">${escapeHtml(st.label)}</span>
+                        </div>
+                        <small>${escapeHtml(r.sectorOrWorkflowTag || '')} &bull; ${escapeHtml(r.clientEmail || r.uid || '')}</small>
+                        <small>AUD $${Number(r.amountPaidExGstAud || 0).toFixed(2)} ex GST &bull; ${escapeHtml((r.createdAt || '').slice(0, 10))}</small>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function showReviewDetail(review) {
+            selectedReview = review || null;
+            if (!studioEmpty || !studioActive) return;
+            if (deleteConfirmWrap) deleteConfirmWrap.style.display = 'none';
+            if (approveConfirmWrap) approveConfirmWrap.style.display = 'none';
+
+            if (!review) {
+                studioEmpty.style.display = 'block';
+                studioActive.style.display = 'none';
+                return;
+            }
+            studioEmpty.style.display = 'none';
+            studioActive.style.display = 'block';
+
+            const st = formatReviewStatusMeta(review.reviewStatus);
+            if (detailOrgTitle) detailOrgTitle.textContent = review.clientOrganizationName || 'Client Organization';
+            if (detailMetaLine) {
+                detailMetaLine.textContent = `${review.sectorOrWorkflowTag || ''} | ${review.clientEmail || 'N/A'} | Stripe: ${review.stripeSessionId}`;
+            }
+            if (detailStatusBadge) {
+                detailStatusBadge.textContent = st.label;
+                detailStatusBadge.className = `reg-edu-status-pill ${st.cls}`;
+            }
+            if (intakeTranscript) intakeTranscript.textContent = review.intakeTranscript || '';
+            if (researchSummary) researchSummary.textContent = review.researchSummary || '';
+            if (preliminaryRef) preliminaryRef.textContent = review.preliminaryTxtContent || '';
+            if (workingDraftTextarea) workingDraftTextarea.value = review.workingDraftContent || review.preliminaryTxtContent || '';
+            if (executiveNoteInput) executiveNoteInput.value = review.superadminNote || '';
+            if (draftFileHint) {
+                draftFileHint.textContent = review.finalFileName
+                    ? `Delivered: ${review.finalFileName}`
+                    : `Baseline: ${review.preliminaryFileName}`;
+            }
+        }
+
+        async function loadStudio() {
+            setRegEduBoxStatus(studioStatus, '');
+            try {
+                const data = await regEduApiFetch(`${cfg.apiBase}/superadmin/reviews`);
+                reviewsCache = Array.isArray(data.reviews) ? data.reviews : [];
+                const unreadCount = Number(data.unreadCount) || 0;
+                if (unreadBadge) {
+                    unreadBadge.textContent = `${unreadCount} unread`;
+                    unreadBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+                }
+                if (selectedReview) {
+                    showReviewDetail(reviewsCache.find(r => r.id === selectedReview.id) || null);
+                } else {
+                    showReviewDetail(reviewsCache[0] || null);
+                }
+                renderQueue();
+            } catch (err) {
+                setRegEduBoxStatus(studioStatus, err.message || 'Could not load reviews.', true);
+            }
+        }
+        window[cfg.studioGlobalName] = loadStudio;
+
+        if (filterSelect) filterSelect.addEventListener('change', renderQueue);
+        if (refreshBtn) refreshBtn.addEventListener('click', loadStudio);
+        if (queueList) {
+            queueList.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.reg-edu-queue-item');
+                if (!btn) return;
+                const id = btn.getAttribute('data-review-id');
+                const found = reviewsCache.find(r => r.id === id);
+                if (!found) return;
+                showReviewDetail(found);
+                renderQueue();
+                if (!found.read || found.reviewStatus === 'unread_analysis') {
+                    try {
+                        const res = await regEduApiFetch(`${cfg.apiBase}/superadmin/reviews/${encodeURIComponent(found.id)}/read`, { method: 'POST' });
+                        if (res.review) {
+                            const idx = reviewsCache.findIndex(r => r.id === res.review.id);
+                            if (idx >= 0) reviewsCache[idx] = res.review;
+                            showReviewDetail(res.review);
+                            renderQueue();
+                        }
+                    } catch {
+                        // Non-blocking read mark
+                    }
+                }
+            });
+        }
+
+        if (saveDraftBtn) {
+            saveDraftBtn.addEventListener('click', async () => {
+                if (!selectedReview || !workingDraftTextarea) return;
+                try {
+                    saveDraftBtn.disabled = true;
+                    setRegEduBoxStatus(studioStatus, 'Saving working plain-text draft...');
+                    const res = await regEduApiFetch(`${cfg.apiBase}/superadmin/reviews/${encodeURIComponent(selectedReview.id)}/draft`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            improvedTxtContent: workingDraftTextarea.value,
+                            superadminNote: executiveNoteInput ? executiveNoteInput.value : ''
+                        })
+                    });
+                    if (res.review) {
+                        const idx = reviewsCache.findIndex(r => r.id === res.review.id);
+                        if (idx >= 0) reviewsCache[idx] = res.review;
+                        showReviewDetail(res.review);
+                        renderQueue();
+                    }
+                    setRegEduBoxStatus(studioStatus, 'Working TXT draft saved.');
+                } catch (err) {
+                    setRegEduBoxStatus(studioStatus, err.message || 'Could not save working draft.', true);
+                } finally {
+                    saveDraftBtn.disabled = false;
+                }
+            });
+        }
+
+        if (downloadWorkingBtn) {
+            downloadWorkingBtn.addEventListener('click', () => {
+                if (!selectedReview || !workingDraftTextarea) return;
+                const slugName = (selectedReview.clientOrganizationName || 'Organization').replace(/[^A-Za-z0-9]+/g, '_');
+                downloadRegEduTextFile(`WORKING_${cfg.workingPrefix}_${slugName}.txt`, workingDraftTextarea.value);
+            });
+        }
+
+        if (localFileInput) {
+            localFileInput.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                if (!/\.txt$/i.test(file.name) && file.type !== 'text/plain') {
+                    setRegEduBoxStatus(studioStatus, 'Please select a plain-text .txt file only.', true);
+                    localFileInput.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    if (workingDraftTextarea) workingDraftTextarea.value = String(reader.result || '');
+                    setRegEduBoxStatus(studioStatus, `Loaded ${file.name} into the SuperAdmin editor.`);
+                    localFileInput.value = '';
+                };
+                reader.onerror = () => {
+                    setRegEduBoxStatus(studioStatus, 'Could not read the selected .txt file.', true);
+                    localFileInput.value = '';
+                };
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+
+        if (approveBtn && approveConfirmWrap) {
+            approveBtn.addEventListener('click', () => { approveConfirmWrap.style.display = 'flex'; });
+        }
+        if (cancelApproveBtn && approveConfirmWrap) {
+            cancelApproveBtn.addEventListener('click', () => { approveConfirmWrap.style.display = 'none'; });
+        }
+        if (confirmApproveBtn) {
+            confirmApproveBtn.addEventListener('click', async () => {
+                if (!selectedReview || !workingDraftTextarea) return;
+                try {
+                    confirmApproveBtn.disabled = true;
+                    setRegEduBoxStatus(studioStatus, 'Approving and delivering final improved TXT plan...');
+                    const res = await regEduApiFetch(`${cfg.apiBase}/superadmin/reviews/${encodeURIComponent(selectedReview.id)}/approve`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            improvedTxtContent: workingDraftTextarea.value,
+                            executiveNote: executiveNoteInput ? executiveNoteInput.value : '',
+                            confirmApprove: true
+                        })
+                    });
+                    if (res.review) {
+                        const idx = reviewsCache.findIndex(r => r.id === res.review.id);
+                        if (idx >= 0) reviewsCache[idx] = res.review;
+                        showReviewDetail(res.review);
+                        renderQueue();
+                    }
+                    setRegEduBoxStatus(studioStatus, 'Final Improved TXT Plan approved and delivered to client.');
+                } catch (err) {
+                    setRegEduBoxStatus(studioStatus, err.message || 'Could not approve final plan.', true);
+                } finally {
+                    confirmApproveBtn.disabled = false;
+                }
+            });
+        }
+
+        if (deleteBtn && deleteConfirmWrap) {
+            deleteBtn.addEventListener('click', () => { deleteConfirmWrap.style.display = 'flex'; });
+        }
+        if (cancelDeleteBtn && deleteConfirmWrap) {
+            cancelDeleteBtn.addEventListener('click', () => { deleteConfirmWrap.style.display = 'none'; });
+        }
+        if (confirmDeleteBtn) {
+            confirmDeleteBtn.addEventListener('click', async () => {
+                if (!selectedReview) return;
+                try {
+                    confirmDeleteBtn.disabled = true;
+                    await regEduApiFetch(`${cfg.apiBase}/superadmin/reviews/${encodeURIComponent(selectedReview.id)}`, {
+                        method: 'DELETE',
+                        body: JSON.stringify({ confirmDelete: true })
+                    });
+                    selectedReview = null;
+                    setRegEduBoxStatus(studioStatus, 'Advisory review record deleted.');
+                    await loadStudio();
+                } catch (err) {
+                    setRegEduBoxStatus(studioStatus, err.message || 'Could not delete review record.', true);
+                } finally {
+                    confirmDeleteBtn.disabled = false;
+                }
+            });
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const retStatus = params.get(cfg.queryKey);
+        const retSession = params.get('session_id');
+        if (retStatus === 'success' && retSession && modal) {
+            pendingStripeSession = retSession;
+            openModal();
+            params.delete(cfg.queryKey);
+            params.delete('session_id');
+            const qs = params.toString();
+            history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash || ''}`);
+        } else if (retStatus === 'cancelled' && modal) {
+            openModal();
+            setRegEduBoxStatus(modalStatus, 'Stripe checkout was cancelled. You can retry whenever ready.', true);
+            params.delete(cfg.queryKey);
+            const qs = params.toString();
+            history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash || ''}`);
+        }
+
+        window.addEventListener('firebaseAuthChanged', () => {
+            if (modal && modal.style.display === 'flex') loadModalState();
+            const pane = document.getElementById(cfg.studioPaneId);
+            if (pane && pane.style.display === 'block') loadStudio();
+        });
+    }
+
+    initAdvisoryServiceController({
+        prefix: 'toolGov',
+        apiBase: '/api/tool-governance',
+        openBtnId: 'openToolGovernanceModalBtn',
+        modalId: 'toolGovernanceModal',
+        closeBtnId: 'closeToolGovernanceModalBtn',
+        studioPaneId: 'admin-tool-governance-studio',
+        studioGlobalName: 'loadToolGovernanceStudio',
+        queryKey: 'tool_governance',
+        defaultAud: 399,
+        scopingTag: 'Zero-Access Advisory Scoping',
+        finalDeliveredBanner: 'Final Vetted Tool & Compliance Plan Delivered — Ready for immediate download.',
+        defaultPrelimName: 'PRELIMINARY_AI_Tool_Selection_Governance_Advisory.txt',
+        defaultFinalName: 'FINAL_VETTED_AI_Tool_Selection_Governance_Advisory.txt',
+        workingPrefix: 'AI_Tool_Selection_Governance'
+    });
+
+    initAdvisoryServiceController({
+        prefix: 'mgAgent',
+        apiBase: '/api/managed-agent',
+        openBtnId: 'openManagedAgentModalBtn',
+        modalId: 'managedAgentModal',
+        closeBtnId: 'closeManagedAgentModalBtn',
+        studioPaneId: 'admin-managed-agent-studio',
+        studioGlobalName: 'loadManagedAgentStudio',
+        queryKey: 'managed_agent',
+        defaultAud: 349,
+        scopingTag: 'Zero-Access Agent Scoping',
+        finalDeliveredBanner: 'Final Reviewed Agent Hosting Blueprint Delivered — Ready for immediate download.',
+        defaultPrelimName: 'PRELIMINARY_Managed_AI_Agent_Hosting_Advisory.txt',
+        defaultFinalName: 'FINAL_REVIEWED_Managed_AI_Agent_Hosting_Advisory.txt',
+        workingPrefix: 'Managed_AI_Agent_Hosting'
     });
 
     loadPosts();

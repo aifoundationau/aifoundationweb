@@ -26,6 +26,12 @@ data/strategy-superadmin-briefs.json
 data/regional-edu-sessions.json
 data/regional-edu-reviews.json
 
+# Local tool governance & managed agent fallback stores (contain user session data)
+data/tool-governance-sessions.json
+data/tool-governance-reviews.json
+data/managed-agent-sessions.json
+data/managed-agent-reviews.json
+
 .DS_Store
 .DS_Store?
 ._*

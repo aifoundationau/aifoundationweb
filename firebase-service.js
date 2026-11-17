@@ -13,7 +13,7 @@ const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'ai-foundation-firebase';
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
 const RAW_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
 const TRANSACTION_TAG = process.env.TRANSACTION_TAG || 'aifoundation';
-const BUSINESS_ID = process.env.BUSINESS_ID || 'aifoundation';
+const BUSINESS_ID = process.env.BUSINESS_ID || '#aifoundation';
 
 let cachedToken = null;
 let tokenExpiresAt = 0;
@@ -914,8 +914,8 @@ async function sendChatMessage(data) {
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     // Multi-tenant tag identification
-    const tenantTag = (data.tag || data.businessId || data.source || TRANSACTION_TAG || 'aifoundation').toLowerCase().trim();
-    const businessId = (data.businessId || tenantTag || BUSINESS_ID || 'aifoundation').toLowerCase().trim();
+    const tenantTag = (data.tag || String(data.businessId || '').replace(/^#/, '') || data.source || TRANSACTION_TAG || 'aifoundation').toLowerCase().trim();
+    const businessId = (data.businessId || (tenantTag === 'aifoundation' ? BUSINESS_ID : tenantTag) || BUSINESS_ID || '#aifoundation').toLowerCase().trim();
     const businessName = data.businessName || (tenantTag === 'aifoundation' ? 'AI Foundation' : tenantTag);
 
     const payload = {
@@ -1113,7 +1113,7 @@ async function getDatabaseRecentInputs(options = {}) {
                 const fields = fromFirestoreFields(d.fields || {});
 
                 // Resolve tenant tag & human-readable website name
-                let rawTag = (fields.tag || fields.businessId || fields.source || '').toLowerCase().trim();
+                let rawTag = (fields.tag || fields.businessId || fields.source || '').toLowerCase().trim().replace(/^#/, '');
                 let websiteLabel = 'Shared Tenant';
                 let websiteKey = 'other';
 

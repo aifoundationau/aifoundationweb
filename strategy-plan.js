@@ -27,7 +27,7 @@ const STRIPE_SESSION_PATTERN = /^cs_(?:test_|live_)?[A-Za-z0-9]{4,}$/;
 
 const PARTITION_KEY = Object.freeze({
     tag: 'aifoundation',
-    businessId: 'aifoundation',
+    businessId: '#aifoundation',
     businessName: 'AI Foundation',
     source: 'aifoundation'
 });
@@ -69,7 +69,7 @@ const INTAKE_QUESTIONS = Object.freeze([
 
 const StrategyStripeMetadataSchema = z.object({
     tag: z.literal('aifoundation'),
-    businessId: z.literal('aifoundation'),
+    businessId: z.literal('#aifoundation'),
     businessName: z.literal('AI Foundation'),
     source: z.literal('aifoundation'),
     kind: z.literal('strategy_plan'),
@@ -117,7 +117,7 @@ const StrategyDeliverableFileSchema = z.object({
 const StrategySessionSchema = z.object({
     id: z.string().regex(SESSION_ID_PATTERN),
     tag: z.literal('aifoundation'),
-    businessId: z.literal('aifoundation'),
+    businessId: z.enum(['#aifoundation', 'aifoundation']),
     businessName: z.literal('AI Foundation'),
     source: z.literal('aifoundation'),
     uid: z.string().min(1).max(128),
@@ -143,7 +143,7 @@ const StrategySessionSchema = z.object({
 const SuperAdminBriefSchema = z.object({
     id: z.string().regex(BRIEF_ID_PATTERN),
     tag: z.literal('aifoundation'),
-    businessId: z.literal('aifoundation'),
+    businessId: z.enum(['#aifoundation', 'aifoundation']),
     businessName: z.literal('AI Foundation'),
     source: z.literal('aifoundation'),
     strategySessionId: z.string().regex(SESSION_ID_PATTERN),
@@ -1020,7 +1020,7 @@ function createStrategyPlanService(options = {}) {
                 conversationId: `conv_strategy_${session.uid}`,
                 userMessage: msgBody,
                 tag: 'aifoundation',
-                businessId: 'aifoundation',
+                businessId: '#aifoundation',
                 businessName: 'AI Foundation',
                 source: 'aifoundation'
             });

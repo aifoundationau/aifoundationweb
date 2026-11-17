@@ -7338,16 +7338,34 @@ html.locale-panel-open body {
     gap: clamp(8px, 1.2vmin, 12px);
 }
 
-#regionalEduModal[data-stage="chat"] .reg-edu-landing-overview,
-#regionalEduModal[data-stage="deliverables"] .reg-edu-landing-overview,
-#regionalEduModal[data-stage="chat"] .reg-edu-subtitle,
-#regionalEduModal[data-stage="deliverables"] .reg-edu-subtitle {
+.reg-edu-modal-backdrop[data-stage="chat"] .reg-edu-landing-overview,
+.reg-edu-modal-backdrop[data-stage="deliverables"] .reg-edu-landing-overview,
+.reg-edu-modal-backdrop[data-stage="chat"] .reg-edu-subtitle,
+.reg-edu-modal-backdrop[data-stage="deliverables"] .reg-edu-subtitle {
     display: none;
 }
 
-#regionalEduModal[data-stage="chat"] .reg-edu-zero-access-banner {
+.reg-edu-modal-backdrop[data-stage="chat"] .reg-edu-zero-access-banner {
     padding: 8px 12px;
     font-size: 0.82rem;
+}
+
+.reg-edu-category-pill.is-purple {
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.12);
+}
+
+.reg-edu-focus-num.is-purple {
+    background: #7c3aed;
+}
+
+.reg-edu-category-pill.is-emerald {
+    color: #059669;
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.reg-edu-focus-num.is-emerald {
+    background: #10b981;
 }
 
 .reg-edu-zero-access-banner {

@@ -18,7 +18,7 @@ const LEDGER = 'token_ledger';
 const CHECKOUTS = 'aifoundation_token_checkouts';
 
 // Partition key required on every AI Foundation record (data-contracts.md, Invariant Rule 1)
-const PARTITION_KEY = { tag: 'aifoundation', businessId: 'aifoundation', businessName: 'AI Foundation', source: 'aifoundation' };
+const PARTITION_KEY = { tag: 'aifoundation', businessId: '#aifoundation', businessName: 'AI Foundation', source: 'aifoundation' };
 
 const UID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const SESSION_PATTERN = /^cs_[A-Za-z0-9_]{1,250}$/;
@@ -201,7 +201,7 @@ function createTokenStore({ firebase = firebaseService, now = () => Date.now() }
                 uid: id,
                 name: str(fields.displayName) || str(fields.name),
                 email: str(fields.email).toLowerCase(),
-                app: str(fields.tag) || str(fields.tenantTag) || str(fields.businessId),
+                app: str(fields.tag) || str(fields.tenantTag) || str(fields.businessId).replace(/^#/, ''),
                 balance: balanceOf(fields)
             }))
             .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));

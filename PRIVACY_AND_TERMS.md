@@ -56,7 +56,7 @@ The AI Foundation ecosystem operates an integrated, multi-tenant digital infrast
    ```json
    {
      "tag": "aifoundation",
-     "businessId": "aifoundation",
+     "businessId": "#aifoundation",
      "businessName": "AI Foundation",
      "source": "aifoundation"
    }

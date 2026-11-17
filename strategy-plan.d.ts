@@ -4,7 +4,7 @@ export type StrategyRole = 'supporter' | 'superadmin';
 
 export interface StrategyStripeMetadata {
     tag: 'aifoundation';
-    businessId: 'aifoundation';
+    businessId: '#aifoundation';
     businessName: 'AI Foundation';
     source: 'aifoundation';
     kind: 'strategy_plan';
@@ -57,7 +57,7 @@ export interface StrategyDeliverableFile {
 export interface StrategySessionRecord {
     id: string;
     tag: 'aifoundation';
-    businessId: 'aifoundation';
+    businessId: '#aifoundation' | 'aifoundation';
     businessName: 'AI Foundation';
     source: 'aifoundation';
     uid: string;
@@ -83,7 +83,7 @@ export interface StrategySessionRecord {
 export interface SuperAdminAdvisoryBrief {
     id: string;
     tag: 'aifoundation';
-    businessId: 'aifoundation';
+    businessId: '#aifoundation' | 'aifoundation';
     businessName: 'AI Foundation';
     source: 'aifoundation';
     strategySessionId: string;

@@ -32,7 +32,7 @@ async function syncAllPosts() {
                 id: docId,
                 category,
                 tag: TRANSACTION_TAG || 'aifoundation',
-                businessId: BUSINESS_ID || 'aifoundation',
+                businessId: BUSINESS_ID || '#aifoundation',
                 businessName: 'AI Foundation',
                 source: 'aifoundation',
                 syncedAt: new Date().toISOString()

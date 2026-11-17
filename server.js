@@ -30,6 +30,16 @@ const {
     SuperadminDraftSaveSchema,
     SuperadminImprovedPlanSchema
 } = require('./regional-edu-plan');
+const {
+    createToolGovernanceService,
+    ToolGovernanceChatTurnInputSchema,
+    SuperadminFinalToolAdvisorySchema
+} = require('./tool-governance-plan');
+const {
+    createManagedAgentService,
+    ManagedAgentChatTurnInputSchema,
+    SuperadminFinalManagedAgentSchema
+} = require('./managed-agent-plan');
 console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
@@ -78,6 +88,16 @@ const regionalEduPlan = createRegionalEduService({
     getStripe,
     getServicePrices: () => servicePrices.read()
 });
+const toolGovernancePlan = createToolGovernanceService({
+    firebase: firebaseService,
+    getStripe,
+    getServicePrices: () => servicePrices.read()
+});
+const managedAgentPlan = createManagedAgentService({
+    firebase: firebaseService,
+    getStripe,
+    getServicePrices: () => servicePrices.read()
+});
 
 app.disable('x-powered-by');
 
@@ -114,6 +134,8 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     try {
         await strategyPlan.handleWebhookEvent(event);
         await regionalEduPlan.handleWebhookEvent(event);
+        await toolGovernancePlan.handleWebhookEvent(event);
+        await managedAgentPlan.handleWebhookEvent(event);
         if (event.type === 'checkout.session.completed' && event.data?.object?.metadata?.kind === 'tokens') {
             const session = event.data.object;
             const result = await tokenStore.settleCheckout(session);
@@ -418,7 +440,7 @@ app.post('/api/posts', requireAdmin, async (req, res) => {
                 ...newPost,
                 category: 'articles',
                 tag: 'aifoundation',
-                businessId: 'aifoundation'
+                businessId: '#aifoundation'
             }, true);
         } catch (e) {
             console.warn('[Firebase] Warning writing post to firestore:', e.message);
@@ -473,7 +495,7 @@ app.post('/api/community', requireAdmin, async (req, res) => {
                 ...newPost,
                 category: 'community',
                 tag: 'aifoundation',
-                businessId: 'aifoundation'
+                businessId: '#aifoundation'
             }, true);
         } catch (e) {
             console.warn('[Firebase] Warning writing community to firestore:', e.message);
@@ -527,7 +549,7 @@ app.post('/api/tech', requireAdmin, async (req, res) => {
                 ...newPost,
                 category: 'tech',
                 tag: 'aifoundation',
-                businessId: 'aifoundation'
+                businessId: '#aifoundation'
             }, true);
         } catch (e) {
             console.warn('[Firebase] Warning writing tech to firestore:', e.message);
@@ -586,7 +608,7 @@ app.post('/api/projects', requireAdmin, async (req, res) => {
                 ...newProject,
                 category: 'projects',
                 tag: 'aifoundation',
-                businessId: 'aifoundation'
+                businessId: '#aifoundation'
             }, true);
         } catch (e) {
             console.warn('[Firebase] Warning writing project to firestore:', e.message);
@@ -765,7 +787,7 @@ app.post('/api/tokens/checkout', requireAuth, async (req, res) => {
         const tokensText = tokens.toLocaleString('en-AU');
         const metadata = {
             tag: 'aifoundation',
-            businessId: 'aifoundation',
+            businessId: '#aifoundation',
             businessName: 'AI Foundation',
             source: 'aifoundation',
             kind: 'tokens',
@@ -1173,6 +1195,154 @@ app.delete('/api/regional-edu/superadmin/reviews/:id', requireSuperAdmin, async 
     }
 });
 
+// Shared parameterized route binder for Zero-Access Client Advisory + SuperAdmin Studio services
+function mountAdvisoryRoutes({ basePath, label, service, getPricing, chatTurnSchema, approveSchema }) {
+    app.get(`${basePath}/session`, requireAuth, async (req, res) => {
+        try {
+            const [pricing, session] = await Promise.all([
+                getPricing(),
+                service.getLatestUserSession(req.user.uid)
+            ]);
+            res.setHeader('Cache-Control', 'private, no-store');
+            res.json({ pricing, canPay: Boolean(getStripe()), session });
+        } catch (e) {
+            console.error(`[${label}] Session load error:`, e);
+            sendServerError(res, e, `Could not load ${label} advisory status.`);
+        }
+    });
+
+    app.post(`${basePath}/checkout`, requireAuth, async (req, res) => {
+        try {
+            const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+            const returnPath = req.body && typeof req.body.returnPath === 'string' ? req.body.returnPath : '/';
+            const result = await service.createCheckoutSession({ user: req.user, origin, returnPath });
+            res.json(result);
+        } catch (e) {
+            if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+            console.error(`[${label}] Checkout error:`, e);
+            sendServerError(res, e, `Could not start ${label} checkout.`);
+        }
+    });
+
+    app.post(`${basePath}/confirm`, requireAuth, async (req, res) => {
+        try {
+            const sessionId = String((req.body && req.body.sessionId) || '').trim();
+            const session = await service.confirmCheckoutSession({ uid: req.user.uid, sessionId });
+            res.json({ session });
+        } catch (e) {
+            if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+            console.error(`[${label}] Confirm error:`, e);
+            sendServerError(res, e, 'Could not confirm consultation payment.');
+        }
+    });
+
+    app.post(`${basePath}/message`, requireAuth, async (req, res) => {
+        try {
+            const parsedBody = chatTurnSchema.safeParse(req.body);
+            if (!parsedBody.success) {
+                return res.status(400).json({ error: parsedBody.error.issues[0]?.message || 'Invalid plain-text consultation input.' });
+            }
+            const result = await service.submitIntakeAnswer({
+                uid: req.user.uid,
+                sessionId: parsedBody.data.sessionId,
+                message: parsedBody.data.message
+            });
+            res.json(result);
+        } catch (e) {
+            if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+            console.error(`[${label}] Message error:`, e);
+            sendServerError(res, e, 'Could not record your answer. Please try again.');
+        }
+    });
+
+    app.get(`${basePath}/superadmin/reviews`, requireSuperAdmin, async (req, res) => {
+        try {
+            const data = await service.listSuperAdminReviews();
+            res.setHeader('Cache-Control', 'private, no-store');
+            res.json(data);
+        } catch (e) {
+            console.error(`[${label}] SuperAdmin reviews error:`, e);
+            sendServerError(res, e, `Could not load ${label} reviews.`);
+        }
+    });
+
+    app.post(`${basePath}/superadmin/reviews/:id/read`, requireSuperAdmin, async (req, res) => {
+        try {
+            const review = await service.markReviewRead(req.params.id);
+            res.json({ review });
+        } catch (e) {
+            if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+            console.error(`[${label}] Mark review read error:`, e);
+            sendServerError(res, e);
+        }
+    });
+
+    app.put(`${basePath}/superadmin/reviews/:id/draft`, requireSuperAdmin, async (req, res) => {
+        try {
+            const parsedBody = SuperadminDraftSaveSchema.safeParse(req.body);
+            if (!parsedBody.success) {
+                return res.status(400).json({ error: parsedBody.error.issues[0]?.message || 'Invalid working draft payload.' });
+            }
+            const review = await service.saveReviewDraft(req.params.id, parsedBody.data);
+            res.json({ review });
+        } catch (e) {
+            if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+            console.error(`[${label}] Save draft error:`, e);
+            sendServerError(res, e);
+        }
+    });
+
+    app.post(`${basePath}/superadmin/reviews/:id/approve`, requireSuperAdmin, async (req, res) => {
+        try {
+            const parsedBody = approveSchema.safeParse(req.body);
+            if (!parsedBody.success) {
+                return res.status(400).json({ error: parsedBody.error.issues[0]?.message || 'Explicit confirmation and improved TXT content are required.' });
+            }
+            const result = await service.approveAndDeliverFinalPlan(req.params.id, parsedBody.data, req.user);
+            res.json(result);
+        } catch (e) {
+            if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+            console.error(`[${label}] Approve final plan error:`, e);
+            sendServerError(res, e);
+        }
+    });
+
+    app.delete(`${basePath}/superadmin/reviews/:id`, requireSuperAdmin, async (req, res) => {
+        try {
+            const confirmed = Boolean(
+                (req.body && req.body.confirmDelete === true) ||
+                req.query.confirm === 'true'
+            );
+            const result = await service.deleteReview(req.params.id, { confirmed });
+            res.json(result);
+        } catch (e) {
+            if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+            console.error(`[${label}] Delete review error:`, e);
+            sendServerError(res, e);
+        }
+    });
+}
+
+// SERVICES - AI TOOL SELECTION & GOVERNANCE ADVISORY
+mountAdvisoryRoutes({
+    basePath: '/api/tool-governance',
+    label: 'Tool Governance',
+    service: toolGovernancePlan,
+    getPricing: () => toolGovernancePlan.getToolGovernancePricing(),
+    chatTurnSchema: ToolGovernanceChatTurnInputSchema,
+    approveSchema: SuperadminFinalToolAdvisorySchema
+});
+
+// SERVICES - MANAGED AI AGENT HOSTING & MAINTENANCE
+mountAdvisoryRoutes({
+    basePath: '/api/managed-agent',
+    label: 'Managed Agent',
+    service: managedAgentPlan,
+    getPricing: () => managedAgentPlan.getManagedAgentPricing(),
+    chatTurnSchema: ManagedAgentChatTurnInputSchema,
+    approveSchema: SuperadminFinalManagedAgentSchema
+});
+
 // PROJECTS PAGE ROUTE
 app.get('/projects', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'projects.html'));
@@ -1268,7 +1438,7 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
 
         const metadata = {
             tag: 'aifoundation',
-            businessId: 'aifoundation',
+            businessId: '#aifoundation',
             businessName: 'AI Foundation',
             source: 'aifoundation',
             amount: String(amount),
@@ -1484,7 +1654,7 @@ app.post('/api/stripe/create-payment-intent', async (req, res) => {
 
         const metadata = {
             tag: 'aifoundation',
-            businessId: 'aifoundation',
+            businessId: '#aifoundation',
             businessName: 'AI Foundation',
             source: 'aifoundation',
             amount: String(amount),
@@ -1609,7 +1779,7 @@ app.post('/api/transactions/record', requireAdmin, async (req, res) => {
     try {
         const txData = req.body;
         txData.tag = 'aifoundation';
-        txData.businessId = 'aifoundation';
+        txData.businessId = '#aifoundation';
         const result = await firebaseService.recordTransaction(txData);
         res.json({ success: true, result });
     } catch (e) {
@@ -1787,7 +1957,7 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
                 conversationId: `conv_${senderUid}`,
                 userMessage: msgText,
                 tag: 'aifoundation',
-                businessId: 'aifoundation',
+                businessId: '#aifoundation',
                 businessName: 'AI Foundation',
                 source: 'aifoundation'
             });

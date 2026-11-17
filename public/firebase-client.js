@@ -35,7 +35,7 @@ export const DEFAULT_FIREBASE_CONFIG = {
 };
 
 export let firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
-export let BUSINESS_ID = "aifoundation";
+export let BUSINESS_ID = "#aifoundation";
 export let TRANSACTION_TAG = "aifoundation";
 
 let app = null;

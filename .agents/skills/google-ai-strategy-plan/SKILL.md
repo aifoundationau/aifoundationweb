@@ -13,7 +13,7 @@ This service is strictly a strategic and technical **advisory blueprint** tellin
 - **Permitted Platform-Internal Operations Only**:
   1. Platform's own **Stripe Checkout** (`server.js` / `strategy-plan.js`) to collect the consultation fee in AUD.
   2. Platform's own **`@google/genai` SDK** (`>= 3.2.0`, `ai.interactions.create` with `tools: [{ type: 'google_search' }]`) strictly to query **public documentation, pricing, and industry workflows**.
-  3. Platform's own **Firestore** (`aifoundation_strategy_sessions`, `aifoundation_strategy_superadmin_briefs`, and `chat_interactions`) partitioned with `tag: 'aifoundation'`, `businessId: 'aifoundation'`, `businessName: 'AI Foundation'`, `source: 'aifoundation'`.
+  3. Platform's own **Firestore** (`aifoundation_strategy_sessions`, `aifoundation_strategy_superadmin_briefs`, and `chat_interactions`) partitioned with `tag: 'aifoundation'`, `businessId: '#aifoundation'`, `businessName: 'AI Foundation'`, `source: 'aifoundation'`.
   4. Browser **DOM-native `Blob`** (`text/plain;charset=utf-8`) execution for client and SuperAdmin `.txt` file downloads.
 
 ## 2. Multi-Model & MCP Compatibility Rules
@@ -50,7 +50,7 @@ Gate consultation access behind a verified Stripe Checkout session:
   - `tax_behavior: 'exclusive'` inside `price_data`
   - `customer_creation: 'always'`
   - `invoice_creation: { enabled: true }`
-  - `metadata`: `{ tag: 'aifoundation', businessId: 'aifoundation', businessName: 'AI Foundation', source: 'aifoundation', kind: 'strategy_plan', uid, userId, serviceName: 'Services - Google AI Strategy & First-Month Plan', serviceType: 'google_ai_strategy_advisory_30_day' }`
+  - `metadata`: `{ tag: 'aifoundation', businessId: '#aifoundation', businessName: 'AI Foundation', source: 'aifoundation', kind: 'strategy_plan', uid, userId, serviceName: 'Services - Google AI Strategy & First-Month Plan', serviceType: 'google_ai_strategy_advisory_30_day' }`
 - **Dual Atomic Unlock**: Verify payment atomically via both `POST /api/stripe/webhook` (`checkout.session.completed`) and `POST /api/strategy-plan/confirm` (`stripe.checkout.sessions.retrieve(sessionId)`) so customers never stall on webhook latency.
 
 ## 5. Stage 1 Runtime Agent: Grounded Search & 6-Step Advisory Intake

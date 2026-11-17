@@ -144,7 +144,7 @@ test('Stripe AUD ex-GST checkout with promo codes unlocks session to paid_intake
         assert.equal(lastCreatePayload.invoice_creation.enabled, true);
         assert.equal(lastCreatePayload.line_items[0].price_data.tax_behavior, 'exclusive');
         assert.equal(lastCreatePayload.line_items[0].price_data.unit_amount, 24500);
-        assert.equal(lastCreatePayload.metadata.businessId, 'aifoundation');
+        assert.equal(lastCreatePayload.metadata.businessId, '#aifoundation');
         assert.equal(lastCreatePayload.metadata.serviceSlug, 'regulatory-roadmap');
 
         // Confirm endpoint unlocks when Stripe marks paid

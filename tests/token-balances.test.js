@@ -7,7 +7,7 @@ const { createTokenStore, LEDGER, CHECKOUTS } = require('../token-balances');
 
 const NOW = Date.parse('2026-10-23T08:00:00.000Z');
 const UID = 'user123';
-const PARTITION_KEY = { tag: 'aifoundation', businessId: 'aifoundation', businessName: 'AI Foundation', source: 'aifoundation' };
+const PARTITION_KEY = { tag: 'aifoundation', businessId: '#aifoundation', businessName: 'AI Foundation', source: 'aifoundation' };
 
 function fakeFirestore() {
     const docs = new Map(); // path -> { data, updateTime }

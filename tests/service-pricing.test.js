@@ -273,7 +273,7 @@ test('store: saves to Firestore with the partition key, and a local copy without
     assert.equal(`${COLLECTION}/${DOCUMENT_ID}`, 'system_settings/aifoundation_service_prices');
     assert.deepEqual(
         { tag: doc.tag, businessId: doc.businessId, businessName: doc.businessName, source: doc.source },
-        { tag: 'aifoundation', businessId: 'aifoundation', businessName: 'AI Foundation', source: 'aifoundation' }
+        { tag: 'aifoundation', businessId: '#aifoundation', businessName: 'AI Foundation', source: 'aifoundation' }
     );
     assert.deepEqual(doc.prices, SAMPLE);
     assert.equal(doc.updatedBy, 'support@aifoundation.net.au');

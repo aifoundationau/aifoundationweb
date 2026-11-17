@@ -17,7 +17,7 @@ const DOCUMENT_ID = 'aifoundation_service_prices';
 const DEFAULT_FILE = path.join(__dirname, 'data', 'service-prices.json');
 
 // Partition key required on every AI Foundation record (data-contracts.md, Invariant Rule 1)
-const PARTITION_KEY = { tag: 'aifoundation', businessId: 'aifoundation', businessName: 'AI Foundation', source: 'aifoundation' };
+const PARTITION_KEY = { tag: 'aifoundation', businessId: '#aifoundation', businessName: 'AI Foundation', source: 'aifoundation' };
 
 function createServicePriceStore({ firebase = firebaseService, filePath = DEFAULT_FILE } = {}) {
     function readLocalCopy() {
