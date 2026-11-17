@@ -206,7 +206,7 @@ These Terms govern user interaction across all connected AI Foundation platforms
 * **PT & Fitness**: [pt.aifoundation.net.au](https://pt.aifoundation.net.au/) &mdash; Physical Training & Athletic Workflows.
 * **Health Platforms**: [health.aifoundation.net.au](https://health.aifoundation.net.au/) &mdash; Health & Wellbeing Applications.
 * **Vocational RTO**: [edu.aifoundation.net.au](https://edu.aifoundation.net.au/) &mdash; Vocational Education & RTO AI Workspaces.
-* **Nihongo Portal**: [nihongo.aifoundation.net.au](https://nihongo.aifoundation.net.au/) &mdash; Japanese Language Learning Tools.
+* **Nihongo Portal**: [nihongokyoushitsu.com](https://www.nihongokyoushitsu.com/) &mdash; Japanese Language Learning Tools.
 * **Finance Portal**: [finance.aifoundation.net.au](https://finance.aifoundation.net.au/) &mdash; Financial Modeling & Token Accounting.
 
 ---

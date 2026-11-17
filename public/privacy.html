@@ -15,7 +15,8 @@
     <meta name="geo.region" content="AU">
     <meta name="geo.placename" content="Australia">
     <meta name="application-name" content="AI Foundation Australia">
-    <link rel="apple-touch-icon" href="assets/logo.png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="AI Foundation">
     <link rel="manifest" href="/site.webmanifest">
     <link rel="alternate" hreflang="en-au" href="https://www.aifoundation.net.au/privacy">
     <link rel="alternate" hreflang="en" href="https://www.aifoundation.net.au/privacy">
@@ -74,7 +75,7 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="style.css?v=55">
+    <link rel="stylesheet" href="style.css?v=66">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -165,7 +166,8 @@
         }
         .toc-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            /* min(..., 100%): one full-width column on phones narrower than 280px of content */
+            grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
             gap: 10px;
             list-style: none;
             padding: 0;
@@ -339,19 +341,28 @@
 
     <!-- Header Navigation -->
     <header class="navbar">
-        <div class="nav-container" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 24px;">
+        <div class="nav-container legal-nav">
             <div class="nav-brand">
-                <a href="index.html" style="display: flex; align-items: center; text-decoration: none; gap: 12px;">
-                    <img src="assets/logo.png" alt="AI Foundation Australia Logo" class="brand-logo" style="height: 40px; width: auto;">
-                    <span style="font-weight: 800; color: #0f172a; font-size: 1.15rem; letter-spacing: -0.02em;">AI Foundation</span>
+                <a href="index.html" class="legal-brand-link">
+                    <img src="assets/logo.png" alt="AI Foundation Australia Logo" class="brand-logo legal-brand-logo">
+                    <span class="legal-brand-name">AI Foundation</span>
                 </a>
             </div>
-            <div style="display: flex; align-items: center; gap: 14px;">
-                <a href="terms.html" class="btn-switch-policy" style="text-decoration: none; font-size: 0.88rem; font-weight: 600; color: #004ecc; background: rgba(0, 78, 204, 0.08); padding: 8px 16px; border-radius: 999px; transition: background 0.2s;">
-                    <i class="fa-solid fa-scale-balanced"></i> Terms of Service
+            <div class="legal-nav-actions">
+                <!-- Download App: installs the site as an app (install-app.js) -->
+                <button type="button" class="download-app-btn" id="downloadAppBtn" data-download-app data-agent-id="header-download-app" data-testid="header-download-app" aria-label="Download the AI Foundation app" title="Download the AI Foundation app">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i>
+                    <span class="download-app-label-long">Download App</span>
+                    <span class="download-app-label-short">Get App</span>
+                </button>
+                <a href="terms.html" class="btn-switch-policy legal-nav-btn legal-nav-btn-switch" data-testid="legal-switch-terms" aria-label="Terms of Service">
+                    <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+                    <span class="legal-nav-label-long">Terms of Service</span>
+                    <span class="legal-nav-label-short">Terms</span>
                 </a>
-                <a href="index.html" style="text-decoration: none; font-size: 0.88rem; font-weight: 600; color: #334155; background: #f1f5f9; padding: 8px 16px; border-radius: 999px; transition: background 0.2s;">
-                    <i class="fa-solid fa-arrow-left"></i> Home
+                <a href="index.html" class="legal-nav-btn legal-nav-btn-home" data-testid="legal-home" aria-label="Home">
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                    <span class="legal-nav-label-long">Home</span>
                 </a>
             </div>
         </div>
@@ -637,5 +648,6 @@
         </footer>
     </main>
 
+    <script src="install-app.js?v=1"></script>
 </body>
 </html>

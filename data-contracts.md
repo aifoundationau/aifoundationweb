@@ -358,15 +358,20 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 | `pt` | PT & Fitness | `https://pt.aifoundation.net.au/` | `footer-portal-pt` |
 | `health` | Health Platforms | `https://health.aifoundation.net.au/` | `footer-portal-health` |
 | `edu` | Vocational RTO | `https://edu.aifoundation.net.au/` | `footer-portal-edu` |
-| `nihongo` | Nihongo Learning | `https://nihongo.aifoundation.net.au/` | `footer-portal-nihongo` |
+| `nihongo` | Nihongo Learning | `https://www.nihongokyoushitsu.com/` | `footer-portal-nihongo` |
+| `eikaiwa` | Eikaiwa (English Conversation) | `https://www.eikaiwakyoushitsu.com/` | `footer-portal-eikaiwa` |
 | `finance` | Finance Portal | `https://finance.aifoundation.net.au/` | `footer-portal-finance` |
 | `kangoo` | Kangoo Car Rental | `https://kangoo.aifoundation.net.au/` | `footer-portal-kangoo` |
 | `socialradar` | Social Media (Social Radar) | `https://adradarhq.com/` | `footer-portal-socialradar` |
 | `courier` | Courier | `https://itsasimplejob.com/` | `footer-portal-courier` |
 | `suburbreport` | Suburb Report | `https://suburbreport.com/` | `footer-portal-suburbreport` |
 
-- **Footer vs. Apps section**: `courier` and `suburbreport` appear in `.footer-portal-nav` only; the `#section-apps` cards and quick buttons do not include them.
-- **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. Odd last child (item 13 in the footer: `suburbreport`; item 11 in `#section-apps`: `socialradar`) centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
+- **Footer vs. Apps section**: `eikaiwa`, `courier` and `suburbreport` appear in `.footer-portal-nav` only; the `#section-apps` cards and quick buttons do not include them.
+- **Layout Invariants**: Rendered in `.footer-portal-nav` and `#section-apps` with fluid flex on desktop and 2-column centered grid on tablets/mobile. The footer has 14 items (even, so its 2-column grid has no lone last item). Odd last child (item 11 in `#section-apps`: `socialradar`) centers with equivalent column width (`width: 100%; max-width: 220px;`). Screen widths <= 340px collapse to 1 single full-width column to prevent text wrapping or overflow clipping. Minimum tap target height: 44px on touch devices. Accessible in Special Sections sidebar via `[data-target="section-apps"]` and hash `#apps`.
+
+#### Header Download App (`#downloadAppBtn`)
+- **Placement**: Top header on `index.html`, `projects.html`, `services.html`, `terms.html` and `privacy.html`; `data-agent-id` / `data-testid` = `header-download-app`. Label "Download App", "Get App" at <= 600px, icon only at <= 359px (and at <= 600px on the Terms/Privacy pages, which have three header buttons).
+- **Behaviour** (`install-app.js`): installs the site as an app from `site.webmanifest` (`display: standalone`; icons `assets/app-icon-192.png`, `assets/app-icon-512.png`; iOS `assets/apple-touch-icon.png`). Chromium browsers show their own install prompt (`beforeinstallprompt`); iOS/iPadOS, Safari and Firefox get a how-to dialog (`data-testid="install-help-dialog"`). The button is hidden when the site is already open as an installed app. No data is collected or stored.
 
 #### Unified Multi-Database SuperAdmin Message Box (`GET /api/message-box`, `POST /api/chat/send`)
 - **Aggregated Databases & Tags**:

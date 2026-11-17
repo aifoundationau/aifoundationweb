@@ -607,7 +607,7 @@ p { margin: 0; }
   border-top: 1px solid var(--border-color, #e2e8f0);
 }
 
-/* Padding and gap sized so all 13 buttons fit smoothly across screens */
+/* Padding and gap sized so all 14 buttons fit smoothly across screens */
 .footer-portal-btn {
   display: inline-flex;
   align-items: center;
@@ -3045,6 +3045,336 @@ html.admin-panel-open body {
   height: 18px;
   flex-shrink: 0;
   display: block;
+}
+
+/* Header buttons keep their label on one line; phones get shorter labels below instead */
+.google-auth-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+/* ==========================================================================
+   Download App button (header) - behaviour in install-app.js
+   ========================================================================== */
+.download-app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 8px 16px;
+  background: var(--primary, #004ecc);
+  color: #ffffff;
+  border: 1.5px solid var(--primary, #004ecc);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 78, 204, 0.18);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+.download-app-btn:hover {
+  background: #0066ff;
+  border-color: #0066ff;
+  box-shadow: 0 4px 14px rgba(0, 102, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.download-app-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.download-app-btn:focus-visible,
+.google-auth-btn:focus-visible,
+.legal-nav-btn:focus-visible {
+  outline: 3px solid rgba(0, 102, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Hidden once the site is open as an installed app */
+.download-app-btn[hidden] {
+  display: none !important;
+}
+
+.download-app-btn i {
+  font-size: 0.9rem;
+}
+
+.download-app-label-short {
+  display: none;
+}
+
+/* ==========================================================================
+   Terms & Privacy page header
+   ========================================================================== */
+.legal-nav {
+  padding: 12px 24px;
+  gap: 12px;
+}
+
+.legal-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.legal-brand-logo {
+  height: 40px;
+  width: auto;
+}
+
+.legal-brand-name {
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.legal-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.legal-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: background 0.2s;
+}
+
+.legal-nav-btn-switch {
+  color: #004ecc;
+  background: rgba(0, 78, 204, 0.08);
+}
+
+.legal-nav-btn-switch:hover {
+  background: rgba(0, 78, 204, 0.15);
+}
+
+.legal-nav-btn-home {
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.legal-nav-btn-home:hover {
+  background: #e2e8f0;
+}
+
+.legal-nav-label-short {
+  display: none;
+}
+
+/* ==========================================================================
+   Header on tablets & phones: logo and buttons stay on one row, no sideways scroll
+   ========================================================================== */
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 12px 20px;
+    gap: 12px;
+  }
+}
+
+/* Terms & Privacy: the logo already says "AI Foundation" */
+@media (max-width: 720px) {
+  .legal-brand-name {
+    display: none;
+  }
+}
+
+/* Phones: 44px tap targets and short labels ("Get App", "Sign In", "Privacy" / "Terms") */
+@media (max-width: 600px) {
+  .nav-container,
+  .legal-nav {
+    padding: 10px 16px;
+  }
+  .brand-logo,
+  .legal-brand-logo {
+    height: 34px;
+  }
+  .nav-actions,
+  .legal-nav-actions {
+    gap: 8px;
+  }
+  .download-app-btn,
+  .google-auth-btn,
+  .legal-nav-btn {
+    min-height: 44px;
+    padding: 8px 14px;
+  }
+  .download-app-label-long,
+  .auth-btn-text-extra,
+  .legal-nav-label-long {
+    display: none;
+  }
+  .download-app-label-short,
+  .legal-nav-label-short {
+    display: inline;
+  }
+  /* Terms & Privacy have three buttons: Download App and Home become round icon buttons */
+  .legal-nav-actions .download-app-btn,
+  .legal-nav-btn-home {
+    width: 44px;
+    padding: 0;
+    gap: 0;
+  }
+  .legal-nav-actions .download-app-label-short {
+    display: none;
+  }
+}
+
+/* Narrow phones (e.g. 320px iPhone SE): Download App becomes a round icon button */
+@media (max-width: 359px) {
+  .download-app-btn {
+    width: 44px;
+    padding: 0;
+    gap: 0;
+  }
+  .download-app-label-short {
+    display: none;
+  }
+  .legal-nav {
+    padding: 10px 12px;
+  }
+  .legal-brand-logo {
+    height: 30px;
+  }
+  .legal-nav-actions {
+    gap: 6px;
+  }
+}
+
+/* ==========================================================================
+   Download App how-to dialog (iPhone, Safari, Firefox) - built by install-app.js
+   ========================================================================== */
+.install-help-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  z-index: 10050;
+  width: min(440px, calc(100vw - 32px));
+  height: fit-content;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.install-help-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.install-help-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.install-help-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.install-help-titles {
+  min-width: 0;
+}
+
+.install-help-title {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.install-help-intro {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.install-help-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding-left: 22px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #1e293b;
+}
+
+.install-help-steps i {
+  color: var(--primary, #004ecc);
+  margin: 0 2px;
+}
+
+.install-help-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.install-help-close {
+  min-height: 44px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary, #004ecc);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.install-help-close:hover {
+  background: #0066ff;
+}
+
+.install-help-close:focus-visible {
+  outline: 3px solid rgba(0, 102, 255, 0.35);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .install-help-dialog {
+    padding: 20px 18px;
+  }
+  .install-help-close {
+    width: 100%;
+  }
 }
 
 /* User Menu Wrapper & Dropdown Trigger */
