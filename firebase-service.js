@@ -773,7 +773,8 @@ async function getAdminEmailsFromFirebase(forceRefresh = false) {
 }
 
 /**
- * Check if a specific user/email is authorized as superadmin in Firebase
+ * Check if a specific user/email is authorized as superadmin in Firebase.
+ * Pass the email only once Google has verified it, else an empty string (the UID still counts)
  */
 async function isEmailAdminInFirebase(email, uid) {
     if (isSuperAdminUser(uid, email)) return true;
@@ -787,6 +788,8 @@ async function isEmailAdminInFirebase(email, uid) {
  * Synchronize Google Auth User Profile to Cloud Firestore
  * RULE: Only ZK79FRQoVlYhsgvMibhi81dRUWj2 and L5euSJAfNKdDOX6mT0qmrCGjUA53 are SuperAdmin.
  * Everyone else registering or logging in is strictly 'supporter'.
+ * userData.emailVerified (from the verified ID token) must be true for the email to count towards the SuperAdmin and
+ * admin lists, because isAdmin() in firestore.rules trusts the role saved here.
  */
 async function syncUser(userData) {
     if (!userData || !userData.uid) {
@@ -802,8 +805,12 @@ async function syncUser(userData) {
         existing = await getUser(uid);
     } catch (e) { }
 
+    // The SuperAdmin and admin email lists count only for an email Google has verified, as in auth-middleware.js:
+    // anyone can sign up with email/password using an address they don't own. The UIDs always count
+    const trustedEmail = userData.emailVerified === true ? email : '';
+
     // Strictly verify if this user is one of the two allowed SuperAdmins
-    const isSuperAdmin = isSuperAdminUser(uid, email);
+    const isSuperAdmin = isSuperAdminUser(uid, trustedEmail);
 
     // Only these two are superadmin; everyone else is supporter (or admin if listed in Firebase)
     let assignedRole = 'supporter';
@@ -815,7 +822,7 @@ async function syncUser(userData) {
         assignedStatus = 'superadmin';
         assignedClassification = 'Superadmin';
     } else {
-        const isAdmin = await isEmailAdminInFirebase(email, uid);
+        const isAdmin = await isEmailAdminInFirebase(trustedEmail, uid);
         if (isAdmin) {
             assignedRole = 'admin';
             assignedStatus = 'admin';

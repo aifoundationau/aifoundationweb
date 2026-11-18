@@ -19,10 +19,17 @@ const P = p => `/databases/(default)/documents/${p}`;
 const SUPER = { uid: 'ZK79FRQoVlYhsgvMibhi81dRUWj2', token: { email: 'support@aifoundation.net.au', email_verified: true } };
 const USER = { uid: 'user1', token: { email: 'user1@example.com', email_verified: true } };
 const FAKE_SUPER = { uid: 'attacker', token: { email: 'support@aifoundation.net.au', email_verified: false } };
+// Signed up with email/password using an address they don't own (here the service account's, which the server's
+// SuperAdmin list includes), so the email is unverified: any admin role saved on their profile must grant nothing
+const UNVERIFIED = { uid: 'attacker', token: { email: 'firebase-adminsdk-fbsvc@ai-foundation-firebase.iam.gserviceaccount.com', email_verified: false } };
 const noProfile = [{ function: 'exists', args: [{ anyValue: {} }], result: { value: false } }];
 const adminProfile = [
   { function: 'exists', args: [{ anyValue: {} }], result: { value: true } },
   { function: 'get', args: [{ anyValue: {} }], result: { value: { data: { role: 'admin' } } } }
+];
+const superadminRoleProfile = [
+  { function: 'exists', args: [{ anyValue: {} }], result: { value: true } },
+  { function: 'get', args: [{ anyValue: {} }], result: { value: { data: { role: 'superadmin' } } } }
 ];
 const sup = { role: 'supporter', status: 'supporter', classification: 'Supporter', isSuperAdmin: false, email: 'user1@example.com' };
 
@@ -38,6 +45,12 @@ const cases = [
   T('admin (role in profile) can write content', 'ALLOW', 'create', 'content/a', USER, { newData: { title: 'x' }, mocks: adminProfile }),
   T('superadmin can delete content', 'ALLOW', 'delete', 'content/a', SUPER, { oldData: { title: 'x' } }),
   T('unverified email cannot impersonate superadmin', 'DENY', 'delete', 'content/a', FAKE_SUPER, { oldData: { title: 'x' } }),
+  T('admin (role in profile, verified email) can read another profile', 'ALLOW', 'get', 'users/user2', USER, { oldData: sup, mocks: adminProfile }),
+  T('admin role saved for an unverified email cannot write content', 'DENY', 'create', 'content/a', UNVERIFIED, { newData: { title: 'x' }, mocks: adminProfile }),
+  T('superadmin role saved for an unverified email cannot write content', 'DENY', 'create', 'content/a', UNVERIFIED, { newData: { title: 'x' }, mocks: superadminRoleProfile }),
+  T('superadmin role saved for an unverified email cannot read another profile', 'DENY', 'get', 'users/user2', UNVERIFIED, { oldData: sup, mocks: superadminRoleProfile }),
+  T('superadmin role saved for an unverified email cannot read transactions', 'DENY', 'get', 'transactions/t1', UNVERIFIED, { oldData: { amount: 50 }, mocks: superadminRoleProfile }),
+  T('superadmin role saved for an unverified email cannot read the token ledger', 'DENY', 'get', 'token_ledger/e1', UNVERIFIED, { oldData: { uid: 'user2', tokens: 5 }, mocks: superadminRoleProfile }),
   T('anonymous cannot read user profile (PII)', 'DENY', 'get', 'users/user1', null, { oldData: sup }),
   T('user cannot read another user profile', 'DENY', 'get', 'users/user2', USER, { oldData: sup }),
   T('user can read own profile', 'ALLOW', 'get', 'users/user1', USER, { oldData: sup }),

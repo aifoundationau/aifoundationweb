@@ -33,10 +33,12 @@ service cloud.firestore {
       );
     }
 
-    // Admins: SuperAdmins, or users whose profile role was set to admin by a SuperAdmin / the server
+    // Admins: SuperAdmins, or users whose profile role was set to admin by a SuperAdmin / the server, signed in with an
+    // email Google has verified (as the server's requireAdmin checks), so a role saved for an unverified address grants nothing
     function isAdmin() {
       return isSuperAdmin() || (
         isAuthenticated() &&
+        request.auth.token.get('email_verified', false) == true &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'super_admin', 'superadmin', 'chiefadmin']
       );

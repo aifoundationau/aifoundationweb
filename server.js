@@ -1580,6 +1580,7 @@ app.post('/api/auth/sync', requireAuth, async (req, res) => {
         const result = await firebaseService.syncUser({
             uid: normUid,
             email: normalizedEmail,
+            emailVerified: req.user.emailVerified,
             displayName,
             photoURL,
             phoneNumber,
