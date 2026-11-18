@@ -76,9 +76,10 @@ service cloud.firestore {
     }
 
     // Profile fields that grant privileges or hold value; users can never set or change these themselves.
+    // classification and verifiedAdmin are read by the site's admin checks (public/app.js), as role and status are.
     // token_balance is the token balance every app shares: only servers change it (service account)
     function privilegedFields() {
-      return ['role', 'status', 'classification', 'isSuperAdmin', 'isAdmin', 'tags',
+      return ['role', 'status', 'classification', 'isSuperAdmin', 'isAdmin', 'verifiedAdmin', 'tags',
               'token_balance', 'token_balance_updated_at'];
     }
 
@@ -96,10 +97,11 @@ service cloud.firestore {
         isOwner(userId) &&
         request.resource.data.get('role', 'supporter') == 'supporter' &&
         request.resource.data.get('status', 'supporter') == 'supporter' &&
+        request.resource.data.get('classification', 'supporter').lower() == 'supporter' &&
         request.resource.data.get('isSuperAdmin', false) == false &&
         request.resource.data.get('isAdmin', false) == false &&
         request.resource.data.get('token_balance', 0) == 0 &&
-        !request.resource.data.keys().hasAny(['tags', 'token_balance_updated_at'])
+        !request.resource.data.keys().hasAny(['tags', 'token_balance_updated_at', 'verifiedAdmin'])
       );
       allow update: if isSuperAdmin() || (
         isOwner(userId) &&
