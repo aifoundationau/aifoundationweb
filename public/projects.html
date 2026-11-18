@@ -41,7 +41,7 @@
     <meta name="twitter:image" content="https://www.aifoundation.net.au/assets/logo.png">
     <meta name="twitter:image:alt" content="AI Projects &amp; Enterprise Deployments | AI Foundation Australia">
 
-    <link rel="stylesheet" href="style.css?v=67">
+    <link rel="stylesheet" href="style.css?v=70">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script type="application/ld+json">
@@ -372,6 +372,60 @@
                     <!-- Buttons will be injected here by app.js -->
                 </div>
             </div>
+
+            <!-- Annual Membership (membership.js): replaces the old donation bar -->
+            <section class="membership-bar-container" id="membershipSection" aria-labelledby="membershipTitle" data-agent-id="membership-section" data-testid="membership-section">
+                <div class="membership-card">
+                    <div class="membership-info">
+                        <h2 class="membership-title" id="membershipTitle">
+                            <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+                            <span>Join as a Member</span>
+                        </h2>
+                        <p class="membership-price"><strong>AUD $90</strong> per year <span class="membership-gst">(plus GST)</span></p>
+                        <p class="membership-subtitle">Members get access to our Telegram group and web app chat for joint ventures and ASEAN projects.</p>
+                        <ul class="membership-topics" aria-label="Members chat topics">
+                            <li>Joint Projects</li><li>Jobs</li><li>ASEAN Projects</li><li>Cambodia AI Centre</li><li>Student Collaboration</li>
+                        </ul>
+                    </div>
+                    <div class="membership-actions">
+                        <p class="membership-state" id="membershipState" aria-live="polite" data-testid="membership-state"></p>
+                        <button type="button" class="membership-btn membership-btn-primary" id="membershipJoinBtn" data-agent-id="membership-join-btn" data-testid="membership-join-btn" aria-label="Join AI Foundation membership for AUD $90 per year plus GST">
+                            <i class="fa-solid fa-id-card" aria-hidden="true"></i> <span>Join for $90/year</span>
+                        </button>
+                        <button type="button" class="membership-btn membership-btn-primary" id="membershipChatBtn" hidden data-agent-id="membership-chat-btn" data-testid="membership-chat-btn" aria-label="Open the members chat">
+                            <i class="fa-solid fa-comments" aria-hidden="true"></i> Open Members Chat
+                        </button>
+                        <a class="membership-btn membership-btn-telegram" id="membershipTelegramLink" hidden href="#" target="_blank" rel="noopener" data-agent-id="membership-telegram-link" data-testid="membership-telegram-link" aria-label="Join the members Telegram group">
+                            <i class="fa-brands fa-telegram" aria-hidden="true"></i> Join Telegram Group
+                        </a>
+                        <button type="button" class="membership-btn membership-btn-secondary" id="membershipManageBtn" hidden data-agent-id="membership-manage-btn" data-testid="membership-manage-btn" aria-label="Manage or cancel your membership">
+                            <i class="fa-solid fa-gear" aria-hidden="true"></i> Manage membership
+                        </button>
+                        <p class="membership-msg" id="membershipMsg" role="status" aria-live="polite" data-testid="membership-msg"></p>
+                    </div>
+                </div>
+            </section>
+
+            <dialog id="membersChatDialog" class="members-chat-dialog" aria-labelledby="membersChatTitle" closedby="any" data-agent-id="members-chat-dialog" data-testid="members-chat-dialog">
+                <div class="members-chat-head">
+                    <h2 id="membersChatTitle"><i class="fa-solid fa-comments" aria-hidden="true"></i> Members Chat</h2>
+                    <a class="members-chat-telegram" id="membersChatTelegramLink" hidden href="#" target="_blank" rel="noopener" data-agent-id="members-chat-telegram-link" data-testid="members-chat-telegram-link" aria-label="Open the AI Foundation Telegram group"><i class="fa-brands fa-telegram" aria-hidden="true"></i> <span>Telegram</span></a>
+                    <form method="dialog"><button type="submit" class="members-chat-close" aria-label="Close members chat" data-agent-id="members-chat-close" data-testid="members-chat-close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></form>
+                </div>
+                <div class="members-chat-topics" role="tablist" aria-label="Chat topics" id="membersChatTopics"></div>
+                <div class="members-chat-search" role="search">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <input type="search" id="membersChatSearch" placeholder="Search this topic" maxlength="100" autocomplete="off" enterkeyhint="search" data-agent-id="members-chat-search" data-testid="members-chat-search" aria-label="Search messages in this topic" aria-describedby="membersChatSearchCount">
+                    <span class="members-chat-search-count" id="membersChatSearchCount" aria-live="polite" data-testid="members-chat-search-count"></span>
+                </div>
+                <ol class="members-chat-log" id="membersChatLog" aria-live="polite" aria-label="Messages" data-testid="members-chat-log"></ol>
+                <form class="members-chat-form" id="membersChatForm" data-agent-id="members-chat-form" data-testid="members-chat-form">
+                    <label for="membersChatInput" class="sr-only">Message</label>
+                    <textarea id="membersChatInput" rows="2" maxlength="2000" placeholder="Write a message (text only)" required autofocus data-agent-id="members-chat-input" data-testid="members-chat-input" aria-label="Message"></textarea>
+                    <button type="submit" class="membership-btn membership-btn-primary" id="membersChatSend" data-agent-id="members-chat-send" data-testid="members-chat-send" aria-label="Send message"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Send</button>
+                </form>
+                <p class="membership-msg" id="membersChatMsg" role="status" aria-live="polite" data-testid="members-chat-msg"></p>
+            </dialog>
 
             <!-- Footer -->
             <footer class="site-footer"
@@ -1908,6 +1962,7 @@
         <script src="service-pricing.js?v=8"></script>
         <script src="app.js?v=80"></script>
         <script src="install-app.js?v=1"></script>
+    <script src="membership.js?v=4"></script>
 </body>
 
 </html>

@@ -409,7 +409,7 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 #### Security, Redaction & Payment Invariants
 - **Zero External Access & Zero File Uploads**: Plain-text chat input only (`StrategyChatTurnInputSchema` with `.strict()` / `additionalProperties: false` rejecting any attachment or file key). Zero Google Workspace/GCP client OAuth scopes requested.
 - **Secret Scrubbing (`redactSecrets`)**: All user inputs matching Google API keys (`AIza...`), Stripe/AI secret keys (`sk-...`, `rk_...`, `whsec_...`), GitHub/Slack tokens, JWTs, PEM private keys, or labeled `password=/api_key=/secret=` values are scrubbed to `[REDACTED_SECRET]` prior to any Gemini API call or Firestore persistence, and the client receives a `redactedWarning` notice.
-- **Stripe AUD Exclusive GST Gate**: Always bills in `currency: 'aud'` with `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, using the admin `30-day-roadmap` AUD price when set or `STRATEGY_PLAN_PRICE_AUD_CENTS` (default `29900` = AUD $299.00 ex GST). Cards only (`payment_method_types: ['card']`). No Stripe webhooks: the session is saved as pending before the redirect and unlocked idempotently with `stripe.checkout.sessions.retrieve()` by `POST /api/strategy-plan/confirm`, on reload, or by SuperAdmin Verify pending payments.
+- **Stripe AUD Exclusive GST Gate**: Always bills in `currency: 'aud'` with `automatic_tax: { enabled: true }`, `tax_behavior: 'exclusive'`, `invoice_creation: { enabled: true }`, using the admin `30-day-roadmap` AUD price when set or `STRATEGY_PLAN_PRICE_AUD_CENTS` (default `29900` = AUD $299.00 ex GST). Payment methods come from the Stripe Dashboard (`payment_method_types` is never sent; Stripe rejects it). Keep delayed methods such as bank debits switched off there. No Stripe webhooks: the session is saved as pending before the redirect and unlocked idempotently with `stripe.checkout.sessions.retrieve()` by `POST /api/strategy-plan/confirm`, on reload, or by SuperAdmin Verify pending payments.
 - **Stage 2 & Stage 3 Plain-Text `.txt` Deliverables**:
   - Customer `.txt`: `Preliminary_Google_AI_Strategy_30_Day_Advisory_[SanitizedBusinessName]_[YYYY-MM-DD].txt` (pure UTF-8, ASCII `===` dividers, zero Markdown/HTML, mandatory zero-access top disclaimer, 6 advisory sections).
   - SuperAdmin `.txt`: `SUPERADMIN_30_Day_Advisory_Recommendation_[SanitizedBusinessName]_[YYYY-MM-DD].txt` generated asynchronously via `GEMINI_FALLBACK_MODEL` (`gemini-4-hydrogen`) + public Google Search grounding and dispatched unread to SuperAdmin (`confirmDelete: true` required before deletion).
@@ -720,6 +720,76 @@ Strict zero-access agent runtime topology, MCP/prompt design, and continuous mai
   }
 }
 ```
+
+### Domain 14: Annual Membership & Members Chat (`membership.js`)
+
+- **Price**: AUD \$90.00 per year before GST (`MEMBERSHIP_PRICE_AUD_CENTS`, default `9000`), Stripe Checkout `mode: 'subscription'`, inline `price_data` with `recurring: { interval: 'year' }`, `tax_behavior: 'exclusive'`, `automatic_tax: { enabled: true }`, metadata `{ tag: 'aifoundation', businessId: '#aifoundation', kind: 'membership', uid }` on the session and the subscription.
+- **Routes**: `GET /api/membership`, `POST /api/membership/checkout`, `POST /api/membership/confirm`, `POST /api/membership/portal` (`requireAuth`); `GET|POST /api/members-chat` (`requireAuth` + active member or admin); `DELETE /api/members-chat/:id` (`requireAdmin`, body `{ "confirmDelete": true }`).
+- **Webhook**: `POST /api/stripe/webhook` (raw body, `stripe-signature` checked with `STRIPE_WEBHOOK_SECRET`). Events: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`. Every event re-reads the subscription from Stripe, so duplicates and out-of-order delivery are harmless.
+- **Access**: active while `status` is `active` or `trialing` and `currentPeriodEnd` is in the future. `past_due` pauses access. **SuperAdmins get every subscription service free**: `GET /api/membership` answers `status: "complimentary"` (member access, Telegram link, chat) with no Stripe Checkout and no membership record, and `POST /api/membership/checkout` refuses them with `409` so they are never charged. The Telegram link (`TELEGRAM_INVITE_URL`, must match `^https://t\.me/`) is only sent to active members.
+- **Firestore**: `aifoundation_members/{uid}` and `aifoundation_member_chat/{messageId}` are written by the server only. Rules: a member may `get` their own membership doc; SuperAdmins may read both collections; no client writes.
+
+#### Membership Checkout Request (`POST /api/membership/checkout`)
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "returnPath": { "type": "string", "maxLength": 200, "pattern": "^/(?!/)[A-Za-z0-9._~\\-/]*$" }
+  }
+}
+```
+
+#### Membership Confirm Request (`POST /api/membership/confirm`)
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId"],
+  "properties": {
+    "sessionId": { "type": "string", "pattern": "^cs_(test|live)_[A-Za-z0-9]{10,200}$" }
+  }
+}
+```
+
+#### Membership Record (`aifoundation_members/{uid}`)
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["uid", "status", "stripeCustomerId", "stripeSubscriptionId", "currentPeriodEnd", "cancelAtPeriodEnd", "tag", "businessId", "updatedAt"],
+  "properties": {
+    "uid": { "type": "string", "pattern": "^[A-Za-z0-9_-]{6,128}$" },
+    "status": { "enum": ["active", "trialing", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"] },
+    "stripeCustomerId": { "type": "string", "pattern": "^cus_[A-Za-z0-9]+$" },
+    "stripeSubscriptionId": { "type": "string", "pattern": "^sub_[A-Za-z0-9]+$" },
+    "currentPeriodEnd": { "type": "string", "format": "date-time" },
+    "cancelAtPeriodEnd": { "type": "boolean" },
+    "tag": { "const": "aifoundation" },
+    "businessId": { "const": "#aifoundation" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}
+```
+
+#### Members Chat Message Request (`POST /api/members-chat`)
+Control characters are stripped and the text trimmed before the length check. Text only: never rendered as HTML.
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["topic", "text"],
+  "properties": {
+    "topic": { "enum": ["joint-projects", "jobs", "asean-projects", "cambodia-ai-centre", "student-collaboration"] },
+    "text": { "type": "string", "minLength": 1, "maxLength": 2000 }
+  }
+}
+```
+Rate limit: one message per member every 3 seconds. Stored as `{ topic, text, authorUid, authorName, createdAt, tag: "aifoundation", businessId: "#aifoundation" }`; `authorUid` is never sent to browsers.
 
 ---
 

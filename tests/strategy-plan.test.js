@@ -155,7 +155,7 @@ test('Stripe checkout uses AUD exclusive GST and cards only, respects admin over
     assert.equal(stripe.createdSessions.length, 1);
     const params = stripe.createdSessions[0];
     assert.equal(params.currency, 'aud');
-    assert.deepEqual(params.payment_method_types, ['card']);
+    assert.equal('payment_method_types' in params, false, 'Stripe rejects payment_method_types on Checkout Sessions');
     assert.equal(params.automatic_tax.enabled, true);
     assert.equal(params.invoice_creation.enabled, true);
     assert.equal(params.line_items[0].price_data.currency, 'aud');

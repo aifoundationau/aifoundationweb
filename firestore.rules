@@ -66,6 +66,7 @@ service cloud.firestore {
                       'aifoundation_regional_edu_sessions', 'aifoundation_regional_edu_reviews',
                       'aifoundation_tool_governance_sessions', 'aifoundation_tool_governance_reviews',
                       'aifoundation_managed_agent_sessions', 'aifoundation_managed_agent_reviews',
+                      'aifoundation_members', 'aifoundation_member_chat',
                       'gcoursebuilder_roles', 'gcoursebuilder_role_assignments',
                       'hr_users', 'hr_candidate_profiles', 'hr_candidate_unlocks', 'hr_agent_resumes',
                       'hr_agent_inquiries', 'hr_recruitment_audit_logs', 'hr_conversations', 'hr_employers',
@@ -610,6 +611,21 @@ service cloud.firestore {
       allow create: if false;
       allow update: if isSuperAdmin() && partitionMatches('aifoundation') && isValidAdvisoryReviewUpdate();
       allow delete: if isSuperAdmin();
+    }
+
+    // AI Foundation annual membership (server writes only via service account).
+    // A member may get only their own document; SuperAdmins may read all. No client list for normal users.
+    match /aifoundation_members/{uid} {
+      allow get: if isOwner(uid) || isSuperAdmin();
+      allow list: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // AI Foundation members-only chat: read/written only through the server API (checks active membership).
+    // SuperAdmins may read; no client writes for anyone.
+    match /aifoundation_member_chat/{messageId} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
     }
 
     // Fallback for other tenants' collections (unchanged behaviour),

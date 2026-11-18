@@ -87,12 +87,40 @@ test('saving prices needs an admin sign-in', async () => {
     assert.equal((await put({ Authorization: 'Bearer not-a-real-token' })).status, 401);
 });
 
-test('there is no Stripe webhook route, and verifying pending payments needs a SuperAdmin sign-in', async () => {
-    const hook = await get('/api/stripe/webhook', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    assert.equal(hook.status, 404);
+test('the membership webhook refuses unsigned or forged events, and verifying pending payments needs a SuperAdmin sign-in', async () => {
+    const hook = headers => get('/api/stripe/webhook', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: '{"type":"invoice.paid"}' });
+    assert.equal((await hook({})).status, 400, 'no stripe-signature header');
+    assert.equal((await hook({ 'stripe-signature': 't=1,v1=forged' })).status, 400, 'forged signature');
     const verify = headers => get('/api/admin/payments/verify-pending', { method: 'POST', headers });
     assert.equal((await verify({})).status, 401);
     assert.equal((await verify({ Authorization: 'Bearer not-a-real-token' })).status, 401);
+});
+
+test('membership and members chat routes need a sign-in (deleting needs an admin)', async () => {
+    const forged = { Authorization: 'Bearer not-a-real-token' };
+    for (const [method, urlPath] of [
+        ['GET', '/api/membership'], ['POST', '/api/membership/checkout'], ['POST', '/api/membership/confirm'],
+        ['POST', '/api/membership/portal'], ['GET', '/api/members-chat?topic=jobs'], ['POST', '/api/members-chat'],
+        ['DELETE', '/api/members-chat/msg_1794960000000_abcdefgh']
+    ]) {
+        const opts = { method, headers: { 'Content-Type': 'application/json' }, body: method === 'GET' ? undefined : '{}' };
+        assert.equal((await get(urlPath, opts)).status, 401, `${method} ${urlPath} without sign-in`);
+        assert.equal((await get(urlPath, { ...opts, headers: { ...opts.headers, ...forged } })).status, 401, `${method} ${urlPath} forged`);
+    }
+});
+
+test('the membership card replaces the donation bar on the home and projects pages', () => {
+    for (const page of ['index.html', 'projects.html']) {
+        const html = fs.readFileSync(path.join(root, 'public', page), 'utf8');
+        assert.doesNotMatch(html, /Support the AI Foundation/, `${page}: donation bar removed`);
+        assert.match(html, /id="membershipSection"/, `${page}: membership card`);
+        assert.match(html, /AUD \$90<\/strong> per year <span class="membership-gst">\(plus GST\)/, `${page}: price shown ex GST`);
+        assert.match(html, /<dialog id="membersChatDialog"/, `${page}: members chat dialog`);
+        assert.match(html, /<script src="membership\.js\?v=\d+"><\/script>/, `${page}: membership script`);
+        for (const id of ['membership-join-btn', 'membership-chat-btn', 'membership-telegram-link', 'membership-manage-btn', 'members-chat-send', 'members-chat-telegram-link', 'members-chat-search']) {
+            assert.match(html, new RegExp(`data-agent-id="${id}" data-testid="${id}"`), `${page}: ${id} has agent/test ids`);
+        }
+    }
 });
 
 test('extracting metadata needs an admin sign-in', async () => {

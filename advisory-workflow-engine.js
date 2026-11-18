@@ -604,7 +604,6 @@ function createAdvisoryWorkflowEngine(config, options = {}) {
 
         const stripeSession = await stripe.checkout.sessions.create({
             mode: 'payment',
-            payment_method_types: ['card'], // instant payments only: there are no webhooks to hear about delayed ones
             currency: 'aud',
             automatic_tax: { enabled: true },
             customer_creation: 'always',

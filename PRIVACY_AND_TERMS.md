@@ -250,7 +250,7 @@ The AI Foundation implements a unified, integer-based utility token economy acro
 ### 14. Payments & Tax Compliance
 `#Payments` `#ATOCompliance`
 
-1. **One-Off Payments**: Paid services and token purchases are one-off payments processed securely by Stripe. We do not accept donations or offer subscriptions, and no payment renews automatically.
+1. **One-Off Payments**: Paid services and token purchases are one-off payments processed securely by Stripe. We do not accept donations. The only recurring payment is the optional Annual Membership (AUD $90 per year plus GST), which renews automatically each year until you cancel it under Manage membership; cancelling keeps your access until the end of the year you paid for.
 2. **Prices & GST**: Prices are shown excluding GST. GST is calculated and added at checkout where it applies.
 3. **Tax Invoices**: An electronic tax invoice is issued by Stripe once payment clears.
 

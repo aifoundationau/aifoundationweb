@@ -116,6 +116,21 @@ const cases = [
   T('hr: a company reads its own registration', 'ALLOW', 'get', 'hr_employers/user1', USER, { oldData: { uid: 'user1' } }),
   T('hr: a company registration is not public', 'DENY', 'get', 'hr_employers/c2', null, { oldData: { uid: 'c2', contactEmail: 'x@acme.example' } }),
   T('hr: nobody edits another company\'s registration', 'DENY', 'update', 'hr_employers/c2', USER, { oldData: { uid: 'c2' }, newData: { uid: 'c2', companyName: 'Hijacked' } }),
+  // AI Foundation membership: server writes only; a member gets only their own record; members-only chat goes through the server
+  T('members: a member can read their own membership', 'ALLOW', 'get', 'aifoundation_members/user1', USER, { oldData: { uid: 'user1', status: 'active', tag: 'aifoundation' } }),
+  T('members: a user cannot read another membership', 'DENY', 'get', 'aifoundation_members/user2', USER, { oldData: { uid: 'user2', status: 'active', tag: 'aifoundation' } }),
+  T('members: a guest cannot read a membership', 'DENY', 'get', 'aifoundation_members/user1', null, { oldData: { uid: 'user1', status: 'active' } }),
+  T('members: a normal user cannot list memberships', 'DENY', 'list', 'aifoundation_members/user1', USER, { oldData: { uid: 'user1', status: 'active' } }),
+  T('members: superadmin can read any membership', 'ALLOW', 'get', 'aifoundation_members/user2', SUPER, { oldData: { uid: 'user2', status: 'active' } }),
+  T('members: a user cannot make themselves a member', 'DENY', 'create', 'aifoundation_members/user1', USER, { newData: { uid: 'user1', status: 'active', tag: 'aifoundation' } }),
+  T('members: a user cannot reactivate their membership', 'DENY', 'update', 'aifoundation_members/user1', USER, { oldData: { uid: 'user1', status: 'canceled' }, newData: { uid: 'user1', status: 'active' } }),
+  T('members: not even a superadmin writes memberships from the app', 'DENY', 'update', 'aifoundation_members/user1', SUPER, { oldData: { uid: 'user1', status: 'canceled' }, newData: { uid: 'user1', status: 'active' } }),
+  T('members: unverified email cannot impersonate superadmin to read memberships', 'DENY', 'get', 'aifoundation_members/user2', FAKE_SUPER, { oldData: { uid: 'user2', status: 'active' } }),
+  T('member chat: a user cannot read chat directly', 'DENY', 'get', 'aifoundation_member_chat/m1', USER, { oldData: { authorUid: 'user1', text: 'x' } }),
+  T('member chat: a guest cannot read chat', 'DENY', 'get', 'aifoundation_member_chat/m1', null, { oldData: { authorUid: 'user1', text: 'x' } }),
+  T('member chat: a user cannot post directly', 'DENY', 'create', 'aifoundation_member_chat/m2', USER, { newData: { authorUid: 'user1', text: 'x', tag: 'aifoundation' } }),
+  T('member chat: superadmin can read chat', 'ALLOW', 'get', 'aifoundation_member_chat/m1', SUPER, { oldData: { authorUid: 'user1', text: 'x' } }),
+  T('member chat: not even a superadmin deletes chat from the app', 'DENY', 'delete', 'aifoundation_member_chat/m1', SUPER, { oldData: { authorUid: 'user1', text: 'x' } }),
 ];
 
 (async () => {

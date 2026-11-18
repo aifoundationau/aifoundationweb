@@ -40,6 +40,7 @@ const {
     ManagedAgentChatTurnInputSchema,
     SuperadminFinalManagedAgentSchema
 } = require('./managed-agent-plan');
+const { createMembershipService } = require('./membership');
 console.log('[Server Startup] 4. Dependencies loaded.');
 
 const app = express();
@@ -87,6 +88,7 @@ const managedAgentPlan = createManagedAgentService({
     getStripe,
     getServicePrices: () => servicePrices.read()
 });
+const membership = createMembershipService({ firebase: firebaseService, getStripe });
 
 app.disable('x-powered-by');
 
@@ -105,9 +107,35 @@ app.use((req, res, next) => {
     next();
 });
 
-// Payments use no Stripe webhooks (and no STRIPE_WEBHOOK_SECRET). Every Checkout Session is saved as pending before
-// the redirect, then verified with stripe.checkout.sessions.retrieve() on return, on reload, or by the SuperAdmin's
-// Verify pending payments (POST /api/admin/payments/verify-pending). Settling is idempotent everywhere
+// One-off payments use no Stripe webhooks. Every Checkout Session is saved as pending before the redirect, then
+// verified with stripe.checkout.sessions.retrieve() on return, on reload, or by the SuperAdmin's Verify pending
+// payments (POST /api/admin/payments/verify-pending). Settling is idempotent everywhere.
+// The annual membership is the one exception (AI_DEPLOYMENT_RULES.md rule 8): renewals and cancellations happen
+// while the member is away, so this webhook hears about them. It acts only on membership.HANDLED_EVENTS.
+// The raw body is needed to check Stripe's signature, so this route sits before express.json()
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json', limit: '1mb' }), async (req, res) => {
+    const stripe = getStripe();
+    const webhookSecret = String(process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+    const signature = req.headers['stripe-signature'];
+    if (!stripe || !webhookSecret || !signature) {
+        return res.status(400).json({ error: 'Stripe webhook verification unavailable.' });
+    }
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+    } catch (err) {
+        console.warn('[Stripe Webhook] Signature verification failed:', err.message);
+        return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
+    }
+    try {
+        const result = await membership.handleWebhookEvent(event);
+        res.json({ received: true, handled: Boolean(result.handled) });
+    } catch (e) {
+        console.error('[Stripe Webhook] Membership handler error:', e);
+        res.status(500).json({ error: 'Webhook processing failed.' }); // Stripe retries
+    }
+});
+
 app.use(express.json({ limit: '10mb' }));
 
 // The owner's other apps may read and spend their users' tokens from the browser (GET /api/tokens, POST /api/tokens/spend).
@@ -756,7 +784,6 @@ app.post('/api/tokens/checkout', requireAuth, async (req, res) => {
         };
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
-            payment_method_types: ['card'], // instant payments only: there are no webhooks to hear about delayed ones
             currency: 'aud',
             automatic_tax: { enabled: true },
             customer_creation: 'always',
@@ -860,6 +887,61 @@ app.post('/api/tokens/spend', requireAuth, async (req, res) => {
         console.error('[Tokens] Spend error:', e);
         sendServerError(res, e, 'Tokens could not be spent just now, and none were taken. Please try again.');
     }
+});
+
+// ANNUAL MEMBERSHIP (membership.js): status, Checkout, return confirm, Stripe Billing Portal, members chat
+function sendMembershipError(res, e, label, fallback) {
+    if (e && e.statusCode) return res.status(e.statusCode).json({ error: e.message });
+    console.error(`[Membership] ${label} error:`, e);
+    sendServerError(res, e, fallback);
+}
+function requestOrigin(req) {
+    return req.headers.origin || `${req.protocol}://${req.get('host')}`;
+}
+
+app.get('/api/membership', requireAuth, async (req, res) => {
+    try {
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json({ ...(await membership.getStatus(req.user.uid, { isSuperAdmin: req.user.isSuperAdmin })), canPay: Boolean(getStripe()) });
+    } catch (e) { sendMembershipError(res, e, 'Status', 'Could not load your membership.'); }
+});
+
+app.post('/api/membership/checkout', requireAuth, async (req, res) => {
+    try {
+        res.json(await membership.createCheckout({ user: req.user, origin: requestOrigin(req), body: req.body }));
+    } catch (e) { sendMembershipError(res, e, 'Checkout', 'Could not start the membership payment. Please try again.'); }
+});
+
+app.post('/api/membership/confirm', requireAuth, async (req, res) => {
+    try {
+        res.json(await membership.confirmCheckout({ uid: req.user.uid, sessionId: req.body && req.body.sessionId }));
+    } catch (e) { sendMembershipError(res, e, 'Confirm', 'Your payment went through, but your membership could not be confirmed just now. Reload the page in a minute.'); }
+});
+
+app.post('/api/membership/portal', requireAuth, async (req, res) => {
+    try {
+        res.json(await membership.createPortal({ uid: req.user.uid, origin: requestOrigin(req) }));
+    } catch (e) { sendMembershipError(res, e, 'Portal', 'Could not open membership management. Please try again.'); }
+});
+
+app.get('/api/members-chat', requireAuth, async (req, res) => {
+    try {
+        res.setHeader('Cache-Control', 'private, no-store');
+        res.json({ messages: await membership.listMessages(req.user, String(req.query.topic || '')), canModerate: Boolean(req.user.isAdmin) });
+    } catch (e) { sendMembershipError(res, e, 'Chat list', 'Could not load the chat.'); }
+});
+
+app.post('/api/members-chat', requireAuth, async (req, res) => {
+    try {
+        res.json({ message: await membership.postMessage(req.user, req.body) });
+    } catch (e) { sendMembershipError(res, e, 'Chat post', 'Could not send your message.'); }
+});
+
+app.delete('/api/members-chat/:id', requireAdmin, async (req, res) => {
+    try {
+        if (!req.body || req.body.confirmDelete !== true) return res.status(400).json({ error: 'Confirm the delete first.' });
+        res.json(await membership.deleteMessage(req.user, req.params.id));
+    } catch (e) { sendMembershipError(res, e, 'Chat delete', 'Could not delete the message.'); }
 });
 
 // SuperAdmin: every account (profiles from all apps) with its token balance
