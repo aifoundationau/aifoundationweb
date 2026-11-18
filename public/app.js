@@ -165,6 +165,12 @@ const postObserver = new IntersectionObserver((entries) => {
         return SUPERADMIN_UIDS.includes(normUid) || SUPERADMIN_EMAILS.includes(normEmail);
     }
 
+    // A chat reply really from a SuperAdmin: only the server writes messages under these UIDs ('superadmin' in older
+    // records), while anyone can put any senderRole or senderName on a message they write straight to Firestore
+    function isSuperAdminSenderUid(senderUid) {
+        return senderUid === 'superadmin' || SUPERADMIN_UIDS.includes(senderUid);
+    }
+
     function checkIsSuperAdmin(user) {
         if (!user) return false;
         if (isSuperAdminUser(user.uid, user.email)) return true;
@@ -1587,7 +1593,8 @@ const postObserver = new IntersectionObserver((entries) => {
             const res = await fetch(`/api/chat/messages?uid=${encodeURIComponent(uid)}${emailParam}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            const messages = data.messages || [];
+            // Only the supporter's own messages and real SuperAdmin replies (the server filters them too)
+            const messages = (data.messages || []).filter(m => m.senderUid === uid || isSuperAdminSenderUid(m.senderUid));
 
             if (chatLoadingState) chatLoadingState.style.display = 'none';
 
@@ -1603,7 +1610,7 @@ const postObserver = new IntersectionObserver((entries) => {
             const wasNearBottom = currentScrollPos < 80 || !isBackgroundPoll;
 
             chatFeedList.innerHTML = messages.map(msg => {
-                const isSentByMe = (msg.senderUid === uid) || (msg.senderRole === 'supporter');
+                const isSentByMe = msg.senderUid === uid;
                 const senderName = isSentByMe ? 'You (Supporter)' : (msg.senderName || 'SuperAdmin');
                 const senderRole = isSentByMe ? 'Supporter' : 'SuperAdmin';
                 const rowClass = isSentByMe ? 'chat-message-row sent' : 'chat-message-row received';
@@ -1943,7 +1950,7 @@ const postObserver = new IntersectionObserver((entries) => {
             if (adminThreadTenantBadge) adminThreadTenantBadge.innerHTML = '';
             if (messageBoxRetentionTag) messageBoxRetentionTag.style.display = '';
             if (messageBoxThreadSubject) messageBoxThreadSubject.hidden = true;
-            const items = (data.messages || []).map(m => {
+            const items = (data.messages || []).filter(m => m.senderUid === uid || isSuperAdminSenderUid(m.senderUid)).map(m => {
                 const mine = m.senderUid === uid;
                 return { mine, text: m.userMessage };
             });

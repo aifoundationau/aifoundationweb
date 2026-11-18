@@ -999,10 +999,59 @@ async function sendChatMessage(data) {
     };
 }
 
+// A reply written for one of the two SuperAdmins ('superadmin' in older records). firestore.rules let a user write a
+// message only under their own UID, so these UIDs can't be faked, unlike senderRole, senderName or senderEmail
+function isSuperAdminSenderUid(senderUid) {
+    return senderUid === 'superadmin' || SUPERADMIN_UIDS.includes(senderUid);
+}
+
 /**
- * Retrieve chat messages for a specific conversation from 'chat_interactions'.
- * - SuperAdmin can read messages from ALL tenants and sees the tenant tag.
- * - Regular supporters can ONLY read their own messages and CANNOT read or see the tag.
+ * The messages of one conversation, oldest first (the last `limit`), from 'chat_interactions' documents ({ id, fields }).
+ * - SuperAdmin: every message in the conversation, from ALL tenants, with the tenant tag.
+ * - Everyone else: only their own conversation with the SuperAdmin, without the tag: the messages they sent and the
+ *   SuperAdmins' replies to them. Anyone signed in can write a message straight to Firestore with any senderRole,
+ *   senderName or recipient (the rules only make senderUid their own), so a reply counts as the SuperAdmin's only by
+ *   its senderUid.
+ */
+function selectConversationMessages(docs, conversationId, { isSuperAdmin = false, requesterUid = null, limit = 100 } = {}) {
+    if (!conversationId || !Array.isArray(docs)) return [];
+    if (!isSuperAdmin && !requesterUid) return [];
+    const ownerUid = conversationId.startsWith('conv_') ? conversationId.replace('conv_', '') : null;
+    const messages = [];
+
+    for (const { id, fields } of docs) {
+        // This site's chat format only (other apps' messages and AI assistant logs share the collection)
+        if (!fields || typeof fields.userMessage !== 'string' || fields.assistantResponse !== undefined) continue;
+
+        const isMatch = fields.conversationId === conversationId ||
+            (ownerUid !== null && (fields.senderUid === ownerUid || fields.recipientUid === ownerUid));
+        if (!isMatch) continue;
+
+        if (!isSuperAdmin) {
+            const isOwnMessage = fields.senderUid === requesterUid;
+            const isSuperAdminReply = isSuperAdminSenderUid(fields.senderUid) &&
+                (fields.recipientUid === requesterUid || fields.conversationId === `conv_${requesterUid}`);
+            if (!isOwnMessage && !isSuperAdminReply) continue;
+        }
+
+        const msgObj = { id, ...fields };
+        // TAG PRIVACY: only the SuperAdmin sees the tenant tag and tenant IDs
+        if (!isSuperAdmin) {
+            delete msgObj.tag;
+            delete msgObj.businessId;
+            delete msgObj.businessName;
+            delete msgObj.source;
+        }
+        messages.push(msgObj);
+    }
+
+    // Oldest first, for chat display
+    messages.sort((a, b) => new Date(a.createdAt || a.timestamp).getTime() - new Date(b.createdAt || b.timestamp).getTime());
+    return messages.slice(-limit);
+}
+
+/**
+ * Retrieve chat messages for a specific conversation from 'chat_interactions' (who sees what: selectConversationMessages)
  */
 async function getChatMessages(conversationId, options = {}) {
     if (!conversationId) return [];
@@ -1013,46 +1062,7 @@ async function getChatMessages(conversationId, options = {}) {
     try {
         const docs = await listDocuments('chat_interactions');
         if (!docs) return [];
-        const messages = [];
-
-        for (const { id, fields } of docs) {
-            // This site's chat format only (other apps' messages and AI assistant logs share the collection)
-            if (typeof fields.userMessage !== 'string' || fields.assistantResponse !== undefined) continue;
-
-            // Filter by conversationId
-            const isMatch = (fields.conversationId === conversationId) ||
-                            (conversationId.startsWith('conv_') && fields.senderUid === conversationId.replace('conv_', '')) ||
-                            (conversationId.startsWith('conv_') && fields.recipientUid === conversationId.replace('conv_', ''));
-            
-            if (!isMatch) continue;
-
-            // Access control: if not SuperAdmin, user can only access their own conversation
-            if (!isSuperAdmin && requesterUid) {
-                const isParticipant = fields.senderUid === requesterUid || fields.recipientUid === requesterUid;
-                if (!isParticipant) continue;
-            }
-
-            const msgObj = {
-                id,
-                ...fields
-            };
-
-            // TAG PRIVACY: Only SuperAdmin can read the tag attached to each message!
-            // Strip tenant tag and tenant internal IDs for standard supporters
-            if (!isSuperAdmin) {
-                delete msgObj.tag;
-                delete msgObj.businessId;
-                delete msgObj.businessName;
-                delete msgObj.source;
-            }
-
-            messages.push(msgObj);
-        }
-
-        // Sort chronologically ascending (oldest first for chat display)
-        messages.sort((a, b) => new Date(a.createdAt || a.timestamp).getTime() - new Date(b.createdAt || b.timestamp).getTime());
-
-        return messages.slice(-limit);
+        return selectConversationMessages(docs, conversationId, { isSuperAdmin, requesterUid, limit });
     } catch (e) {
         console.error('[Chat Fetch] Error fetching messages:', e.message);
         return [];
@@ -1275,6 +1285,7 @@ module.exports = {
     getFirebasePublicConfig,
     sendChatMessage,
     getChatMessages,
+    selectConversationMessages,
     getChatConversations,
     isSuperAdminUser,
     SUPERADMIN_UIDS,
