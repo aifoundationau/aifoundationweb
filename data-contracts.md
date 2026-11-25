@@ -782,7 +782,7 @@ Strict zero-access agent runtime topology, MCP/prompt design, and continuous mai
 ```
 
 #### Members Chat Message Request (`POST /api/members-chat`)
-Control characters are stripped and the text trimmed before the length check. Text only: never rendered as HTML.
+Control characters are stripped and the text trimmed before the length check. Both SuperAdmin and active members may send `http://` or `https://` links; messages render purely via DOM text nodes and safe `<a target="_blank" rel="noopener noreferrer">` links (never `innerHTML`).
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

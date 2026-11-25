@@ -8096,3 +8096,5 @@ body.dark-mode .membership-msg.is-error, [data-theme="dark"] .membership-msg.is-
 .members-chat-search input { flex: 1; min-width: 0; min-height: 40px; border: 0; outline: 0; background: transparent; color: var(--text-main); font: inherit; font-size: 16px; }
 .members-chat-search-count { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
 .members-chat-item mark { background: rgba(250, 204, 21, 0.55); color: inherit; border-radius: 3px; padding: 0 1px; }
+.members-chat-link { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; font-weight: 500; }
+body.dark-mode .members-chat-link, [data-theme="dark"] .members-chat-link { color: #93c5fd; }

@@ -147,7 +147,7 @@
         meta.textContent = `${m.mine ? 'You' : m.authorName} · ${Number.isNaN(when.getTime()) ? '' : when.toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })}`;
         const text = document.createElement('p');
         text.className = 'members-chat-text';
-        highlight(text, m.text, term); // text only, never HTML
+        renderMessageText(text, m.text, term); // pure DOM nodes + safe http/https anchors only
         li.append(meta, text);
         if (canModerate) li.append(deleteControls(m.id));
         return li;
@@ -189,25 +189,77 @@
         return wrap;
     }
 
-    // Search: filters the loaded messages of the current topic by text or author, highlighting matches (text nodes only)
+    // Search + clickable links: builds pure DOM nodes (text nodes, <mark>, and safe http/https <a target="_blank" rel="noopener noreferrer">)
     let messages = [];
     const searchTerm = () => (els.search ? els.search.value.trim().toLowerCase() : '');
 
-    function highlight(el, text, term) {
-        if (!term) { el.textContent = text; return; }
+    function appendHighlighted(parent, text, term) {
+        if (!text) return;
+        if (!term) { parent.append(document.createTextNode(text)); return; }
         const lower = text.toLowerCase();
         let i = 0;
         let hit = lower.indexOf(term);
-        el.replaceChildren();
         while (hit !== -1) {
-            if (hit > i) el.append(document.createTextNode(text.slice(i, hit)));
+            if (hit > i) parent.append(document.createTextNode(text.slice(i, hit)));
             const mark = document.createElement('mark');
             mark.textContent = text.slice(hit, hit + term.length);
-            el.append(mark);
+            parent.append(mark);
             i = hit + term.length;
             hit = lower.indexOf(term, i);
         }
-        if (i < text.length) el.append(document.createTextNode(text.slice(i)));
+        if (i < text.length) parent.append(document.createTextNode(text.slice(i)));
+    }
+
+    function splitTrailingPunctuation(token) {
+        let urlPart = token;
+        let tail = '';
+        while (urlPart.length) {
+            if (/[.,!?;:]$/.test(urlPart)) {
+                tail = urlPart.slice(-1) + tail;
+                urlPart = urlPart.slice(0, -1);
+                continue;
+            }
+            if (urlPart.endsWith(')') && (urlPart.match(/\)/g) || []).length > (urlPart.match(/\(/g) || []).length) {
+                tail = ')' + tail;
+                urlPart = urlPart.slice(0, -1);
+                continue;
+            }
+            break;
+        }
+        return [urlPart, tail];
+    }
+
+    function renderMessageText(el, text, term) {
+        el.replaceChildren();
+        const urlPattern = /((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
+        let cursor = 0;
+        let match;
+        while ((match = urlPattern.exec(text)) !== null) {
+            if (match.index > cursor) appendHighlighted(el, text.slice(cursor, match.index), term);
+            const [rawUrl, tail] = splitTrailingPunctuation(match[0]);
+            const candidate = /^www\./i.test(rawUrl) ? `https://${rawUrl}` : rawUrl;
+            let parsed = null;
+            try {
+                const u = new URL(candidate);
+                if (u.protocol === 'http:' || u.protocol === 'https:') parsed = u;
+            } catch (_) {
+                parsed = null;
+            }
+            if (parsed && rawUrl) {
+                const link = document.createElement('a');
+                link.className = 'members-chat-link';
+                link.href = parsed.href;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                appendHighlighted(link, rawUrl, term);
+                el.append(link);
+                if (tail) appendHighlighted(el, tail, term);
+            } else {
+                appendHighlighted(el, match[0], term);
+            }
+            cursor = match.index + match[0].length;
+        }
+        if (cursor < text.length) appendHighlighted(el, text.slice(cursor), term);
     }
 
     function renderLog(scrollToEnd) {

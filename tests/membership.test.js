@@ -219,6 +219,26 @@ test('SuperAdmins get complimentary membership: member access, Telegram link, an
     assert.equal(regular.isMember, false, 'regular users are not complimentary');
 });
 
+test('both SuperAdmins and active members can send http/https links in Members Chat', async () => {
+    const superAdmin = { uid: 'super_admin01', email: 's@example.com', name: 'Super', isAdmin: true, isSuperAdmin: true };
+    const { svc } = service();
+    await svc.syncSubscription('sub_123');
+    const saMsg = await svc.postMessage(superAdmin, {
+        topic: 'asean-projects',
+        text: 'Project brief: https://www.aifoundation.net.au/projects.html (check today).'
+    });
+    const memMsg = await svc.postMessage(member, {
+        topic: 'asean-projects',
+        text: 'Shared deck at https://docs.example.org/deck'
+    });
+    assert.match(saMsg.text, /https:\/\/www\.aifoundation\.net\.au\/projects\.html/);
+    assert.match(memMsg.text, /https:\/\/docs\.example\.org\/deck/);
+    const listed = await svc.listMessages(member, 'asean-projects');
+    assert.equal(listed.length, 2);
+    assert.equal(listed[0].text, saMsg.text);
+    assert.equal(listed[1].text, memMsg.text);
+});
+
 test('Firestore unreachable: status answers 503 and chat access is refused', async () => {
     const { svc } = service({ firebase: fakeFirebase({ unreachable: true }) });
     await assert.rejects(svc.getStatus(member.uid), e => e.statusCode === 503);

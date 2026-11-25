@@ -121,6 +121,11 @@ test('the membership card replaces the donation bar on the home and projects pag
             assert.match(html, new RegExp(`data-agent-id="${id}" data-testid="${id}"`), `${page}: ${id} has agent/test ids`);
         }
     }
+    const clientJs = fs.readFileSync(path.join(root, 'public', 'membership.js'), 'utf8');
+    assert.match(clientJs, /\.className\s*=\s*'members-chat-link'/, 'members chat creates safe anchor elements');
+    assert.match(clientJs, /\.target\s*=\s*'_blank'/, 'members chat links open in a new tab');
+    assert.match(clientJs, /\.rel\s*=\s*'noopener noreferrer'/, 'members chat links set noopener noreferrer');
+    assert.doesNotMatch(clientJs, /innerHTML/, 'members chat never renders untrusted HTML');
 });
 
 test('extracting metadata needs an admin sign-in', async () => {
