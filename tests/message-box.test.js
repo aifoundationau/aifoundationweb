@@ -11,6 +11,12 @@ const {
     normalizeSimpleJobMessage,
     normalizeTrainerDavidMessage,
     normalizeRtoMessage,
+    normalizeSuperAdminMessageDocs,
+    normalizeKangooThreadMessages,
+    normalizeSuburbReportConversation,
+    normalizeModelsThreadMessages,
+    normalizePhsarThreadMessages,
+    normalizeIWantAVisaDoc,
     buildConversations,
     summarizeTenants,
     loadMessageBox,
@@ -255,4 +261,123 @@ test('replyToConversation writes native replies to each target database and coll
     assert.equal(lastWrite.db, 'ad-radar');
     assert.equal(lastWrite.col, 'admin_messages');
     assert.equal(lastWrite.data.direction, 'admin_to_user');
+
+    writes.length = 0;
+    const kangooReply = await replyToConversation({
+        tenant: 'kangoorental',
+        conversationId: 'user_k1',
+        counterpart: { uid: 'user_k1', email: 'driver@kangoo.au', name: 'Dan Driver' },
+        text: 'Pickup confirmed for 9am.'
+    }, { firebase: mockFirebase });
+    assert.equal(kangooReply.success, true);
+    assert.equal(writes[0].db, 'kangoorental');
+    assert.equal(writes[0].col, 'threads/user_k1/messages');
+    assert.equal(writes[1].db, 'kangoorental');
+    assert.equal(writes[1].col, 'threads');
+
+    writes.length = 0;
+    const modelsReply = await replyToConversation({
+        tenant: 'models',
+        conversationId: 'fan1__creator1',
+        counterpart: { uid: 'fan1', name: 'Liam' },
+        text: 'Campaign approved.'
+    }, { firebase: mockFirebase });
+    assert.equal(modelsReply.success, true);
+    assert.equal(writes[0].db, 'models');
+    assert.equal(writes[0].col, 'messages');
+    assert.equal(writes[1].db, 'models');
+    assert.equal(writes[1].col, 'threads');
+
+    writes.length = 0;
+    const phsarReply = await replyToConversation({
+        tenant: 'phsar',
+        conversationId: 'thr_phsar_1',
+        counterpart: { uid: 'buyer1', name: 'Dara' },
+        text: 'Order dispatched.'
+    }, { firebase: mockFirebase });
+    assert.equal(phsarReply.success, true);
+    assert.equal(writes[0].db, 'phsar');
+    assert.equal(writes[0].col, 'threads/thr_phsar_1/messages');
+    assert.equal(writes[1].db, 'phsar');
+    assert.equal(writes[1].col, 'threads');
+});
+
+test('new 12-database normalizers convert kangoorental, suburbreport, models, phsar, iwantavisa, and lawyerselect messages', () => {
+    const kangooMsgs = normalizeKangooThreadMessages(
+        'user_k1',
+        { userId: 'user_k1', email: 'driver@kangoo.au', fullName: 'Dan Driver', lastAt: '2026-11-19T01:49:38.462Z' },
+        [
+            { id: 'km1', fields: { sender: 'customer', body: 'Can I pick up early?', createdAt: '2026-11-19T01:49:18.831Z' } },
+            { id: 'km2', fields: { sender: 'admin', body: 'Yes, 8am works.', createdAt: '2026-11-19T01:49:38.462Z' } }
+        ]
+    );
+    assert.equal(kangooMsgs.length, 2);
+    assert.equal(kangooMsgs[0].tenant, 'kangoorental');
+    assert.equal(kangooMsgs[0].fromSuperAdmin, false);
+    assert.equal(kangooMsgs[1].fromSuperAdmin, true);
+
+    const srMsgs = normalizeSuburbReportConversation(
+        'conv_sr_1',
+        {
+            conversationId: 'conv_sr_1',
+            uid: 'u_sr1',
+            clientName: 'Sarah',
+            stateCode: 'VIC',
+            activeReportLabel: 'Richmond, VIC 3121',
+            messages: [
+                { id: 'c1', speaker: 'CUSTOMER', text: 'What is median house price?', timestamp: '2026-11-24T08:50:27.881Z' },
+                { id: 'a1', speaker: 'AGENT', text: 'AUD 1,580,000.', timestamp: '2026-11-24T08:50:28.000Z' }
+            ]
+        },
+        new Map([['u_sr1', { email: 'sarah@example.com', displayName: 'Sarah' }]])
+    );
+    assert.equal(srMsgs.length, 2);
+    assert.equal(srMsgs[0].tenant, 'suburbreport');
+    assert.equal(srMsgs[0].counterpart.email, 'sarah@example.com');
+    assert.equal(srMsgs[1].fromSuperAdmin, true);
+
+    const modelsMsgs = normalizeModelsThreadMessages(
+        [{ id: 'fan1__cr1', fields: { id: 'fan1__cr1', fanUid: 'fan1', fanName: 'Liam', creatorName: 'Elena' } }],
+        [{ id: 'mm1', fields: { id: 'mm1', threadId: 'fan1__cr1', sender: 'fan', text: 'Love your portfolio', createdAt: 1793699632946 } }]
+    );
+    assert.equal(modelsMsgs.length, 1);
+    assert.equal(modelsMsgs[0].tenant, 'models');
+    assert.equal(modelsMsgs[0].counterpart.name, 'Liam');
+
+    const phsarMsgs = normalizePhsarThreadMessages(
+        'thr_ph_1',
+        { supporterId: 'buyer1', supporterName: 'Sokha', lastMessagePreview: 'How much?' },
+        [{ id: 'pm1', fields: { senderId: 'buyer1', text: 'សួស្តី', translatedText: 'Hello', lang: 'km', createdAtIso: '2026-11-20T01:00:00Z' } }]
+    );
+    assert.equal(phsarMsgs.length, 1);
+    assert.equal(phsarMsgs[0].tenant, 'phsar');
+    assert.match(phsarMsgs[0].text, /\[km\] Hello/);
+
+    const iwvMsg = normalizeIWantAVisaDoc('TECH-1', {
+        founderUid: 'f1',
+        founderName: 'Sophea',
+        email: 'sophea@kh.dev',
+        serviceStream: 'AI Setup',
+        projectBrief: 'Need an advisory session.',
+        createdAt: '2026-11-21T02:00:00Z'
+    }, 'tech');
+    assert.equal(iwvMsg.tenant, 'iwantavisa');
+    assert.equal(iwvMsg.counterpart.email, 'sophea@kh.dev');
+
+    const lawDocs = normalizeSuperAdminMessageDocs('sam_1', {
+        tag: 'lawyerselect',
+        senderId: 'client_1',
+        senderEmail: 'cli@law.au',
+        senderName: 'Client',
+        senderRole: 'client',
+        subject: 'Refund',
+        body: 'Requesting refund',
+        adminResponse: 'Approved today',
+        adminRespondedAt: '2026-11-22T03:00:00Z',
+        createdAt: '2026-11-22T02:00:00Z'
+    }, 'lawyerselect');
+    assert.equal(lawDocs.length, 2);
+    assert.equal(lawDocs[0].tenant, 'lawyerselect');
+    assert.equal(lawDocs[0].fromSuperAdmin, false);
+    assert.equal(lawDocs[1].fromSuperAdmin, true);
 });

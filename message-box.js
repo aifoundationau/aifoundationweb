@@ -23,9 +23,14 @@ const KNOWN_WEBSITE_TAGS = [
     'rto-ai',
     'health',
     'nihongo',
+    'eikaiwa',
     'finance',
     'kangoorental',
-    'lawyerselect'
+    'suburbreport',
+    'models',
+    'phsar',
+    'lawyerselect',
+    'iwantavisa'
 ];
 
 function str(value) {
@@ -255,21 +260,22 @@ function normalizeTrainerDavidMessage(id, f) {
     };
 }
 
-// Normalize RTO / Super-RTO ((default) database -> superadmin_messages collection)
-function normalizeRtoMessage(id, f) {
+// Normalize RTO / Super-RTO / LawyerSelect (superadmin_messages collection)
+function normalizeRtoMessage(id, f, defaultTenant = 'rto-ai') {
     if (!f || typeof f !== 'object') return null;
     const text = str(f.message) || str(f.body) || str(f.text);
     if (!text) return null;
 
-    const fromSuperAdmin = isSuperAdminRef(f.senderUid) || isSuperAdminRef(f.senderEmail) || str(f.senderRole).toLowerCase() === 'superadmin';
+    const uid = str(f.senderUid || f.senderId || f.uid);
+    const fromSuperAdmin = isSuperAdminRef(uid) || isSuperAdminRef(f.senderEmail) || str(f.senderRole).toLowerCase() === 'superadmin';
     const counterpart = fromSuperAdmin
         ? { uid: str(f.recipientUid), email: str(f.recipientEmail).toLowerCase(), name: str(f.recipientName) }
-        : { uid: str(f.senderUid), email: str(f.senderEmail).toLowerCase(), name: str(f.senderName) };
-    const tenant = (str(f.tag) || 'rto-ai').toLowerCase();
+        : { uid, email: str(f.senderEmail).toLowerCase(), name: str(f.senderName) };
+    const tenant = (str(f.tag) || defaultTenant || 'rto-ai').toLowerCase();
     const threadId = str(f.conversationId) || str(f.threadId) || `rto_${counterpart.uid || counterpart.email || id}`;
 
     return {
-        id: `rto_${id}`,
+        id: `rto_${tenant}_${id}`,
         tenant,
         conversationKey: `${tenant}:${threadId}`,
         conversationId: threadId,
@@ -278,6 +284,294 @@ function normalizeRtoMessage(id, f) {
         senderEmail: fromSuperAdmin ? (str(f.senderEmail).toLowerCase() || SUPERADMIN_EMAILS[0]) : counterpart.email,
         counterpart,
         subject: str(f.subject),
+        text,
+        createdAt: toIso(f.createdAt) || toIso(f.timestamp)
+    };
+}
+
+// Handles superadmin_messages documents that also carry an inline adminResponse (e.g. lawyerselect)
+function normalizeSuperAdminMessageDocs(id, f, defaultTenant = 'rto-ai') {
+    const msg = normalizeRtoMessage(id, f, defaultTenant);
+    if (!msg) return [];
+    const results = [msg];
+    const replyText = str(f && f.adminResponse);
+    if (replyText) {
+        results.push({
+            id: `${msg.id}_reply`,
+            tenant: msg.tenant,
+            conversationKey: msg.conversationKey,
+            conversationId: msg.conversationId,
+            fromSuperAdmin: true,
+            senderName: 'SuperAdmin',
+            senderEmail: SUPERADMIN_EMAILS[0],
+            counterpart: msg.counterpart,
+            subject: msg.subject,
+            text: replyText,
+            createdAt: toIso(f.adminRespondedAt) || toIso(f.updatedAt) || msg.createdAt
+        });
+    }
+    return results;
+}
+
+// Normalize Kangoo Car Rental (kangoorental database -> threads/{userId} + messages subcollection)
+function normalizeKangooThreadMessages(threadId, threadFields, msgDocs = []) {
+    if (!threadFields || typeof threadFields !== 'object') return [];
+    const counterpart = {
+        uid: str(threadFields.userId || threadId),
+        email: str(threadFields.email).toLowerCase(),
+        name: str(threadFields.fullName)
+    };
+    const results = [];
+    for (const doc of msgDocs) {
+        const m = doc.fields || {};
+        const text = str(m.body) || str(m.text) || str(m.message);
+        if (!text) continue;
+        const sender = str(m.sender).toLowerCase();
+        const fromSuperAdmin = ['admin', 'superadmin', 'staff'].includes(sender) || isSuperAdminRef(m.senderUid);
+        results.push({
+            id: `kangoo_${threadId}_${doc.id}`,
+            tenant: 'kangoorental',
+            conversationKey: `kangoorental:${threadId}`,
+            conversationId: String(threadId),
+            fromSuperAdmin,
+            senderName: fromSuperAdmin ? 'SuperAdmin' : (counterpart.name || counterpart.email || 'Kangoo Customer'),
+            senderEmail: fromSuperAdmin ? SUPERADMIN_EMAILS[0] : counterpart.email,
+            counterpart,
+            subject: 'Kangoo Rental Support',
+            text,
+            createdAt: toIso(m.createdAt) || toIso(threadFields.lastAt)
+        });
+    }
+    if (!results.length && str(threadFields.lastBody)) {
+        const fromSuperAdmin = ['admin', 'superadmin', 'staff'].includes(str(threadFields.lastSender).toLowerCase());
+        results.push({
+            id: `kangoo_${threadId}`,
+            tenant: 'kangoorental',
+            conversationKey: `kangoorental:${threadId}`,
+            conversationId: String(threadId),
+            fromSuperAdmin,
+            senderName: fromSuperAdmin ? 'SuperAdmin' : (counterpart.name || counterpart.email || 'Kangoo Customer'),
+            senderEmail: fromSuperAdmin ? SUPERADMIN_EMAILS[0] : counterpart.email,
+            counterpart,
+            subject: 'Kangoo Rental Support',
+            text: str(threadFields.lastBody),
+            createdAt: toIso(threadFields.lastAt)
+        });
+    }
+    return results;
+}
+
+// Normalize Suburb Report (suburbreport database -> voice_conversations + users)
+function normalizeSuburbReportConversation(docId, f, userMap = new Map()) {
+    if (!f || typeof f !== 'object') return [];
+    const uid = str(f.uid);
+    const profile = userMap.get(uid) || {};
+    const counterpart = {
+        uid,
+        email: str(f.supporterAccountEmail || f.userEmail || profile.email).toLowerCase(),
+        name: str(f.clientName || profile.displayName || profile.name) || 'Suburb Report Visitor'
+    };
+    const convId = str(f.conversationId || docId);
+    const subject = str(f.activeReportLabel) || (str(f.stateCode) ? `Phone Support (${str(f.stateCode)})` : 'Phone Support Transcript');
+    const items = Array.isArray(f.messages) ? f.messages : [];
+    const results = [];
+    items.forEach((item, idx) => {
+        const text = str(item && (item.text || item.body || item.message));
+        if (!text) return;
+        const speaker = str(item.speaker).toUpperCase();
+        const fromSuperAdmin = ['AGENT', 'ADMIN', 'SUPERADMIN'].includes(speaker);
+        results.push({
+            id: `sr_${convId}_${str(item.id) || idx}`,
+            tenant: 'suburbreport',
+            conversationKey: `suburbreport:${convId}`,
+            conversationId: convId,
+            fromSuperAdmin,
+            senderName: fromSuperAdmin ? 'Phone Support AI' : counterpart.name,
+            senderEmail: fromSuperAdmin ? SUPERADMIN_EMAILS[0] : counterpart.email,
+            counterpart,
+            subject,
+            text,
+            createdAt: toIso(item.timestamp) || toIso(f.updatedAt) || toIso(f.startedAt)
+        });
+    });
+    if (!results.length && str(f.fullTranscriptText)) {
+        results.push({
+            id: `sr_${convId}`,
+            tenant: 'suburbreport',
+            conversationKey: `suburbreport:${convId}`,
+            conversationId: convId,
+            fromSuperAdmin: false,
+            senderName: counterpart.name,
+            senderEmail: counterpart.email,
+            counterpart,
+            subject,
+            text: str(f.fullTranscriptText),
+            createdAt: toIso(f.updatedAt) || toIso(f.startedAt)
+        });
+    }
+    return results;
+}
+
+// Normalize Rep The Product (models / (default) legacy -> threads + messages + users)
+function normalizeModelsThreadMessages(threadDocs = [], msgDocs = [], userMap = new Map()) {
+    const threadMap = new Map();
+    for (const d of threadDocs) {
+        const f = d.fields || {};
+        const tid = str(f.id) || String(d.id);
+        if (tid) threadMap.set(tid, f);
+    }
+    const grouped = new Map();
+    for (const d of msgDocs) {
+        const f = d.fields || {};
+        const tid = str(f.threadId);
+        if (!tid) continue;
+        if (!grouped.has(tid)) grouped.set(tid, []);
+        grouped.get(tid).push(d);
+    }
+
+    const results = [];
+    const allThreadIds = new Set([...threadMap.keys(), ...grouped.keys()]);
+    for (const threadId of allThreadIds) {
+        const t = threadMap.get(threadId) || {};
+        const fanUid = str(t.fanUid || threadId.split('__')[0]);
+        const profile = userMap.get(fanUid) || {};
+        const counterpart = {
+            uid: fanUid,
+            email: str(t.fanEmail || profile.email).toLowerCase(),
+            name: str(t.fanName || profile.displayName || profile.name) || 'Supporter'
+        };
+        const subject = str(t.creatorName) ? `Campaign chat with ${str(t.creatorName)}` : 'Brand Rep Chat';
+        const msgsForThread = grouped.get(threadId) || [];
+        let pushed = 0;
+        for (const doc of msgsForThread) {
+            const m = doc.fields || {};
+            const text = str(m.text || m.body || m.message);
+            if (!text) continue;
+            const sender = str(m.sender).toLowerCase();
+            const fromSuperAdmin = ['creator', 'superadmin', 'admin', 'agency'].includes(sender) || isSuperAdminRef(m.senderUid);
+            results.push({
+                id: `models_${str(m.id) || doc.id}`,
+                tenant: 'models',
+                conversationKey: `models:${threadId}`,
+                conversationId: String(threadId),
+                fromSuperAdmin,
+                senderName: fromSuperAdmin ? (str(t.creatorName) || 'Brand Rep') : counterpart.name,
+                senderEmail: fromSuperAdmin ? SUPERADMIN_EMAILS[0] : counterpart.email,
+                counterpart,
+                subject,
+                text,
+                createdAt: toIso(m.createdAt) || toIso(t.updatedAt)
+            });
+            pushed += 1;
+        }
+        if (pushed === 0 && str(t.lastText)) {
+            results.push({
+                id: `models_thread_${threadId}`,
+                tenant: 'models',
+                conversationKey: `models:${threadId}`,
+                conversationId: String(threadId),
+                fromSuperAdmin: false,
+                senderName: counterpart.name,
+                senderEmail: counterpart.email,
+                counterpart,
+                subject,
+                text: str(t.lastText),
+                createdAt: toIso(t.updatedAt)
+            });
+        }
+    }
+    return results;
+}
+
+// Normalize Cambodian Marketplace (phsar database -> threads + messages subcollection + users)
+function normalizePhsarThreadMessages(threadId, threadFields, msgDocs = [], userMap = new Map()) {
+    if (!threadFields || typeof threadFields !== 'object') return [];
+    const supporterId = str(threadFields.supporterId);
+    const profile = userMap.get(supporterId) || {};
+    const counterpart = {
+        uid: supporterId,
+        email: str(threadFields.supporterEmail || profile.email).toLowerCase(),
+        name: str(threadFields.supporterName || profile.name || profile.displayName) || 'Phsar Member'
+    };
+    const subject = str(threadFields.productId) ? `Order / Product ${str(threadFields.productId)}` : 'Phsar Marketplace Chat';
+    const results = [];
+    for (const doc of msgDocs) {
+        const m = doc.fields || {};
+        const rawText = str(m.text || m.body || m.message);
+        if (!rawText) continue;
+        const translated = str(m.translatedText);
+        const text = translated && translated !== rawText
+            ? `${rawText}\n[${str(m.lang) || 'translated'}] ${translated}`
+            : rawText;
+        const senderId = str(m.senderId);
+        const fromSuperAdmin = isSuperAdminRef(senderId) || (Boolean(senderId) && senderId !== supporterId);
+        results.push({
+            id: `phsar_${threadId}_${doc.id}`,
+            tenant: 'phsar',
+            conversationKey: `phsar:${threadId}`,
+            conversationId: String(threadId),
+            fromSuperAdmin,
+            senderName: fromSuperAdmin ? 'Merchant / Admin' : counterpart.name,
+            senderEmail: fromSuperAdmin ? SUPERADMIN_EMAILS[0] : counterpart.email,
+            counterpart,
+            subject,
+            text,
+            createdAt: toIso(m.createdAt) || toIso(m.createdAtIso) || toIso(m.timestamp) || toIso(threadFields.updatedAt) || toIso(threadFields.updatedAtIso)
+        });
+    }
+    if (!results.length && str(threadFields.lastMessagePreview)) {
+        results.push({
+            id: `phsar_${threadId}`,
+            tenant: 'phsar',
+            conversationKey: `phsar:${threadId}`,
+            conversationId: String(threadId),
+            fromSuperAdmin: false,
+            senderName: counterpart.name,
+            senderEmail: counterpart.email,
+            counterpart,
+            subject,
+            text: str(threadFields.lastMessagePreview),
+            createdAt: toIso(threadFields.updatedAt) || toIso(threadFields.updatedAtIso) || toIso(threadFields.createdAt)
+        });
+    }
+    return results;
+}
+
+// Normalize I Want A Visa Cambodia (iwantavisa database -> techServiceInquiries, postcardMessages, merchantMessages)
+function normalizeIWantAVisaDoc(id, f, kind = 'inquiry') {
+    if (!f || typeof f !== 'object') return null;
+    const isTech = kind === 'tech';
+    const text = isTech
+        ? (str(f.projectBrief) || str(f.message) || str(f.body))
+        : (str(f.message) || str(f.body));
+    if (!text) return null;
+
+    const counterpart = isTech
+        ? {
+            uid: str(f.founderUid || f.senderUid),
+            email: str(f.email || f.senderEmail).toLowerCase(),
+            name: str(f.founderName || f.senderName || f.companyOrStartup || f.companyName)
+        }
+        : {
+            uid: str(f.senderUid),
+            email: str(f.senderEmail || f.email).toLowerCase(),
+            name: str(f.senderName)
+        };
+    const subject = isTech
+        ? (str(f.serviceStream) || str(f.serviceCategory) || 'Tech Service Inquiry')
+        : (str(f.rentalTitle) || str(f.subject) || 'Visa / Rental Inquiry');
+    const threadId = `iwv_${kind}_${counterpart.uid || counterpart.email || id}`;
+
+    return {
+        id: `iwv_${kind}_${id}`,
+        tenant: 'iwantavisa',
+        conversationKey: `iwantavisa:${threadId}`,
+        conversationId: threadId,
+        fromSuperAdmin: false,
+        senderName: counterpart.name || counterpart.email || 'Visitor',
+        senderEmail: counterpart.email,
+        counterpart,
+        subject,
         text,
         createdAt: toIso(f.createdAt) || toIso(f.timestamp)
     };
@@ -345,6 +639,12 @@ function summarizeTenants(conversations) {
 async function loadMultiDatabaseMessages(firebase) {
     if (typeof firebase.listDatabaseDocuments !== 'function') return [];
     const extra = [];
+    const seenIds = new Set();
+    const pushMsg = (m) => {
+        if (!m || !m.id || seenIds.has(m.id)) return;
+        seenIds.add(m.id);
+        extra.push(m);
+    };
 
     const safeList = async (db, path) => {
         try {
@@ -357,76 +657,114 @@ async function loadMultiDatabaseMessages(firebase) {
 
     const [
         rtoDocs,
+        defaultThreads,
+        defaultMsgs,
+        defaultUsers,
         adRadarDocs,
         hrConvDocs,
         hrUserDocs,
         iasjInboxDocs,
         iasjSentDocs,
-        ptDocs,
+        ptCreatorDocs,
+        ptDirectDocs,
         financeChatDocs,
+        financeSuperDocs,
+        kangoThreadDocs,
         kangoChatDocs,
-        lawyerChatDocs
+        suburbVoiceDocs,
+        suburbUserDocs,
+        modelsThreadDocs,
+        modelsMsgDocs,
+        modelsUserDocs,
+        phsarThreadDocs,
+        phsarUserDocs,
+        lawyerChatDocs,
+        lawyerSuperDocs,
+        iwvTechDocs,
+        iwvPostcardDocs,
+        iwvMerchantDocs
     ] = await Promise.all([
         safeList('(default)', 'superadmin_messages'),
+        safeList('(default)', 'threads'),
+        safeList('(default)', 'messages'),
+        safeList('(default)', 'users'),
         safeList('ad-radar', 'admin_messages'),
         safeList('human-resources', 'hr_conversations'),
         safeList('human-resources', 'hr_users'),
         safeList('itsasimplejob', 'mailboxes/superadmin/inbox'),
         safeList('itsasimplejob', 'mailboxes/superadmin/sent'),
         safeList('trainerdavid', 'creator_messages'),
+        safeList('trainerdavid', 'direct_messages'),
         safeList('finance', 'chat_interactions'),
+        safeList('finance', 'superadmin_messages'),
+        safeList('kangoorental', 'threads'),
         safeList('kangoorental', 'chat_interactions'),
-        safeList('lawyerselect', 'chat_interactions')
+        safeList('suburbreport', 'voice_conversations'),
+        safeList('suburbreport', 'users'),
+        safeList('models', 'threads'),
+        safeList('models', 'messages'),
+        safeList('models', 'users'),
+        safeList('phsar', 'threads'),
+        safeList('phsar', 'users'),
+        safeList('lawyerselect', 'chat_interactions'),
+        safeList('lawyerselect', 'superadmin_messages'),
+        safeList('iwantavisa', 'techServiceInquiries'),
+        safeList('iwantavisa', 'postcardMessages'),
+        safeList('iwantavisa', 'merchantMessages')
     ]);
 
-    for (const d of rtoDocs) {
-        const m = normalizeRtoMessage(d.id, d.fields);
-        if (m) extra.push(m);
-    }
-    for (const d of adRadarDocs) {
-        const m = normalizeAdRadarMessage(d.id, d.fields);
-        if (m) extra.push(m);
-    }
-    for (const d of iasjInboxDocs) {
-        const m = normalizeSimpleJobMessage(d.id, d.fields, 'inbox');
-        if (m) extra.push(m);
-    }
-    for (const d of iasjSentDocs) {
-        const m = normalizeSimpleJobMessage(d.id, d.fields, 'sent');
-        if (m) extra.push(m);
-    }
-    for (const d of ptDocs) {
-        const m = normalizeTrainerDavidMessage(d.id, d.fields);
-        if (m) extra.push(m);
-    }
-    for (const d of financeChatDocs) {
-        const m = normalizeMessage(d.id, d.fields, 'finance');
-        if (m) extra.push(m);
-    }
-    for (const d of kangoChatDocs) {
-        const m = normalizeMessage(d.id, d.fields, 'kangoorental');
-        if (m) extra.push(m);
-    }
-    for (const d of lawyerChatDocs) {
-        const m = normalizeMessage(d.id, d.fields, 'lawyerselect');
-        if (m) extra.push(m);
+    const toUserMap = (docs) => {
+        const map = new Map();
+        for (const u of docs) map.set(u.id, u.fields || {});
+        return map;
+    };
+
+    for (const d of rtoDocs) normalizeSuperAdminMessageDocs(d.id, d.fields, 'rto-ai').forEach(pushMsg);
+    for (const d of adRadarDocs) pushMsg(normalizeAdRadarMessage(d.id, d.fields));
+    for (const d of iasjInboxDocs) pushMsg(normalizeSimpleJobMessage(d.id, d.fields, 'inbox'));
+    for (const d of iasjSentDocs) pushMsg(normalizeSimpleJobMessage(d.id, d.fields, 'sent'));
+    for (const d of [...ptCreatorDocs, ...ptDirectDocs]) pushMsg(normalizeTrainerDavidMessage(d.id, d.fields));
+    for (const d of financeChatDocs) pushMsg(normalizeMessage(d.id, d.fields, 'finance'));
+    for (const d of financeSuperDocs) normalizeSuperAdminMessageDocs(d.id, d.fields, 'finance').forEach(pushMsg);
+    for (const d of kangoChatDocs) pushMsg(normalizeMessage(d.id, d.fields, 'kangoorental'));
+    for (const d of lawyerChatDocs) pushMsg(normalizeMessage(d.id, d.fields, 'lawyerselect'));
+    for (const d of lawyerSuperDocs) normalizeSuperAdminMessageDocs(d.id, d.fields, 'lawyerselect').forEach(pushMsg);
+    for (const d of iwvTechDocs) pushMsg(normalizeIWantAVisaDoc(d.id, d.fields, 'tech'));
+    for (const d of iwvPostcardDocs) pushMsg(normalizeIWantAVisaDoc(d.id, d.fields, 'postcard'));
+    for (const d of iwvMerchantDocs) pushMsg(normalizeIWantAVisaDoc(d.id, d.fields, 'merchant'));
+
+    // Suburb Report voice_conversations
+    const suburbUsers = toUserMap(suburbUserDocs);
+    for (const d of suburbVoiceDocs) {
+        normalizeSuburbReportConversation(d.id, d.fields, suburbUsers).forEach(pushMsg);
     }
 
-    if (hrConvDocs.length) {
-        const userMap = new Map();
-        for (const u of hrUserDocs) {
-            userMap.set(u.id, u.fields || {});
-        }
-        const hrSublists = await Promise.all(
-            hrConvDocs.map(async conv => {
-                const msgs = await safeList('human-resources', `hr_conversations/${conv.id}/messages`);
-                return normalizeHrConversationMessages(conv.id, conv.fields, msgs, userMap);
-            })
-        );
-        for (const list of hrSublists) {
-            extra.push(...list);
-        }
-    }
+    // Rep The Product / models threads & messages (in both `models` DB and legacy `(default)` DB)
+    const modelsUsers = new Map([...toUserMap(defaultUsers), ...toUserMap(modelsUserDocs)]);
+    const legacyModelThreads = defaultThreads.filter(d => d.fields && (d.fields.fanUid || d.fields.creatorId));
+    normalizeModelsThreadMessages(
+        [...modelsThreadDocs, ...legacyModelThreads],
+        [...modelsMsgDocs, ...defaultMsgs],
+        modelsUsers
+    ).forEach(pushMsg);
+
+    // Subcollection queries in parallel across hr, kangoorental, and phsar
+    const hrUsers = toUserMap(hrUserDocs);
+    const phsarUsers = toUserMap(phsarUserDocs);
+    await Promise.all([
+        ...hrConvDocs.map(async conv => {
+            const msgs = await safeList('human-resources', `hr_conversations/${conv.id}/messages`);
+            normalizeHrConversationMessages(conv.id, conv.fields, msgs, hrUsers).forEach(pushMsg);
+        }),
+        ...kangoThreadDocs.map(async thread => {
+            const msgs = await safeList('kangoorental', `threads/${thread.id}/messages`);
+            normalizeKangooThreadMessages(thread.id, thread.fields, msgs).forEach(pushMsg);
+        }),
+        ...phsarThreadDocs.map(async thread => {
+            const msgs = await safeList('phsar', `threads/${thread.id}/messages`);
+            normalizePhsarThreadMessages(thread.id, thread.fields, msgs, phsarUsers).forEach(pushMsg);
+        })
+    ]);
 
     return extra;
 }
@@ -438,8 +776,14 @@ async function loadMessageBox({ firebase = firebaseService } = {}) {
         loadMultiDatabaseMessages(firebase)
     ]);
     if (!docs) return null;
-    const primaryMessages = docs.map(d => normalizeMessage(d.id, d.fields)).filter(Boolean);
-    const messages = [...primaryMessages, ...extraMessages];
+    const seenIds = new Set();
+    const messages = [];
+    for (const m of [...docs.map(d => normalizeMessage(d.id, d.fields)).filter(Boolean), ...extraMessages]) {
+        if (m && m.id && !seenIds.has(m.id)) {
+            seenIds.add(m.id);
+            messages.push(m);
+        }
+    }
     const conversations = buildConversations(messages);
     return {
         tenants: summarizeTenants(conversations),
@@ -692,7 +1036,119 @@ async function replyToConversation({
             : { success: false, error: res.error || 'Failed to write RTO reply.' };
     }
 
-    // 8. Any other tenant app (finance, kangoorental, lawyerselect, health, nihongo, etc.)
+    // 8. Kangoo Car Rental (kangoorental database -> threads/{userId}/messages + thread summary)
+    if (appTag === 'kangoorental') {
+        const msgId = `msg_${nowMs}_${rand}`;
+        const threadId = str(conversationId) || recipientUid;
+        if (!threadId) return { success: false, error: 'Missing Kangoo thread ID.' };
+        const payload = {
+            sender: 'admin',
+            body: cleanText,
+            createdAt: nowIso,
+            retainUntil: retainUntilIso,
+            retentionYears: 7
+        };
+        const msgRes = await writeDbDoc('kangoorental', `threads/${threadId}/messages`, msgId, payload, false);
+        if (!msgRes.success) {
+            return { success: false, error: msgRes.error || 'Failed to write Kangoo Rental reply.' };
+        }
+        await writeDbDoc('kangoorental', 'threads', threadId, {
+            userId: threadId,
+            ...(recipientEmail ? { email: recipientEmail } : {}),
+            ...(recipientName ? { fullName: recipientName } : {}),
+            lastBody: cleanText.slice(0, 200),
+            lastSender: 'admin',
+            lastAt: nowIso,
+            retainUntil: retainUntilIso,
+            retentionYears: 7
+        }, true);
+        return {
+            success: true,
+            message: { messageId: msgId, conversationId: threadId, tag: 'kangoorental', userMessage: cleanText, createdAt: nowIso, retainedUntil: retainUntilIso }
+        };
+    }
+
+    // 9. Rep The Product (models database -> messages + threads)
+    if (appTag === 'models') {
+        const msgId = `msg_${nowMs}_${rand}`;
+        const payload = {
+            id: msgId,
+            threadId: convId,
+            sender: 'creator',
+            text: cleanText,
+            price: 0,
+            createdAt: nowMs
+        };
+        const res = await writeDbDoc('models', 'messages', msgId, payload, false);
+        if (!res.success) {
+            return { success: false, error: res.error || 'Failed to write Rep The Product reply.' };
+        }
+        await writeDbDoc('models', 'threads', convId, {
+            id: convId,
+            lastText: cleanText.slice(0, 140),
+            updatedAt: nowMs
+        }, true);
+        return {
+            success: true,
+            message: { messageId: msgId, conversationId: convId, tag: 'models', userMessage: cleanText, createdAt: nowIso, retainedUntil: retainUntilIso }
+        };
+    }
+
+    // 10. Cambodian Marketplace (phsar database -> threads/{threadId}/messages + thread summary)
+    if (appTag === 'phsar') {
+        const msgId = `msg_${nowMs}_${rand}`;
+        const payload = {
+            id: msgId,
+            senderId: senderUid,
+            text: cleanText,
+            lang: 'en',
+            createdAt: nowMs,
+            createdAtIso: nowIso
+        };
+        const res = await writeDbDoc('phsar', `threads/${convId}/messages`, msgId, payload, false);
+        if (!res.success) {
+            return { success: false, error: res.error || 'Failed to write Phsar reply.' };
+        }
+        await writeDbDoc('phsar', 'threads', convId, {
+            lastMessagePreview: cleanText.slice(0, 500),
+            updatedAt: nowMs,
+            updatedAtIso: nowIso
+        }, true);
+        return {
+            success: true,
+            message: { messageId: msgId, conversationId: convId, tag: 'phsar', userMessage: cleanText, createdAt: nowIso, retainedUntil: retainUntilIso }
+        };
+    }
+
+    // 11. Lawyer Select (lawyerselect database -> superadmin_messages)
+    if (appTag === 'lawyerselect') {
+        const msgId = `sam_${nowMs}_${rand}`;
+        const payload = {
+            id: msgId,
+            tag: 'lawyerselect',
+            source: 'lawyerselect',
+            conversationId: convId,
+            senderId: senderUid,
+            senderUid,
+            senderEmail,
+            senderName: senderName || 'SuperAdmin',
+            senderRole: 'superadmin',
+            recipientUid,
+            recipientEmail,
+            recipientName,
+            subject: replySubject,
+            body: cleanText,
+            status: 'replied',
+            createdAt: nowIso,
+            updatedAt: nowIso
+        };
+        const res = await writeDbDoc('lawyerselect', 'superadmin_messages', msgId, payload, false);
+        return res.success
+            ? { success: true, message: { messageId: msgId, ...payload, userMessage: cleanText, retainedUntil: retainUntilIso } }
+            : { success: false, error: res.error || 'Failed to write Lawyer Select reply.' };
+    }
+
+    // 12. Any other tenant app (finance, health, nihongo, eikaiwa, suburbreport, iwantavisa, etc.)
     const msgId = `msg_${nowMs}_${rand}`;
     const genericPayload = {
         messageId: msgId,
@@ -714,7 +1170,7 @@ async function replyToConversation({
         timestamp: nowIso,
         retainedUntil: retainUntilIso
     };
-    const namedDbs = ['finance', 'kangoorental', 'lawyerselect'];
+    const namedDbs = ['finance', 'suburbreport', 'iwantavisa'];
     const targetDb = namedDbs.includes(appTag) ? appTag : '(default)';
     const res = await writeDbDoc(targetDb, 'chat_interactions', msgId, genericPayload, false);
     if (targetDb !== '(default)') {
@@ -733,6 +1189,12 @@ module.exports = {
     normalizeSimpleJobMessage,
     normalizeTrainerDavidMessage,
     normalizeRtoMessage,
+    normalizeSuperAdminMessageDocs,
+    normalizeKangooThreadMessages,
+    normalizeSuburbReportConversation,
+    normalizeModelsThreadMessages,
+    normalizePhsarThreadMessages,
+    normalizeIWantAVisaDoc,
     buildConversations,
     summarizeTenants,
     loadMessageBox,

@@ -375,15 +375,21 @@ In strict compliance with statutory recordkeeping under the Australian Corporati
 - **Behaviour** (`install-app.js`): installs the site as an app from `site.webmanifest` (`display: standalone`; icons `assets/app-icon-192.png`, `assets/app-icon-512.png`; iOS `assets/apple-touch-icon.png`). Chromium browsers show their own install prompt (`beforeinstallprompt`); iOS/iPadOS, Safari and Firefox get a how-to dialog (`data-testid="install-help-dialog"`). The button is hidden when the site is already open as an installed app. No data is collected or stored.
 
 #### Unified Multi-Database SuperAdmin Message Box (`GET /api/message-box`, `POST /api/chat/send`)
-- **Aggregated Databases & Tags**:
+- **Aggregated Databases & Tags (All 12 `ai-foundation-firebase` Databases)**:
   - `aifoundation`: `(default)` database, `chat_interactions` collection (`tag: "aifoundation"`).
   - `lms`: `(default)` database, `chat_interactions` collection (`kind: "lms_message"`, `tag: "lms"`).
-  - `hr`: `human-resources` database, `hr_conversations/{convId}` + `messages` subcollection (`tag: "hr"`).
+  - `hr`: `human-resources` database, `hr_conversations/{convId}` + `messages` subcollection + `hr_users` (`tag: "hr"`).
   - `ad-radar`: `ad-radar` database, `admin_messages` collection (`tag: "ad-radar"`).
   - `itsasimplejob`: `itsasimplejob` database, `mailboxes/superadmin/inbox` & `sent` (`tag: "itsasimplejob"`).
-  - `trainerdavid`: `trainerdavid` database, `creator_messages` collection (`tag: "trainerdavid"`).
+  - `trainerdavid`: `trainerdavid` database, `creator_messages` & `direct_messages` collections (`tag: "trainerdavid"`).
   - `rto-ai`: `(default)` database, `superadmin_messages` & `notifications` collections (`tag: "rto-ai"`).
-  - Additional named databases (`finance`, `kangoorental`, `lawyerselect`) and tags (`health`, `nihongo`): `chat_interactions` / `admin_messages`.
+  - `kangoorental`: `kangoorental` database, `threads/{userId}` + `messages` subcollection (plus `chat_interactions`, `tag: "kangoorental"`).
+  - `suburbreport`: `suburbreport` database, `voice_conversations` + `users` collections (`tag: "suburbreport"`).
+  - `models`: `models` database (and legacy `(default)` threads), `threads`, `messages`, & `users` collections (`tag: "models"`).
+  - `phsar`: `phsar` database, `threads/{threadId}` + `messages` subcollection + `users` (`tag: "phsar"`).
+  - `lawyerselect`: `lawyerselect` database, `superadmin_messages` (including inline `adminResponse`) & `chat_interactions` (`tag: "lawyerselect"`).
+  - `iwantavisa`: `iwantavisa` database, `techServiceInquiries`, `postcardMessages`, & `merchantMessages` (`tag: "iwantavisa"`).
+  - `finance` & shared `(default)` tags (`health`, `nihongo`, `eikaiwa`): `chat_interactions` / `superadmin_messages`.
 - **Two-Way Reply Contract (`replyToConversation`)**: SuperAdmin replies from the Message Box write directly back to the originating Firestore database and collection in that app's native schema with 7-year statutory retention.
 - **UI Presentation Invariants**: All website database tags (`KNOWN_WEBSITE_TAGS`) are listed directly under the Message Box heading. The Conversations Box displays smaller text with Name and Email only (`0.78rem` / `0.7rem`), and message bubbles inside `.admin-thread-feed` use compact `0.8rem` typography for readability.
 
