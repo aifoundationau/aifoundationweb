@@ -41,7 +41,7 @@
     <meta name="twitter:image" content="https://www.aifoundation.net.au/assets/logo.png">
     <meta name="twitter:image:alt" content="AI Foundation Australia — Sovereign AI &amp; Autonomous Agents">
 
-    <link rel="stylesheet" href="style.css?v=71">
+    <link rel="stylesheet" href="style.css?v=72">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script type="application/ld+json">
@@ -449,7 +449,7 @@
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Custom tool-calling and internal API connectors</li>
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Vendor-agnostic private cloud / local deployment</li>
                         </ul>
-                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Agentic%20AI%20Ecosystems" class="service-action-btn" style="background: #eff6ff; color: #0066ff;">
+                        <a href="#david" onclick="if(window.navigateToContactForm){window.navigateToContactForm('Enquiry: Agentic AI Ecosystems'); return false;}" class="service-action-btn" style="background: #eff6ff; color: #0066ff;" data-agent-id="service-enquiry-agents" data-testid="service-enquiry-agents">
                             Enquire About Agents <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
@@ -471,7 +471,7 @@
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Cross-platform CRM, calendar &amp; invoice syncing</li>
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Hands-off automated lead capture and follow-ups</li>
                         </ul>
-                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Business%20Automation" class="service-action-btn" style="background: #ecfdf5; color: #10b981;">
+                        <a href="#david" onclick="if(window.navigateToContactForm){window.navigateToContactForm('Enquiry: Business Automation'); return false;}" class="service-action-btn" style="background: #ecfdf5; color: #10b981;" data-agent-id="service-enquiry-automation" data-testid="service-enquiry-automation">
                             Streamline Operations <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
@@ -493,7 +493,7 @@
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Hands-on prompt engineering &amp; pair-programming</li>
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Practical safety, IP protection &amp; ethics workshops</li>
                         </ul>
-                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20AI%20Training%20and%20Workshops" class="service-action-btn" style="background: #fffbeb; color: #d97706;">
+                        <a href="#david" onclick="if(window.navigateToContactForm){window.navigateToContactForm('Enquiry: AI Training and Workshops'); return false;}" class="service-action-btn" style="background: #fffbeb; color: #d97706;" data-agent-id="service-enquiry-training" data-testid="service-enquiry-training">
                             Book Workshop <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
@@ -515,7 +515,7 @@
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Multimodal document, chart &amp; table extraction</li>
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> On-premise air-gapped / secure cloud embeddings</li>
                         </ul>
-                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Enterprise%20RAG%20Systems" class="service-action-btn" style="background: #f5f3ff; color: #7c3aed;">
+                        <a href="#david" onclick="if(window.navigateToContactForm){window.navigateToContactForm('Enquiry: Enterprise RAG Systems'); return false;}" class="service-action-btn" style="background: #f5f3ff; color: #7c3aed;" data-agent-id="service-enquiry-rag" data-testid="service-enquiry-rag">
                             Connect Your Data <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
@@ -537,7 +537,7 @@
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Organizational AI governance policy formulation</li>
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Privacy preservation &amp; compliance assurance</li>
                         </ul>
-                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Governance%20and%20Compliance" class="service-action-btn" style="background: #fff1f2; color: #e11d48;">
+                        <a href="#david" onclick="if(window.navigateToContactForm){window.navigateToContactForm('Enquiry: Governance and Compliance'); return false;}" class="service-action-btn" style="background: #fff1f2; color: #e11d48;" data-agent-id="service-enquiry-governance" data-testid="service-enquiry-governance">
                             Consult Governance <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
@@ -559,7 +559,7 @@
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Community workshops &amp; regional youth programs</li>
                             <li class="service-feature-item"><i class="fa-solid fa-circle-check"></i> Non-profit digital transformation partnerships</li>
                         </ul>
-                        <a href="mailto:support@aifoundation.net.au?subject=Enquiry:%20Community%20Partnerships" class="service-action-btn" style="background: #f0fdf4; color: #16a34a;">
+                        <a href="#david" onclick="if(window.navigateToContactForm){window.navigateToContactForm('Enquiry: Community Partnerships'); return false;}" class="service-action-btn" style="background: #f0fdf4; color: #16a34a;" data-agent-id="service-enquiry-community" data-testid="service-enquiry-community">
                             Partner With Us <i class="fa-solid fa-arrow-right"></i>
                         </a>
                     </div>
@@ -1086,17 +1086,49 @@
                     </div>
                 </div>
 
-                <div class="dashboard-card contact-card">
+                <div class="dashboard-card contact-card" id="contactCard" data-agent-id="contact-card" data-testid="contact-card">
                     <h2>Contact Us</h2>
-                    <form id="contactForm" class="contact-form">
-                        <div class="form-row">
-                            <input type="text" id="contactFirstName" placeholder="First Name" required />
-                            <input type="text" id="contactLastName" placeholder="Last Name" required />
+                    <p class="contact-direct-subtitle" id="contactDirectSubtitle">Register first, then send a message direct to David (Super Admin) &mdash; no email client required.</p>
+                    <div class="contact-register-gate" id="contactRegisterGate">
+                        <div class="contact-gate-box" id="contactGateSignedOut" data-testid="contact-gate-signed-out">
+                            <p class="contact-gate-copy"><span class="contact-step-pill">Step 1 of 2</span> Sign in and register your details first to message David (Super Admin) directly.</p>
+                            <div class="contact-gate-actions">
+                                <button type="button" class="contact-gate-btn contact-gate-btn-primary" id="contactSignInRegisterBtn" data-agent-id="contact-signin-register-btn" data-testid="contact-signin-register-btn" aria-label="Sign in and register to message David (Super Admin)">
+                                    <i class="fa-brands fa-google" aria-hidden="true"></i> Sign In &amp; Register to Message David
+                                </button>
+                            </div>
                         </div>
-                        <input type="text" id="contactSubject" placeholder="Subject" required />
-                        <textarea id="contactMessage" placeholder="Email Text" required></textarea>
-                        <button type="submit" class="contact-submit-btn">
-                            <i class="fa-solid fa-paper-plane"></i> Send via Email Client
+                        <div class="contact-gate-box contact-gate-box-warn" id="contactGateUnregistered" hidden data-testid="contact-gate-unregistered">
+                            <p class="contact-gate-copy"><span class="contact-step-pill">Step 1 of 2</span> Confirm your name below or open your profile form to complete registration before messaging David (Super Admin).</p>
+                            <div class="contact-gate-actions">
+                                <button type="button" class="contact-gate-btn contact-gate-btn-primary" id="contactInlineRegisterBtn" data-agent-id="contact-inline-register-btn" data-testid="contact-inline-register-btn" aria-label="Complete registration with the name entered below">
+                                    <i class="fa-solid fa-user-check" aria-hidden="true"></i> Complete Registration
+                                </button>
+                                <button type="button" class="contact-gate-btn contact-gate-btn-secondary" id="contactOpenRegisterBtn" data-agent-id="contact-open-register-btn" data-testid="contact-open-register-btn" aria-label="Open full profile registration details">
+                                    <i class="fa-solid fa-id-card" aria-hidden="true"></i> Full Profile Details
+                                </button>
+                            </div>
+                        </div>
+                        <div class="contact-registered-badge" id="contactRegisteredBadge" hidden data-testid="contact-registered-badge">
+                            <span><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Registered as <strong id="contactRegisteredUser">Supporter</strong> &mdash; Step 2 unlocked: Send direct to David (Super Admin)</span>
+                            <button type="button" class="contact-gate-btn contact-gate-btn-secondary" id="contactEditDetailsBtn" data-agent-id="contact-edit-details-btn" data-testid="contact-edit-details-btn" aria-label="Update your registered details">
+                                Update Details
+                            </button>
+                        </div>
+                    </div>
+                    <form id="contactForm" class="contact-form" data-agent-id="contact-form" data-testid="contact-form">
+                        <div class="form-row">
+                            <input type="text" id="contactFirstName" placeholder="First Name" required data-agent-id="contact-first-name" data-testid="contact-first-name" aria-label="First Name" />
+                            <input type="text" id="contactLastName" placeholder="Last Name" required data-agent-id="contact-last-name" data-testid="contact-last-name" aria-label="Last Name" />
+                        </div>
+                        <input type="text" id="contactSubject" placeholder="Subject" required data-agent-id="contact-subject" data-testid="contact-subject" aria-label="Message Subject" />
+                        <textarea id="contactMessage" placeholder="Write your message direct to David (Super Admin)..." maxlength="3600" required data-agent-id="contact-message" data-testid="contact-message" aria-label="Message direct to David (Super Admin)"></textarea>
+                        <button type="submit" class="contact-submit-btn" id="contactSubmitBtn" data-agent-id="contact-submit-btn" data-testid="contact-submit-btn" aria-label="Send message direct to David (Super Admin)">
+                            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i> <span id="contactSubmitBtnLabel">Send Message Direct to David (Super Admin)</span>
+                        </button>
+                        <p class="contact-status-msg" id="contactFormStatus" role="status" aria-live="polite" hidden data-testid="contact-form-status"></p>
+                        <button type="button" class="contact-gate-btn contact-gate-btn-secondary" id="contactOpenDirectChatBtn" hidden data-agent-id="contact-open-direct-chat-btn" data-testid="contact-open-direct-chat-btn" aria-label="View conversation with David in Direct Chat">
+                            <i class="fa-solid fa-comments" aria-hidden="true"></i> View Conversation with David
                         </button>
                     </form>
                 </div>
@@ -3223,7 +3255,7 @@
 
     <script src="site-locale.js?v=1"></script>
     <script src="service-pricing.js?v=8"></script>
-    <script src="app.js?v=80"></script>
+    <script src="app.js?v=81"></script>
     <script src="install-app.js?v=1"></script>
     <script src="membership.js?v=5"></script>
 </body>

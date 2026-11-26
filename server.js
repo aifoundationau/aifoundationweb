@@ -1695,14 +1695,17 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
         // Sender identity always comes from the verified ID token
         const senderUid = req.user.uid;
         const senderEmail = req.user.email;
-        const senderName = req.user.name || req.body.senderName || '';
+        const senderName = String(req.body.senderName || req.user.name || '').trim().slice(0, 120);
         const senderPhoto = req.user.picture || '';
         const senderRole = req.user.isSuperAdmin ? 'superadmin' : 'supporter';
+        const cleanSubject = String(subject || '').trim().slice(0, 200);
+        const isDirectToSuperAdmin = !req.user.isSuperAdmin || req.body.directToSuperAdmin === true || (recipientUid === 'superadmin' && !conversationId);
 
         // Anyone signed in (supporters and site admins alike) messages the SuperAdmin in their own conversation.
-        // The two SuperAdmins can reply into any conversation across all AI Foundation apps and databases.
+        // The two SuperAdmins can reply into any conversation across all AI Foundation apps and databases,
+        // or send a direct test message via the Contact Us form.
         let result;
-        if (!req.user.isSuperAdmin) {
+        if (isDirectToSuperAdmin) {
             result = await firebaseService.sendChatMessage({
                 senderUid,
                 senderEmail,
@@ -1711,7 +1714,8 @@ app.post('/api/chat/send', requireAuth, async (req, res) => {
                 senderRole,
                 recipientUid: 'superadmin',
                 recipientEmail: 'support@aifoundation.net.au',
-                recipientName: 'SuperAdmin',
+                recipientName: 'David (Super Admin)',
+                subject: cleanSubject,
                 conversationId: `conv_${senderUid}`,
                 userMessage: msgText,
                 tag: 'aifoundation',

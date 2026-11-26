@@ -797,6 +797,12 @@ Control characters are stripped and the text trimmed before the length check. Bo
 ```
 Rate limit: one message per member every 3 seconds. Stored as `{ topic, text, authorUid, authorName, createdAt, tag: "aifoundation", businessId: "#aifoundation" }`; `authorUid` is never sent to browsers.
 
+#### Contact Us — Register-First Direct SuperAdmin Messaging (`#contactForm` -> `POST /api/chat/send`)
+- **No Email Client (`mailto:`)**: Legacy `mailto:support@aifoundation.net.au` form submissions are removed from Contact Us and Services enquiry buttons.
+- **Two-Step Flow**:
+  1. **Step 1 (Register First)**: Visitors must sign in with Google and have `detailsRegistered: true` on `users/{uid}` (completed either via `#contactInlineRegisterBtn` / `POST /api/auth/sync` with First & Last Name, or via `#userDetailsForm` in `admin-register-details`).
+  2. **Step 2 (Send Direct to David — Super Admin)**: Submitting `#contactForm` posts directly to `POST /api/chat/send` (`{ directToSuperAdmin: true, senderName, recipientUid: "superadmin", recipientEmail: "support@aifoundation.net.au", recipientName: "David (Super Admin)", subject, userMessage, hasUploads: false }`), writing a `chat_interactions` record with `tag: "aifoundation"`, `businessId: "#aifoundation"`, `conversationId: "conv_" + uid`, structured `subject`, and 7-year statutory retention.
+
 ---
 
 ## 3. Regulatory Compliance & Governance Alignment

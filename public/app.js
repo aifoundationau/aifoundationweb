@@ -976,6 +976,9 @@ const postObserver = new IntersectionObserver((entries) => {
                 // Update UI text immediately
                 if (userDisplayName) userDisplayName.textContent = newDisplayName.split(' ')[0];
                 if (menuUserName) menuUserName.textContent = newDisplayName;
+                if (typeof markContactProfileRegistered === 'function') {
+                    markContactProfileRegistered(currentUser, newDisplayName);
+                }
 
                 if (userFormStatusMsg) {
                     userFormStatusMsg.style.display = 'block';
@@ -1097,6 +1100,9 @@ const postObserver = new IntersectionObserver((entries) => {
             if (adminMenuSection) {
                 adminMenuSection.style.display = (isAdmin || isSuper) ? 'block' : 'none';
             }
+            if (typeof syncContactUsRegistrationState === 'function') {
+                syncContactUsRegistrationState();
+            }
 
             if (isAdmin || isSuper) {
                 document.cookie = "adminAuth=true; max-age=" + (365 * 24 * 60 * 60) + "; path=/";
@@ -1171,6 +1177,9 @@ const postObserver = new IntersectionObserver((entries) => {
             document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             document.cookie = "userAuth=; max-age=0; path=/";
             document.cookie = "userAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            if (typeof syncContactUsRegistrationState === 'function') {
+                syncContactUsRegistrationState();
+            }
         }
     }
 
@@ -3868,11 +3877,14 @@ const postObserver = new IntersectionObserver((entries) => {
         if (targetId) {
             activateSection(targetId);
             if (hash === 'david' || hash === 'contact') {
+                if (typeof syncContactUsRegistrationState === 'function') {
+                    syncContactUsRegistrationState();
+                }
                 setTimeout(() => {
                     const contactForm = document.getElementById('contactForm');
                     if (contactForm) {
                         contactForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        document.getElementById('contactFirstName')?.focus();
+                        focusContactUsPrimaryControl();
                     }
                 }, 150);
             } else if (hash) {
@@ -3881,18 +3893,233 @@ const postObserver = new IntersectionObserver((entries) => {
         }
     }
 
-    function navigateToContactForm() {
+    // Contact Us: two-step direct messaging to David (Super Admin) — register first, then send in-app (no emails)
+    let contactProfileState = { uid: '', loaded: false, detailsRegistered: false, displayName: '', email: '' };
+    let contactProfileFetchPromise = null;
+
+    function splitContactDisplayName(fullName) {
+        const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+        return {
+            firstName: parts[0] || '',
+            lastName: parts.slice(1).join(' ')
+        };
+    }
+
+    function setContactFormStatus(message, tone = 'info') {
+        const statusEl = document.getElementById('contactFormStatus');
+        if (!statusEl) return;
+        if (!message) {
+            statusEl.hidden = true;
+            statusEl.textContent = '';
+            statusEl.className = 'contact-status-msg';
+            return;
+        }
+        statusEl.hidden = false;
+        statusEl.textContent = message;
+        statusEl.className = `contact-status-msg is-${tone}`;
+    }
+
+    function markContactProfileRegistered(user, displayName) {
+        if (!user || !user.uid) return;
+        contactProfileState = {
+            uid: user.uid,
+            loaded: true,
+            detailsRegistered: true,
+            displayName: (displayName || user.displayName || '').trim(),
+            email: user.email || ''
+        };
+        syncContactUsRegistrationState();
+    }
+
+    function focusContactUsPrimaryControl() {
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) {
+            document.getElementById('contactSignInRegisterBtn')?.focus();
+            return;
+        }
+        if (!contactProfileState.detailsRegistered) {
+            const firstInput = document.getElementById('contactFirstName');
+            if (firstInput && !firstInput.value.trim()) {
+                firstInput.focus();
+            } else {
+                document.getElementById('contactInlineRegisterBtn')?.focus();
+            }
+            return;
+        }
+        const subjectInput = document.getElementById('contactSubject');
+        const messageInput = document.getElementById('contactMessage');
+        if (subjectInput && !subjectInput.value.trim()) {
+            subjectInput.focus();
+        } else if (messageInput) {
+            messageInput.focus();
+        }
+    }
+
+    async function loadContactProfileOnce(user, forceFetch = false) {
+        if (!user || !user.uid) return contactProfileState;
+        if (!forceFetch && contactProfileState.uid === user.uid && contactProfileState.loaded) {
+            return contactProfileState;
+        }
+        if (!forceFetch && contactProfileFetchPromise && contactProfileState.uid === user.uid) {
+            return contactProfileFetchPromise;
+        }
+        contactProfileState = {
+            uid: user.uid,
+            loaded: false,
+            detailsRegistered: false,
+            displayName: user.displayName || '',
+            email: user.email || ''
+        };
+        contactProfileFetchPromise = (async () => {
+            let profile = null;
+            try {
+                profile = await window.firebaseService?.getUserProfile?.(user.uid);
+            } catch (err) {
+                console.warn('[Contact Us Profile] Notice:', err.message);
+            }
+            const nextDisplayName = (profile?.displayName || user.displayName || '').trim();
+            contactProfileState = {
+                uid: user.uid,
+                loaded: true,
+                detailsRegistered: Boolean(profile && profile.detailsRegistered === true),
+                displayName: nextDisplayName,
+                email: profile?.email || user.email || ''
+            };
+            return contactProfileState;
+        })();
+        try {
+            return await contactProfileFetchPromise;
+        } finally {
+            contactProfileFetchPromise = null;
+        }
+    }
+
+    function applyContactUsGateDom(currentUser, state) {
+        const gateSignedOut = document.getElementById('contactGateSignedOut');
+        const gateUnregistered = document.getElementById('contactGateUnregistered');
+        const registeredBadge = document.getElementById('contactRegisteredBadge');
+        const registeredUserEl = document.getElementById('contactRegisteredUser');
+        const firstInput = document.getElementById('contactFirstName');
+        const lastInput = document.getElementById('contactLastName');
+        const subjectInput = document.getElementById('contactSubject');
+        const messageInput = document.getElementById('contactMessage');
+        const submitBtn = document.getElementById('contactSubmitBtn');
+        const openChatBtn = document.getElementById('contactOpenDirectChatBtn');
+        if (!gateSignedOut || !gateUnregistered || !registeredBadge) return;
+
+        if (!currentUser) {
+            gateSignedOut.hidden = false;
+            gateUnregistered.hidden = true;
+            registeredBadge.hidden = true;
+            if (openChatBtn) openChatBtn.hidden = true;
+            [firstInput, lastInput, subjectInput, messageInput].forEach(el => { if (el) el.disabled = true; });
+            if (submitBtn) submitBtn.disabled = true;
+            return;
+        }
+
+        const displayName = (state.displayName || currentUser.displayName || '').trim();
+        const split = splitContactDisplayName(displayName);
+        if (firstInput) {
+            firstInput.disabled = false;
+            if (!firstInput.value.trim() && split.firstName) firstInput.value = split.firstName;
+        }
+        if (lastInput) {
+            lastInput.disabled = false;
+            if (!lastInput.value.trim() && split.lastName) lastInput.value = split.lastName;
+        }
+
+        const isRegistered = Boolean(state.detailsRegistered);
+        gateSignedOut.hidden = true;
+        gateUnregistered.hidden = isRegistered;
+        registeredBadge.hidden = !isRegistered;
+        if (openChatBtn) openChatBtn.hidden = !isRegistered;
+
+        if (registeredUserEl && isRegistered) {
+            const labelName = displayName || currentUser.email || 'Supporter';
+            registeredUserEl.textContent = currentUser.email && labelName !== currentUser.email
+                ? `${labelName} (${currentUser.email})`
+                : labelName;
+        }
+
+        if (subjectInput) subjectInput.disabled = !isRegistered;
+        if (messageInput) messageInput.disabled = !isRegistered;
+        if (submitBtn) submitBtn.disabled = !isRegistered;
+    }
+
+    async function syncContactUsRegistrationState(options = {}) {
+        const { forceFetch = false } = options;
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) {
+            contactProfileState = { uid: '', loaded: false, detailsRegistered: false, displayName: '', email: '' };
+            applyContactUsGateDom(null, contactProfileState);
+            return contactProfileState;
+        }
+        applyContactUsGateDom(currentUser, contactProfileState);
+        const state = await loadContactProfileOnce(currentUser, forceFetch);
+        applyContactUsGateDom(currentUser, state);
+        return state;
+    }
+
+    async function completeContactRegistration(currentUser, firstName, lastName) {
+        const fullName = `${String(firstName || '').trim()} ${String(lastName || '').trim()}`.trim()
+            || (currentUser.displayName || '').trim();
+        if (!fullName) {
+            throw new Error('Please enter your first and last name to complete registration.');
+        }
+
+        const isSuper = checkIsSuperAdmin(currentUser);
+        const isAdmin = isSuper || checkIsAdmin(currentUser);
+        const supporterRole = isSuper ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
+        const supporterStatus = isSuper ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
+        const registeredAt = new Date().toISOString();
+
+        const profileUpdate = {
+            displayName: fullName,
+            role: supporterRole,
+            status: supporterStatus,
+            classification: isSuper ? 'Superadmin' : (isAdmin ? 'Admin' : 'Supporter'),
+            isSuperAdmin: isSuper,
+            detailsRegistered: true,
+            registeredAt
+        };
+
+        if (window.firebaseService?.syncUserProfile) {
+            await window.firebaseService.syncUserProfile(currentUser, profileUpdate);
+        } else {
+            const syncRes = await fetch('/api/auth/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    displayName: fullName,
+                    detailsRegistered: true,
+                    registeredAt
+                })
+            });
+            if (!syncRes.ok) {
+                throw new Error('Could not complete profile registration.');
+            }
+        }
+
+        if (userDisplayName) userDisplayName.textContent = fullName.split(' ')[0];
+        if (menuUserName) menuUserName.textContent = fullName;
+        markContactProfileRegistered(currentUser, fullName);
+        return fullName;
+    }
+
+    function navigateToContactForm(prefillSubject = '') {
         activateSection('section-david');
         if (window.location.hash !== '#david') {
             history.pushState(null, null, '#david');
         }
+        if (prefillSubject) {
+            const subjectInput = document.getElementById('contactSubject');
+            if (subjectInput) subjectInput.value = String(prefillSubject).trim();
+        }
+        syncContactUsRegistrationState();
         const contactForm = document.getElementById('contactForm');
         if (contactForm) {
             contactForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(() => {
-                const firstInput = document.getElementById('contactFirstName');
-                if (firstInput) firstInput.focus();
-            }, 300);
+            setTimeout(focusContactUsPrimaryControl, 300);
         }
     }
     window.navigateToContactForm = navigateToContactForm;
@@ -3900,18 +4127,159 @@ const postObserver = new IntersectionObserver((entries) => {
     window.addEventListener('hashchange', handleHash);
     handleHash();
 
-    document.getElementById('contactForm')?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const firstName = document.getElementById('contactFirstName').value;
-        const lastName = document.getElementById('contactLastName').value;
-        const subject = document.getElementById('contactSubject').value;
-        const message = document.getElementById('contactMessage').value;
-
-        const mailtoSubject = encodeURIComponent(subject);
-        const mailtoBody = encodeURIComponent(`From: ${firstName} ${lastName}\n\n${message}`);
-
-        window.location.href = `mailto:support@aifoundation.net.au?subject=${mailtoSubject}&body=${mailtoBody}`;
+    document.getElementById('contactSignInRegisterBtn')?.addEventListener('click', async () => {
+        setContactFormStatus('');
+        try {
+            if (window.firebaseService?.signInWithGoogle) {
+                await window.firebaseService.signInWithGoogle();
+                await syncContactUsRegistrationState({ forceFetch: true });
+                focusContactUsPrimaryControl();
+            } else {
+                setContactFormStatus('Authentication service is still initializing. Please try again in a moment.', 'error');
+            }
+        } catch (err) {
+            if (err?.code !== 'auth/popup-closed-by-user') {
+                setContactFormStatus(err?.message || 'Could not complete Google sign-in.', 'error');
+            }
+        }
     });
+
+    document.getElementById('contactInlineRegisterBtn')?.addEventListener('click', async () => {
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) {
+            setContactFormStatus('Please sign in first to register.', 'error');
+            return;
+        }
+        const firstName = (document.getElementById('contactFirstName')?.value || '').trim();
+        const lastName = (document.getElementById('contactLastName')?.value || '').trim();
+        const btn = document.getElementById('contactInlineRegisterBtn');
+        if (!firstName || !lastName) {
+            setContactFormStatus('Please enter both your first name and last name to complete registration.', 'error');
+            if (!firstName) document.getElementById('contactFirstName')?.focus();
+            else document.getElementById('contactLastName')?.focus();
+            return;
+        }
+        if (btn) btn.disabled = true;
+        setContactFormStatus('Saving your registration...', 'info');
+        try {
+            await completeContactRegistration(currentUser, firstName, lastName);
+            setContactFormStatus('Registration complete! Step 2 is unlocked — you can now send your message direct to David (Super Admin).', 'success');
+            focusContactUsPrimaryControl();
+        } catch (err) {
+            setContactFormStatus(err?.message || 'Could not complete registration.', 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    });
+
+    document.getElementById('contactOpenRegisterBtn')?.addEventListener('click', () => {
+        openUserDetailsModal();
+    });
+
+    document.getElementById('contactEditDetailsBtn')?.addEventListener('click', () => {
+        openUserDetailsModal();
+    });
+
+    document.getElementById('contactOpenDirectChatBtn')?.addEventListener('click', () => {
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) return;
+        const targetTab = checkIsSuperAdmin(currentUser) ? 'admin-supporter-chat' : 'supporter-tab-chat';
+        openAuthenticatedPanel(targetTab);
+    });
+
+    document.getElementById('contactForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!currentUser) {
+            setContactFormStatus('Please sign in and register first before sending a message to David (Super Admin).', 'error');
+            document.getElementById('contactSignInRegisterBtn')?.focus();
+            return;
+        }
+
+        const firstName = (document.getElementById('contactFirstName')?.value || '').trim();
+        const lastName = (document.getElementById('contactLastName')?.value || '').trim();
+        const subject = (document.getElementById('contactSubject')?.value || '').trim();
+        const message = (document.getElementById('contactMessage')?.value || '').trim();
+
+        if (!contactProfileState.detailsRegistered) {
+            setContactFormStatus('Please complete Step 1 registration above before messaging David (Super Admin).', 'error');
+            document.getElementById('contactInlineRegisterBtn')?.focus();
+            return;
+        }
+        if (!firstName || !lastName) {
+            setContactFormStatus('Please enter both your first name and last name.', 'error');
+            return;
+        }
+        if (!subject || !message) {
+            setContactFormStatus('Please enter both a subject and message for David (Super Admin).', 'error');
+            return;
+        }
+
+        const submitBtn = document.getElementById('contactSubmitBtn');
+        const submitLabel = document.getElementById('contactSubmitBtnLabel');
+        if (submitBtn) submitBtn.disabled = true;
+        if (submitLabel) submitLabel.textContent = 'Sending direct to David...';
+        setContactFormStatus('Sending your message direct to David (Super Admin)...', 'info');
+
+        try {
+            const fullName = `${firstName} ${lastName}`.trim();
+            if (fullName !== contactProfileState.displayName) {
+                await completeContactRegistration(currentUser, firstName, lastName);
+            }
+
+            const formattedMessage = `[Subject: ${subject}]\n\n${message}`;
+            if (window.firebaseService?.sendChatMessage) {
+                await window.firebaseService.sendChatMessage({
+                    directToSuperAdmin: true,
+                    senderUid: currentUser.uid,
+                    senderEmail: currentUser.email,
+                    senderName: fullName,
+                    senderPhoto: currentUser.photoURL || '',
+                    recipientUid: 'superadmin',
+                    recipientEmail: 'support@aifoundation.net.au',
+                    recipientName: 'David (Super Admin)',
+                    subject,
+                    userMessage: formattedMessage,
+                    hasUploads: false
+                });
+            } else {
+                const res = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        directToSuperAdmin: true,
+                        senderName: fullName,
+                        recipientUid: 'superadmin',
+                        recipientEmail: 'support@aifoundation.net.au',
+                        recipientName: 'David (Super Admin)',
+                        subject,
+                        userMessage: formattedMessage,
+                        hasUploads: false
+                    })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to send message.');
+                }
+            }
+
+            const subjectEl = document.getElementById('contactSubject');
+            const messageEl = document.getElementById('contactMessage');
+            if (subjectEl) subjectEl.value = '';
+            if (messageEl) messageEl.value = '';
+            const openChatBtn = document.getElementById('contactOpenDirectChatBtn');
+            if (openChatBtn) openChatBtn.hidden = false;
+            setContactFormStatus('Message sent direct to David (Super Admin)! You can continue the conversation anytime via Direct Chat.', 'success');
+        } catch (err) {
+            console.error('[Contact Direct Send Error]:', err);
+            setContactFormStatus('Could not send message: ' + (err?.message || 'Please try again.'), 'error');
+        } finally {
+            if (submitBtn) submitBtn.disabled = !contactProfileState.detailsRegistered;
+            if (submitLabel) submitLabel.textContent = 'Send Message Direct to David (Super Admin)';
+        }
+    });
+
+    syncContactUsRegistrationState();
 
     // Return URLs from Stripe Checkout (tokens and the paid AI services)
     const urlParams = new URLSearchParams(window.location.search);

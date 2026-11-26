@@ -1164,8 +1164,149 @@ html.admin-panel-open body {
 }
 
 .contact-card h2 {
-  margin-bottom: 24px;
+  margin-bottom: 8px;
   font-size: 1.75rem;
+}
+
+.contact-direct-subtitle {
+  margin: 0 0 18px 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.contact-register-gate {
+  margin-bottom: 18px;
+}
+
+.contact-gate-box,
+.contact-registered-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.92rem;
+}
+
+.contact-gate-box-warn {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.contact-registered-badge {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.contact-gate-copy {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.45;
+  flex: 1 1 260px;
+}
+
+.contact-step-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(0, 102, 255, 0.12);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.contact-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contact-gate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.contact-gate-btn-primary {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+}
+
+.contact-gate-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.contact-gate-btn-secondary {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.contact-gate-btn-secondary:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.contact-form input:disabled,
+.contact-form textarea:disabled,
+.contact-submit-btn:disabled,
+.contact-gate-btn:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.contact-status-msg {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.contact-status-msg.is-success {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.contact-status-msg.is-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.contact-gate-box[hidden],
+.contact-registered-badge[hidden],
+.contact-status-msg[hidden],
+.contact-gate-btn[hidden] {
+  display: none !important;
 }
 
 .contact-form {

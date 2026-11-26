@@ -483,3 +483,29 @@ test('Tool Governance and Managed Agent routes require auth/SuperAdmin, forbid c
         assert.match(html, /id="mgAgentLocalFileInput"/);
     }
 });
+
+test('Contact Us requires registration first and sends directly to David (Super Admin) with no email client', () => {
+    const indexHtml = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+    const servicesHtml = fs.readFileSync(path.join(root, 'public', 'services.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
+    const serverJs = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+    const firebaseSvc = fs.readFileSync(path.join(root, 'firebase-service.js'), 'utf8');
+
+    const contactSlice = indexHtml.slice(indexHtml.indexOf('id="contactCard"'), indexHtml.indexOf('id="section-messages"'));
+    assert.match(contactSlice, /id="contactSignInRegisterBtn"/);
+    assert.match(contactSlice, /id="contactInlineRegisterBtn"/);
+    assert.match(contactSlice, /id="contactRegisteredBadge"/);
+    assert.match(contactSlice, /id="contactForm"/);
+    assert.match(contactSlice, /Send Message Direct to David \(Super Admin\)/);
+    assert.doesNotMatch(contactSlice, /Send via Email Client|mailto:/i, 'Contact card never uses email client');
+
+    for (const [label, html] of [['index.html', indexHtml], ['services.html', servicesHtml]]) {
+        assert.doesNotMatch(html, /mailto:support@aifoundation\.net\.au\?subject=/i, `${label}: service enquiry links use Contact Us instead of mailto`);
+    }
+
+    assert.doesNotMatch(appJs, /mailto:support@aifoundation\.net\.au/i, 'app.js never opens mailto:support@aifoundation.net.au');
+    assert.match(appJs, /completeContactRegistration/);
+    assert.match(appJs, /directToSuperAdmin:\s*true/);
+    assert.match(serverJs, /isDirectToSuperAdmin/);
+    assert.match(firebaseSvc, /subject:\s*String\(data\.subject/);
+});
