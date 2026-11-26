@@ -484,7 +484,7 @@ test('Tool Governance and Managed Agent routes require auth/SuperAdmin, forbid c
     }
 });
 
-test('Contact Us requires registration first and sends directly to David (Super Admin) with no email client', () => {
+test('Contact Us shows Sign In to talk to David, opens chat directly, and connects to Message Box as Customer Enquiries', () => {
     const indexHtml = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
     const servicesHtml = fs.readFileSync(path.join(root, 'public', 'services.html'), 'utf8');
     const appJs = fs.readFileSync(path.join(root, 'public', 'app.js'), 'utf8');
@@ -492,11 +492,11 @@ test('Contact Us requires registration first and sends directly to David (Super 
     const firebaseSvc = fs.readFileSync(path.join(root, 'firebase-service.js'), 'utf8');
 
     const contactSlice = indexHtml.slice(indexHtml.indexOf('id="contactCard"'), indexHtml.indexOf('id="section-messages"'));
-    assert.match(contactSlice, /id="contactSignInRegisterBtn"/);
-    assert.match(contactSlice, /id="contactInlineRegisterBtn"/);
-    assert.match(contactSlice, /id="contactRegisteredBadge"/);
-    assert.match(contactSlice, /id="contactForm"/);
-    assert.match(contactSlice, /Send Message Direct to David \(Super Admin\)/);
+    assert.match(contactSlice, /Sign In to talk to David/);
+    assert.match(contactSlice, /id="contactGoogleSignInBtn"/);
+    assert.match(contactSlice, /id="contactChatPanel"/);
+    assert.match(contactSlice, /id="contactChatForm"/);
+    assert.match(contactSlice, /Customer Enquiries/);
     assert.doesNotMatch(contactSlice, /Send via Email Client|mailto:/i, 'Contact card never uses email client');
 
     for (const [label, html] of [['index.html', indexHtml], ['services.html', servicesHtml]]) {
@@ -504,8 +504,10 @@ test('Contact Us requires registration first and sends directly to David (Super 
     }
 
     assert.doesNotMatch(appJs, /mailto:support@aifoundation\.net\.au/i, 'app.js never opens mailto:support@aifoundation.net.au');
-    assert.match(appJs, /completeContactRegistration/);
+    assert.match(appJs, /tenantDisplayLabel/);
+    assert.match(appJs, /Customer Enquiries/);
+    assert.match(appJs, /syncContactChatAuthState/);
     assert.match(appJs, /directToSuperAdmin:\s*true/);
     assert.match(serverJs, /isDirectToSuperAdmin/);
-    assert.match(firebaseSvc, /subject:\s*String\(data\.subject/);
+    assert.match(firebaseSvc, /Customer Enquiries/);
 });

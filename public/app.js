@@ -1100,8 +1100,8 @@ const postObserver = new IntersectionObserver((entries) => {
             if (adminMenuSection) {
                 adminMenuSection.style.display = (isAdmin || isSuper) ? 'block' : 'none';
             }
-            if (typeof syncContactUsRegistrationState === 'function') {
-                syncContactUsRegistrationState();
+            if (typeof syncContactChatAuthState === 'function') {
+                syncContactChatAuthState();
             }
 
             if (isAdmin || isSuper) {
@@ -1177,8 +1177,8 @@ const postObserver = new IntersectionObserver((entries) => {
             document.cookie = "adminAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             document.cookie = "userAuth=; max-age=0; path=/";
             document.cookie = "userAuth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-            if (typeof syncContactUsRegistrationState === 'function') {
-                syncContactUsRegistrationState();
+            if (typeof syncContactChatAuthState === 'function') {
+                syncContactChatAuthState();
             }
         }
     }
@@ -1812,20 +1812,26 @@ const postObserver = new IntersectionObserver((entries) => {
     let messageBoxActiveKey = null;
     let messageBoxPersonal = false;
 
+    // Tenant display label: direct Contact Us & AI Foundation messages show as 'Customer Enquiries' in Message Box
+    function tenantDisplayLabel(tag) {
+        return String(tag || '').toLowerCase() === 'aifoundation' ? 'Customer Enquiries' : String(tag || 'unknown');
+    }
+
     // Tenant badge, coloured per app (style.css); apps without their own colour get the neutral badge
     function tenantBadgeHtml(tag) {
         const cssTag = String(tag || 'unknown').toLowerCase().replace(/[^a-z0-9-]/g, '');
-        return `<span class="tenant-badge tag-${cssTag}" title="From the ${escapeHtmlChat(tag)} app"><i class="fa-solid fa-tag"></i> ${escapeHtmlChat(tag)}</span>`;
+        const label = tenantDisplayLabel(tag);
+        return `<span class="tenant-badge tag-${cssTag}" title="Category / App: ${escapeHtmlChat(label)}"><i class="fa-solid fa-tag"></i> ${escapeHtmlChat(label)}</span>`;
     }
 
     function messageBoxPersonName(c) {
         return c.counterpart.name || c.counterpart.email || 'Unknown sender';
     }
 
-    // Shown when its app matches the filter and every search word appears in its app, sender, subject or messages
+    // Shown when its app matches the filter and every search word appears in its app, category, sender, subject or messages
     function messageBoxMatches(c, words) {
         if (messageBoxTenant !== 'all' && c.tenant !== messageBoxTenant) return false;
-        const haystack = [c.tenant, c.counterpart.name, c.counterpart.email, c.subject,
+        const haystack = [c.tenant, tenantDisplayLabel(c.tenant), c.counterpart.name, c.counterpart.email, c.subject,
             ...c.messages.map(m => `${m.senderName} ${m.subject} ${m.text}`)].join(' ').toLowerCase();
         return words.every(word => haystack.includes(word));
     }
@@ -1853,7 +1859,7 @@ const postObserver = new IntersectionObserver((entries) => {
             </button>`;
         const combined = getCombinedWebsiteTags();
         messageBoxTenants.innerHTML = chip('all', 'All apps', messageBoxConversations.length, false) +
-            combined.map(t => chip(t.tag, escapeHtmlChat(t.tag), t.conversations, true)).join('');
+            combined.map(t => chip(t.tag, escapeHtmlChat(tenantDisplayLabel(t.tag)), t.conversations, true)).join('');
     }
 
     // Conversations Box: Smaller Text, Name and Email only
@@ -3877,13 +3883,13 @@ const postObserver = new IntersectionObserver((entries) => {
         if (targetId) {
             activateSection(targetId);
             if (hash === 'david' || hash === 'contact') {
-                if (typeof syncContactUsRegistrationState === 'function') {
-                    syncContactUsRegistrationState();
+                if (typeof syncContactUsChatView === 'function') {
+                    syncContactUsChatView();
                 }
                 setTimeout(() => {
-                    const contactForm = document.getElementById('contactForm');
-                    if (contactForm) {
-                        contactForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const contactCard = document.getElementById('contactCard');
+                    if (contactCard) {
+                        contactCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         focusContactUsPrimaryControl();
                     }
                 }, 150);
@@ -3893,20 +3899,12 @@ const postObserver = new IntersectionObserver((entries) => {
         }
     }
 
-    // Contact Us: two-step direct messaging to David (Super Admin) — register first, then send in-app (no emails)
-    let contactProfileState = { uid: '', loaded: false, detailsRegistered: false, displayName: '', email: '' };
-    let contactProfileFetchPromise = null;
+    // Contact Us: Sign in with Google to talk to David, connected to Message Box as 'Customer Enquiries'
+    let contactChatPollTimer = null;
+    let pendingContactDraft = '';
 
-    function splitContactDisplayName(fullName) {
-        const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
-        return {
-            firstName: parts[0] || '',
-            lastName: parts.slice(1).join(' ')
-        };
-    }
-
-    function setContactFormStatus(message, tone = 'info') {
-        const statusEl = document.getElementById('contactFormStatus');
+    function setContactChatStatus(message, tone = 'info') {
+        const statusEl = document.getElementById('contactChatStatus');
         if (!statusEl) return;
         if (!message) {
             statusEl.hidden = true;
@@ -3919,207 +3917,135 @@ const postObserver = new IntersectionObserver((entries) => {
         statusEl.className = `contact-status-msg is-${tone}`;
     }
 
-    function markContactProfileRegistered(user, displayName) {
-        if (!user || !user.uid) return;
-        contactProfileState = {
-            uid: user.uid,
-            loaded: true,
-            detailsRegistered: true,
-            displayName: (displayName || user.displayName || '').trim(),
-            email: user.email || ''
-        };
-        syncContactUsRegistrationState();
-    }
-
     function focusContactUsPrimaryControl() {
         const currentUser = window.firebaseService?.getCurrentUser?.();
         if (!currentUser) {
-            document.getElementById('contactSignInRegisterBtn')?.focus();
+            document.getElementById('contactGoogleSignInBtn')?.focus();
             return;
         }
-        if (!contactProfileState.detailsRegistered) {
-            const firstInput = document.getElementById('contactFirstName');
-            if (firstInput && !firstInput.value.trim()) {
-                firstInput.focus();
-            } else {
-                document.getElementById('contactInlineRegisterBtn')?.focus();
-            }
-            return;
-        }
-        const subjectInput = document.getElementById('contactSubject');
-        const messageInput = document.getElementById('contactMessage');
-        if (subjectInput && !subjectInput.value.trim()) {
-            subjectInput.focus();
-        } else if (messageInput) {
-            messageInput.focus();
-        }
+        document.getElementById('contactChatInput')?.focus();
     }
 
-    async function loadContactProfileOnce(user, forceFetch = false) {
-        if (!user || !user.uid) return contactProfileState;
-        if (!forceFetch && contactProfileState.uid === user.uid && contactProfileState.loaded) {
-            return contactProfileState;
-        }
-        if (!forceFetch && contactProfileFetchPromise && contactProfileState.uid === user.uid) {
-            return contactProfileFetchPromise;
-        }
-        contactProfileState = {
-            uid: user.uid,
-            loaded: false,
-            detailsRegistered: false,
-            displayName: user.displayName || '',
-            email: user.email || ''
-        };
-        contactProfileFetchPromise = (async () => {
-            let profile = null;
-            try {
-                profile = await window.firebaseService?.getUserProfile?.(user.uid);
-            } catch (err) {
-                console.warn('[Contact Us Profile] Notice:', err.message);
-            }
-            const nextDisplayName = (profile?.displayName || user.displayName || '').trim();
-            contactProfileState = {
-                uid: user.uid,
-                loaded: true,
-                detailsRegistered: Boolean(profile && profile.detailsRegistered === true),
-                displayName: nextDisplayName,
-                email: profile?.email || user.email || ''
-            };
-            return contactProfileState;
-        })();
+    async function loadContactChatMessages(isBackgroundPoll = false) {
+        const feedList = document.getElementById('contactChatFeedList');
+        const messagesBox = document.getElementById('contactChatMessagesContainer');
+        const currentUser = window.firebaseService?.getCurrentUser?.();
+        if (!feedList || !currentUser) return;
+
         try {
-            return await contactProfileFetchPromise;
-        } finally {
-            contactProfileFetchPromise = null;
+            const emailParam = currentUser.email ? `&email=${encodeURIComponent(currentUser.email)}` : '';
+            const res = await fetch(`/api/chat/messages?uid=${encodeURIComponent(currentUser.uid)}${emailParam}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const messages = (data.messages || []).filter(
+                m => m.senderUid === currentUser.uid || isSuperAdminSenderUid(m.senderUid)
+            );
+
+            if (messages.length === 0) {
+                feedList.innerHTML = `
+                    <div class="contact-chat-empty">
+                        <i class="fa-solid fa-comments" aria-hidden="true"></i>
+                        <p>Connected as <strong>Customer Enquiries</strong>. Send a message below to talk directly with David.</p>
+                    </div>`;
+                return;
+            }
+
+            const distFromBottom = messagesBox
+                ? (messagesBox.scrollHeight - messagesBox.scrollTop - messagesBox.clientHeight)
+                : 0;
+            const wasNearBottom = distFromBottom < 80 || !isBackgroundPoll;
+
+            feedList.innerHTML = messages.map(msg => {
+                const isMine = msg.senderUid === currentUser.uid;
+                const senderLabel = isMine ? 'You' : (msg.senderName || 'David');
+                const rowClass = isMine ? 'chat-message-row sent' : 'chat-message-row received';
+                const avatar = isMine
+                    ? '<div class="chat-avatar-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></div>'
+                    : '<div class="chat-avatar-icon" style="background: #004ecc;"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>';
+                return `
+                    <div class="${rowClass}">
+                        ${avatar}
+                        <div class="chat-bubble">
+                            <div class="chat-bubble-sender">
+                                <span>${escapeHtmlChat(senderLabel)}</span>
+                                <span class="role-tag">${isMine ? 'Enquiry' : 'David'}</span>
+                            </div>
+                            <div class="chat-bubble-text">${renderMessageWithLinks(msg.userMessage)}</div>
+                            <div class="chat-bubble-footer">
+                                <span>${formatChatTimestamp(msg.createdAt || msg.timestamp)}</span>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            if (wasNearBottom && messagesBox) {
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+            }
+        } catch (err) {
+            if (!isBackgroundPoll) {
+                console.warn('[Contact Chat Fetch] Notice:', err.message);
+            }
         }
     }
 
-    function applyContactUsGateDom(currentUser, state) {
-        const gateSignedOut = document.getElementById('contactGateSignedOut');
-        const gateUnregistered = document.getElementById('contactGateUnregistered');
-        const registeredBadge = document.getElementById('contactRegisteredBadge');
-        const registeredUserEl = document.getElementById('contactRegisteredUser');
-        const firstInput = document.getElementById('contactFirstName');
-        const lastInput = document.getElementById('contactLastName');
-        const subjectInput = document.getElementById('contactSubject');
-        const messageInput = document.getElementById('contactMessage');
-        const submitBtn = document.getElementById('contactSubmitBtn');
-        const openChatBtn = document.getElementById('contactOpenDirectChatBtn');
-        if (!gateSignedOut || !gateUnregistered || !registeredBadge) return;
+    function syncContactUsChatView() {
+        const signInPrompt = document.getElementById('contactSignInPrompt');
+        const chatPanel = document.getElementById('contactChatPanel');
+        const userLabel = document.getElementById('contactChatUserLabel');
+        const chatInput = document.getElementById('contactChatInput');
+        if (!signInPrompt || !chatPanel) return;
 
-        if (!currentUser) {
-            gateSignedOut.hidden = false;
-            gateUnregistered.hidden = true;
-            registeredBadge.hidden = true;
-            if (openChatBtn) openChatBtn.hidden = true;
-            [firstInput, lastInput, subjectInput, messageInput].forEach(el => { if (el) el.disabled = true; });
-            if (submitBtn) submitBtn.disabled = true;
-            return;
-        }
-
-        const displayName = (state.displayName || currentUser.displayName || '').trim();
-        const split = splitContactDisplayName(displayName);
-        if (firstInput) {
-            firstInput.disabled = false;
-            if (!firstInput.value.trim() && split.firstName) firstInput.value = split.firstName;
-        }
-        if (lastInput) {
-            lastInput.disabled = false;
-            if (!lastInput.value.trim() && split.lastName) lastInput.value = split.lastName;
-        }
-
-        const isRegistered = Boolean(state.detailsRegistered);
-        gateSignedOut.hidden = true;
-        gateUnregistered.hidden = isRegistered;
-        registeredBadge.hidden = !isRegistered;
-        if (openChatBtn) openChatBtn.hidden = !isRegistered;
-
-        if (registeredUserEl && isRegistered) {
-            const labelName = displayName || currentUser.email || 'Supporter';
-            registeredUserEl.textContent = currentUser.email && labelName !== currentUser.email
-                ? `${labelName} (${currentUser.email})`
-                : labelName;
-        }
-
-        if (subjectInput) subjectInput.disabled = !isRegistered;
-        if (messageInput) messageInput.disabled = !isRegistered;
-        if (submitBtn) submitBtn.disabled = !isRegistered;
-    }
-
-    async function syncContactUsRegistrationState(options = {}) {
-        const { forceFetch = false } = options;
         const currentUser = window.firebaseService?.getCurrentUser?.();
         if (!currentUser) {
-            contactProfileState = { uid: '', loaded: false, detailsRegistered: false, displayName: '', email: '' };
-            applyContactUsGateDom(null, contactProfileState);
-            return contactProfileState;
-        }
-        applyContactUsGateDom(currentUser, contactProfileState);
-        const state = await loadContactProfileOnce(currentUser, forceFetch);
-        applyContactUsGateDom(currentUser, state);
-        return state;
-    }
-
-    async function completeContactRegistration(currentUser, firstName, lastName) {
-        const fullName = `${String(firstName || '').trim()} ${String(lastName || '').trim()}`.trim()
-            || (currentUser.displayName || '').trim();
-        if (!fullName) {
-            throw new Error('Please enter your first and last name to complete registration.');
-        }
-
-        const isSuper = checkIsSuperAdmin(currentUser);
-        const isAdmin = isSuper || checkIsAdmin(currentUser);
-        const supporterRole = isSuper ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
-        const supporterStatus = isSuper ? 'superadmin' : (isAdmin ? 'admin' : 'supporter');
-        const registeredAt = new Date().toISOString();
-
-        const profileUpdate = {
-            displayName: fullName,
-            role: supporterRole,
-            status: supporterStatus,
-            classification: isSuper ? 'Superadmin' : (isAdmin ? 'Admin' : 'Supporter'),
-            isSuperAdmin: isSuper,
-            detailsRegistered: true,
-            registeredAt
-        };
-
-        if (window.firebaseService?.syncUserProfile) {
-            await window.firebaseService.syncUserProfile(currentUser, profileUpdate);
-        } else {
-            const syncRes = await fetch('/api/auth/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    displayName: fullName,
-                    detailsRegistered: true,
-                    registeredAt
-                })
-            });
-            if (!syncRes.ok) {
-                throw new Error('Could not complete profile registration.');
+            signInPrompt.hidden = false;
+            chatPanel.hidden = true;
+            if (contactChatPollTimer) {
+                clearInterval(contactChatPollTimer);
+                contactChatPollTimer = null;
             }
+            return;
         }
 
-        if (userDisplayName) userDisplayName.textContent = fullName.split(' ')[0];
-        if (menuUserName) menuUserName.textContent = fullName;
-        markContactProfileRegistered(currentUser, fullName);
-        return fullName;
+        signInPrompt.hidden = true;
+        chatPanel.hidden = false;
+        if (userLabel) {
+            userLabel.textContent = currentUser.displayName || currentUser.email || 'Signed in';
+        }
+        if (pendingContactDraft && chatInput && !chatInput.value.trim()) {
+            chatInput.value = pendingContactDraft;
+            pendingContactDraft = '';
+        }
+
+        loadContactChatMessages();
+        if (!contactChatPollTimer) {
+            contactChatPollTimer = setInterval(() => {
+                const davidSec = document.getElementById('section-david');
+                if (!chatPanel.hidden && davidSec && davidSec.style.display !== 'none') {
+                    loadContactChatMessages(true);
+                }
+            }, 5000);
+        }
     }
 
-    function navigateToContactForm(prefillSubject = '') {
+    function navigateToContactForm(prefillText = '') {
         activateSection('section-david');
         if (window.location.hash !== '#david') {
             history.pushState(null, null, '#david');
         }
-        if (prefillSubject) {
-            const subjectInput = document.getElementById('contactSubject');
-            if (subjectInput) subjectInput.value = String(prefillSubject).trim();
+        if (prefillText) {
+            const cleanDraft = `${String(prefillText).trim()} — `;
+            const chatInput = document.getElementById('contactChatInput');
+            if (chatInput && window.firebaseService?.getCurrentUser?.()) {
+                chatInput.value = cleanDraft;
+            } else {
+                pendingContactDraft = cleanDraft;
+            }
         }
-        syncContactUsRegistrationState();
-        const contactForm = document.getElementById('contactForm');
-        if (contactForm) {
-            contactForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(focusContactUsPrimaryControl, 300);
+        syncContactUsChatView();
+        const contactCard = document.getElementById('contactCard');
+        if (contactCard) {
+            contactCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(focusContactUsPrimaryControl, 250);
         }
     }
     window.navigateToContactForm = navigateToContactForm;
@@ -4127,135 +4053,75 @@ const postObserver = new IntersectionObserver((entries) => {
     window.addEventListener('hashchange', handleHash);
     handleHash();
 
-    document.getElementById('contactSignInRegisterBtn')?.addEventListener('click', async () => {
-        setContactFormStatus('');
+    document.getElementById('contactGoogleSignInBtn')?.addEventListener('click', async () => {
+        setContactChatStatus('');
         try {
             if (window.firebaseService?.signInWithGoogle) {
                 await window.firebaseService.signInWithGoogle();
-                await syncContactUsRegistrationState({ forceFetch: true });
-                focusContactUsPrimaryControl();
+                syncContactUsChatView();
+                setTimeout(() => {
+                    document.getElementById('contactChatInput')?.focus();
+                }, 150);
             } else {
-                setContactFormStatus('Authentication service is still initializing. Please try again in a moment.', 'error');
+                setContactChatStatus('Authentication service is still initializing. Please try again in a moment.', 'error');
             }
         } catch (err) {
             if (err?.code !== 'auth/popup-closed-by-user') {
-                setContactFormStatus(err?.message || 'Could not complete Google sign-in.', 'error');
+                setContactChatStatus(err?.message || 'Could not complete Google sign-in.', 'error');
             }
         }
     });
 
-    document.getElementById('contactInlineRegisterBtn')?.addEventListener('click', async () => {
-        const currentUser = window.firebaseService?.getCurrentUser?.();
-        if (!currentUser) {
-            setContactFormStatus('Please sign in first to register.', 'error');
-            return;
-        }
-        const firstName = (document.getElementById('contactFirstName')?.value || '').trim();
-        const lastName = (document.getElementById('contactLastName')?.value || '').trim();
-        const btn = document.getElementById('contactInlineRegisterBtn');
-        if (!firstName || !lastName) {
-            setContactFormStatus('Please enter both your first name and last name to complete registration.', 'error');
-            if (!firstName) document.getElementById('contactFirstName')?.focus();
-            else document.getElementById('contactLastName')?.focus();
-            return;
-        }
-        if (btn) btn.disabled = true;
-        setContactFormStatus('Saving your registration...', 'info');
-        try {
-            await completeContactRegistration(currentUser, firstName, lastName);
-            setContactFormStatus('Registration complete! Step 2 is unlocked — you can now send your message direct to David (Super Admin).', 'success');
-            focusContactUsPrimaryControl();
-        } catch (err) {
-            setContactFormStatus(err?.message || 'Could not complete registration.', 'error');
-        } finally {
-            if (btn) btn.disabled = false;
-        }
-    });
+    const contactChatInputEl = document.getElementById('contactChatInput');
+    if (contactChatInputEl) {
+        contactChatInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('contactChatForm')?.requestSubmit();
+            }
+        });
+    }
 
-    document.getElementById('contactOpenRegisterBtn')?.addEventListener('click', () => {
-        openUserDetailsModal();
-    });
-
-    document.getElementById('contactEditDetailsBtn')?.addEventListener('click', () => {
-        openUserDetailsModal();
-    });
-
-    document.getElementById('contactOpenDirectChatBtn')?.addEventListener('click', () => {
-        const currentUser = window.firebaseService?.getCurrentUser?.();
-        if (!currentUser) return;
-        const targetTab = checkIsSuperAdmin(currentUser) ? 'admin-supporter-chat' : 'supporter-tab-chat';
-        openAuthenticatedPanel(targetTab);
-    });
-
-    document.getElementById('contactForm')?.addEventListener('submit', async (e) => {
+    document.getElementById('contactChatForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const currentUser = window.firebaseService?.getCurrentUser?.();
         if (!currentUser) {
-            setContactFormStatus('Please sign in and register first before sending a message to David (Super Admin).', 'error');
-            document.getElementById('contactSignInRegisterBtn')?.focus();
+            syncContactUsChatView();
             return;
         }
 
-        const firstName = (document.getElementById('contactFirstName')?.value || '').trim();
-        const lastName = (document.getElementById('contactLastName')?.value || '').trim();
-        const subject = (document.getElementById('contactSubject')?.value || '').trim();
-        const message = (document.getElementById('contactMessage')?.value || '').trim();
+        const inputEl = document.getElementById('contactChatInput');
+        const message = (inputEl?.value || '').trim();
+        if (!message) return;
 
-        if (!contactProfileState.detailsRegistered) {
-            setContactFormStatus('Please complete Step 1 registration above before messaging David (Super Admin).', 'error');
-            document.getElementById('contactInlineRegisterBtn')?.focus();
-            return;
-        }
-        if (!firstName || !lastName) {
-            setContactFormStatus('Please enter both your first name and last name.', 'error');
-            return;
-        }
-        if (!subject || !message) {
-            setContactFormStatus('Please enter both a subject and message for David (Super Admin).', 'error');
-            return;
-        }
-
-        const submitBtn = document.getElementById('contactSubmitBtn');
-        const submitLabel = document.getElementById('contactSubmitBtnLabel');
-        if (submitBtn) submitBtn.disabled = true;
-        if (submitLabel) submitLabel.textContent = 'Sending direct to David...';
-        setContactFormStatus('Sending your message direct to David (Super Admin)...', 'info');
+        const sendBtn = document.getElementById('contactChatSendBtn');
+        const sendLabel = document.getElementById('contactChatSendBtnLabel');
+        if (sendBtn) sendBtn.disabled = true;
+        if (sendLabel) sendLabel.textContent = 'Sending...';
+        setContactChatStatus('');
 
         try {
-            const fullName = `${firstName} ${lastName}`.trim();
-            if (fullName !== contactProfileState.displayName) {
-                await completeContactRegistration(currentUser, firstName, lastName);
-            }
+            const payload = {
+                directToSuperAdmin: true,
+                senderUid: currentUser.uid,
+                senderEmail: currentUser.email,
+                senderName: (currentUser.displayName || currentUser.email || 'Supporter').trim(),
+                senderPhoto: currentUser.photoURL || '',
+                recipientUid: 'superadmin',
+                recipientEmail: 'support@aifoundation.net.au',
+                recipientName: 'David (Super Admin)',
+                subject: 'Customer Enquiries',
+                userMessage: message,
+                hasUploads: false
+            };
 
-            const formattedMessage = `[Subject: ${subject}]\n\n${message}`;
             if (window.firebaseService?.sendChatMessage) {
-                await window.firebaseService.sendChatMessage({
-                    directToSuperAdmin: true,
-                    senderUid: currentUser.uid,
-                    senderEmail: currentUser.email,
-                    senderName: fullName,
-                    senderPhoto: currentUser.photoURL || '',
-                    recipientUid: 'superadmin',
-                    recipientEmail: 'support@aifoundation.net.au',
-                    recipientName: 'David (Super Admin)',
-                    subject,
-                    userMessage: formattedMessage,
-                    hasUploads: false
-                });
+                await window.firebaseService.sendChatMessage(payload);
             } else {
                 const res = await fetch('/api/chat/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        directToSuperAdmin: true,
-                        senderName: fullName,
-                        recipientUid: 'superadmin',
-                        recipientEmail: 'support@aifoundation.net.au',
-                        recipientName: 'David (Super Admin)',
-                        subject,
-                        userMessage: formattedMessage,
-                        hasUploads: false
-                    })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.success) {
@@ -4263,23 +4129,21 @@ const postObserver = new IntersectionObserver((entries) => {
                 }
             }
 
-            const subjectEl = document.getElementById('contactSubject');
-            const messageEl = document.getElementById('contactMessage');
-            if (subjectEl) subjectEl.value = '';
-            if (messageEl) messageEl.value = '';
-            const openChatBtn = document.getElementById('contactOpenDirectChatBtn');
-            if (openChatBtn) openChatBtn.hidden = false;
-            setContactFormStatus('Message sent direct to David (Super Admin)! You can continue the conversation anytime via Direct Chat.', 'success');
+            if (inputEl) inputEl.value = '';
+            await loadContactChatMessages();
+            if (typeof loadSupporterChatMessages === 'function' && supporterChatModal?.style.display === 'flex') {
+                loadSupporterChatMessages(currentUser.uid, true);
+            }
         } catch (err) {
-            console.error('[Contact Direct Send Error]:', err);
-            setContactFormStatus('Could not send message: ' + (err?.message || 'Please try again.'), 'error');
+            console.error('[Contact Chat Send Error]:', err);
+            setContactChatStatus('Could not send message: ' + (err?.message || 'Please try again.'), 'error');
         } finally {
-            if (submitBtn) submitBtn.disabled = !contactProfileState.detailsRegistered;
-            if (submitLabel) submitLabel.textContent = 'Send Message Direct to David (Super Admin)';
+            if (sendBtn) sendBtn.disabled = false;
+            if (sendLabel) sendLabel.textContent = 'Send';
         }
     });
 
-    syncContactUsRegistrationState();
+    syncContactUsChatView();
 
     // Return URLs from Stripe Checkout (tokens and the paid AI services)
     const urlParams = new URLSearchParams(window.location.search);
