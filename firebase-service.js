@@ -977,7 +977,7 @@ async function sendChatMessage(data) {
         recipientUid: data.recipientUid || 'superadmin',
         recipientEmail: (data.recipientEmail || 'support@aifoundation.net.au').toLowerCase().trim(),
         recipientName: data.recipientName || 'SuperAdmin',
-        subject: String(data.subject || '').trim().slice(0, 200),
+        subject: String(data.subject || 'Customer Enquiries').trim().slice(0, 200),
         userMessage: userMessage,
         hasLinks: extractedLinks.length > 0,
         links: extractedLinks,
